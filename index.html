@@ -46,6 +46,10 @@
   <meta name="twitter:description" content="Economics graduate with a minor in Information Security and Intelligence.">
   <meta name="twitter:image"       content="https://jakemcgaha.com/og-image.jpg"><!-- UPDATE -->
 
+  <!-- Security -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; frame-ancestors 'none'; base-uri 'self'; form-action https://api.web3forms.com;">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
   <!-- Theme color — matches dark navbar -->
   <meta name="theme-color" content="#080D1A">
 
@@ -1747,6 +1751,9 @@
           <div class="fade-up delay-1">
             <form id="contact-form" class="form" novalidate aria-label="Send Jake a message">
 
+              <!-- Honeypot — hidden from humans, catches bots -->
+              <input type="checkbox" name="botcheck" style="display:none!important" tabindex="-1" autocomplete="off">
+
               <div class="form__row">
                 <label class="form__label" for="f-name">
                   Name <abbr title="required" aria-label="required">*</abbr>
@@ -1758,6 +1765,7 @@
                   aria-required="true"
                   aria-describedby="err-name"
                   placeholder="Your name"
+                  maxlength="100"
                 >
                 <span id="err-name" class="form__error" role="alert" aria-live="polite"></span>
               </div>
@@ -1773,6 +1781,7 @@
                   aria-required="true"
                   aria-describedby="err-email"
                   placeholder="your@email.com"
+                  maxlength="254"
                 >
                 <span id="err-email" class="form__error" role="alert" aria-live="polite"></span>
               </div>
@@ -1971,6 +1980,7 @@
     (function () {
       var form    = document.getElementById('contact-form');
       var success = document.getElementById('form-success');
+      var lastSubmit = 0;
       if (!form) return;
 
       var rules = [
@@ -2015,6 +2025,7 @@
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (Date.now() - lastSubmit < 30000) { alert('Please wait 30 seconds before sending again.'); return; }
         var ok = true;
         rules.forEach(function (r) {
           var inp = document.getElementById(r[0]);
@@ -2040,6 +2051,7 @@
           })
         }).then(function (r) {
           if (r.ok) {
+            lastSubmit = Date.now();
             form.reset();
             if (success) { success.classList.add('visible'); success.focus(); }
           } else {
