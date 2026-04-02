@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "website",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", ".", "-p", "8080", "-c-1"],
+      "port": 8080
+    },
+    {
+      "name": "property-scout",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "property-scout/client/dist", "-p", "5176", "-c-1", "--cors"],
+      "port": 5176
+    }
+  ]
+}
