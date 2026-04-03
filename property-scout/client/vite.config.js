@@ -3,8 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/property-scout/client/dist/',
+  base: '/scout/',
   build: {
-    outDir: 'dist',
+    outDir: '../../scout',
+    emptyOutDir: true,
   },
 });
