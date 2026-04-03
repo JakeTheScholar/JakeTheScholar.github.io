@@ -283,13 +283,12 @@
         .gradient-blob { display: none; }
 
         /* ── Hero ── */
-        /* ── Hero ── */
         #hero {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 100px 32px 60px;
+            padding: 100px 0 40px;
             position: relative;
         }
 
@@ -300,6 +299,7 @@
             align-items: center;
             max-width: 1100px;
             margin: 0 auto;
+            padding: 0 32px;
             width: 100%;
         }
 
@@ -446,36 +446,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .scroll-indicator {
-            position: absolute;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            opacity: 0;
-            animation: fadeUp 0.6s 2.4s var(--ease-out) forwards;
-        }
-        .scroll-indicator span {
-            font-size: 10px;
-            font-weight: 500;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-        }
-        .scroll-indicator .arrow {
-            width: 1px;
-            height: 36px;
-            background: linear-gradient(to bottom, var(--gold-dim), transparent);
-            animation: scrollPulse 2.5s ease-in-out infinite;
-        }
-        @keyframes scrollPulse {
-            0%, 100% { opacity: 0.8; transform: scaleY(1); }
-            50% { opacity: 0.3; transform: scaleY(0.5); }
-        }
 
         /* ── About ── */
         .about-grid {
@@ -1111,7 +1081,6 @@
             }
             .hero-photo-wrap { display: flex; justify-content: center; order: -1; }
             .hero-photo-frame { width: 240px; }
-            .scroll-indicator { display: none; }
         }
 
         /* ── Touch devices ── */
@@ -1131,7 +1100,6 @@
             }
             .hero-content, .hero-photo-wrap { opacity: 1 !important; transform: none !important; }
             nav { opacity: 1 !important; }
-            .scroll-indicator { opacity: 1 !important; }
             .reveal { opacity: 1 !important; transform: none !important; }
             #cursor, #cursor-dot { display: none !important; }
         }
@@ -1191,10 +1159,6 @@
                         <img src="headshot.jpg" alt="Jake McGaha" class="hero-photo" loading="eager">
                     </div>
                 </div>
-            </div>
-            <div class="scroll-indicator" aria-hidden="true">
-                <span>Scroll</span>
-                <div class="arrow"></div>
             </div>
         </section>
 
