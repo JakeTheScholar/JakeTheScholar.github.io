@@ -69,16 +69,25 @@
         img { display: block; max-width: 100%; }
         ul { list-style: none; }
 
-        /* ── Vignette (desktop only) ── */
-        @media (hover: hover) and (pointer: fine) {
-            body::before {
-                content: '';
-                position: fixed;
-                inset: 0;
-                pointer-events: none;
-                z-index: 2;
-                background: radial-gradient(ellipse at center, transparent 55%, rgba(7, 6, 11, 0.5) 100%);
-            }
+        /* ── Vignette ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8999;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(7, 6, 11, 0.5) 100%);
+        }
+
+        /* ── Grain Overlay ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9000;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
         }
 
         /* ── Loading Screen ── */
@@ -158,9 +167,6 @@
             inset: 0;
             z-index: 0;
             pointer-events: none;
-        }
-        @media (hover: none), (pointer: coarse) {
-            #particles { display: none; }
         }
 
         /* ── Navigation ── */
@@ -1545,9 +1551,8 @@
         };
 
         /* ═══ PARTICLE SYSTEM ═══ */
-        const isMobileDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches;
         const canvas = document.getElementById('particles');
-        const ctx = canvas && !isMobileDevice ? canvas.getContext('2d') : null;
+        const ctx = canvas.getContext('2d');
         let particles = [];
         let mouseX = -1000, mouseY = -1000;
 
@@ -1650,51 +1655,47 @@
             requestAnimationFrame(animate);
         }
 
-        if (ctx) {
-            resizeCanvas();
-            initParticles();
-            animate();
+        resizeCanvas();
+        initParticles();
+        animate();
 
-            let resizeTimer;
-            window.addEventListener('resize', () => {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
-            });
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
+        });
+
+        /* ═══ CUSTOM CURSOR ═══ */
+        const cursor = document.getElementById('cursor');
+        const cursorDot = document.getElementById('cursor-dot');
+        let cursorX = 0, cursorY = 0;
+        let dotX = 0, dotY = 0;
+
+        document.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            cursorX = e.clientX;
+            cursorY = e.clientY;
+            cursor.classList.add('visible');
+            cursorDot.classList.add('visible');
+        });
+
+        function updateCursor() {
+            dotX += (cursorX - dotX) * 0.15;
+            dotY += (cursorY - dotY) * 0.15;
+            cursor.style.left = cursorX + 'px';
+            cursor.style.top = cursorY + 'px';
+            cursorDot.style.left = dotX + 'px';
+            cursorDot.style.top = dotY + 'px';
+            requestAnimationFrame(updateCursor);
         }
+        updateCursor();
 
-        /* ═══ CUSTOM CURSOR (desktop only) ═══ */
-        if (!isMobileDevice) {
-            const cursor = document.getElementById('cursor');
-            const cursorDot = document.getElementById('cursor-dot');
-            let cursorX = 0, cursorY = 0;
-            let dotX = 0, dotY = 0;
-
-            document.addEventListener('mousemove', e => {
-                mouseX = e.clientX;
-                mouseY = e.clientY;
-                cursorX = e.clientX;
-                cursorY = e.clientY;
-                cursor.classList.add('visible');
-                cursorDot.classList.add('visible');
-            });
-
-            function updateCursor() {
-                dotX += (cursorX - dotX) * 0.15;
-                dotY += (cursorY - dotY) * 0.15;
-                cursor.style.left = cursorX + 'px';
-                cursor.style.top = cursorY + 'px';
-                cursorDot.style.left = dotX + 'px';
-                cursorDot.style.top = dotY + 'px';
-                requestAnimationFrame(updateCursor);
-            }
-            updateCursor();
-
-            const hoverTargets = 'a, button, .skill-item, .interest-card, .exp-card, .form-submit, .btn-linkedin, .btn-ghost';
-            document.querySelectorAll(hoverTargets).forEach(el => {
-                el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-                el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-            });
-        }
+        const hoverTargets = 'a, button, .skill-item, .interest-card, .exp-card, .form-submit, .btn-linkedin, .btn-ghost';
+        document.querySelectorAll(hoverTargets).forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
 
         /* ═══ LOADER ═══ */
         const loader = document.getElementById('loader');
