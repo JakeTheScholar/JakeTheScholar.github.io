@@ -10,7 +10,7 @@
     {
       "name": "property-scout",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "property-scout/client/dist", "-p", "5176", "-c-1", "--cors"],
+      "runtimeArgs": ["http-server", "property-scout/client/dist", "-p", "5176", "-c-1", "--cors", "-P", "http://localhost:5176"],
       "port": 5176
     }
   ]

@@ -22,7 +22,6 @@ export default function CompareTable({ properties, onRemove }) {
     { label: 'Price', get: a => formatCurrency(a.analysis.price) },
     { label: 'Units', get: a => a.analysis.units },
     { label: 'Neighborhood', get: a => <NeighborhoodBadge badge={a.nh.badge} score={a.nh.overall} /> },
-    { label: 'Down Payment', get: a => formatCurrency(a.analysis.downPayment) },
     { label: 'Total Cash In', get: a => formatCurrency(a.analysis.totalInvested), highlight: true },
     { label: 'Monthly PITI', get: a => formatCurrency(a.analysis.housing.total) },
     { label: 'Est. Rent/Unit', get: a => formatCurrency(a.analysis.estimatedRent) },
@@ -31,8 +30,16 @@ export default function CompareTable({ properties, onRemove }) {
     { label: 'Full Rental CF/mo', get: a => <CashFlowCell value={a.analysis.fullRental.net} /> },
     { label: 'Full Rental CoC', get: a => formatPct(a.analysis.fullRental.coc) },
     { label: 'Cap Rate', get: a => formatPct(a.analysis.capRate) },
+    { label: 'DSCR', get: a => a.analysis.dcf.dscr.toFixed(2) },
+    { label: 'GRM', get: a => a.analysis.dcf.grm.toFixed(1) },
+    { label: 'Rent-to-Price', get: a => formatPct(a.analysis.rentToPriceRatio) },
+    { label: 'Expense Ratio', get: a => formatPct(a.analysis.expenseRatio) },
+    { label: 'NPV', get: a => <CashFlowCell value={a.analysis.dcf.npv} />, highlight: true },
+    { label: 'IRR', get: a => formatPct(a.analysis.dcf.irr) },
+    { label: 'Equity Multiple', get: a => a.analysis.dcf.equityMultiple.toFixed(2) + 'x' },
+    { label: 'Total ROI (5yr)', get: a => formatPct(a.analysis.dcf.totalROI), highlight: true },
     { label: 'Break-Even Rent', get: a => formatCurrency(a.analysis.breakEvenRent) },
-    { label: '2yr Equity Built', get: a => formatCurrency(a.analysis.equity.totalEquity), highlight: true },
+    { label: '2yr Equity Built', get: a => formatCurrency(a.analysis.equity.totalEquity) },
   ];
 
   return (

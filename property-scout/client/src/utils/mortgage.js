@@ -61,6 +61,161 @@ export function capRate(annualNOI, purchasePrice) {
   return (annualNOI / purchasePrice) * 100;
 }
 
+// Discounted Cash Flow — NPV of future cash flows over a hold period
+export function dcfAnalysis(price, loanAmount, rate, rentPerUnit, units, holdYears, assumptions) {
+  const {
+    vacancyPct = 8, maintenancePct = 10, appreciationPct = 3,
+    rentGrowthPct = 2, discountRate = 10, taxRate = 1.1,
+    insuranceAnnual = 1200, closingCostPct = 3, downPct = 3.5,
+    sellingCostPct = 6,
+  } = assumptions;
+
+  const downPayment = price * downPct / 100;
+  const closingCosts = price * closingCostPct / 100;
+  const totalInvested = downPayment + closingCosts;
+  const monthlyPmt = monthlyPayment(loanAmount, rate);
+  const r = rate / 100 / 12;
+
+  const annualCashFlows = [];
+  let balance = loanAmount;
+  let currentRent = rentPerUnit;
+
+  for (let year = 1; year <= holdYears; year++) {
+    // Revenue
+    const grossRent = currentRent * units * 12;
+    const effectiveGross = grossRent * (1 - vacancyPct / 100);
+
+    // Expenses
+    const maintenance = grossRent * maintenancePct / 100;
+    const taxes = price * Math.pow(1 + appreciationPct / 100, year) * taxRate / 100;
+    const insurance = insuranceAnnual;
+    const totalExpenses = maintenance + taxes + insurance;
+
+    // NOI
+    const noi = effectiveGross - totalExpenses;
+
+    // Debt service
+    const annualDebtService = monthlyPmt * 12;
+
+    // Principal paydown this year
+    let yearPrincipal = 0;
+    for (let m = 0; m < 12; m++) {
+      const interest = balance * r;
+      const principal = monthlyPmt - interest;
+      yearPrincipal += principal;
+      balance -= principal;
+    }
+
+    // Cash flow after debt service
+    const cashFlowBeforeTax = noi - annualDebtService;
+
+    annualCashFlows.push({
+      year,
+      grossRent,
+      effectiveGross,
+      totalExpenses,
+      noi,
+      debtService: annualDebtService,
+      cashFlow: cashFlowBeforeTax,
+      principalPaydown: yearPrincipal,
+      loanBalance: balance,
+    });
+
+    // Grow rent for next year
+    currentRent = currentRent * (1 + rentGrowthPct / 100);
+  }
+
+  // Sale proceeds at exit
+  const exitValue = price * Math.pow(1 + appreciationPct / 100, holdYears);
+  const sellingCosts = exitValue * sellingCostPct / 100;
+  const saleProceeds = exitValue - balance - sellingCosts;
+
+  // NPV calculation
+  const dr = discountRate / 100;
+  let npv = -totalInvested;
+  for (let i = 0; i < annualCashFlows.length; i++) {
+    npv += annualCashFlows[i].cashFlow / Math.pow(1 + dr, i + 1);
+  }
+  npv += saleProceeds / Math.pow(1 + dr, holdYears);
+
+  // IRR via Newton's method
+  const irr = calcIRR(totalInvested, annualCashFlows.map(y => y.cashFlow), saleProceeds);
+
+  // Total return
+  const totalCashFlow = annualCashFlows.reduce((sum, y) => sum + y.cashFlow, 0);
+  const totalReturn = totalCashFlow + saleProceeds;
+  const totalROI = totalInvested > 0 ? ((totalReturn - totalInvested) / totalInvested) * 100 : 0;
+  const equityMultiple = totalInvested > 0 ? totalReturn / totalInvested : 0;
+
+  // DSCR (year 1)
+  const dscr = annualCashFlows[0].debtService > 0
+    ? annualCashFlows[0].noi / annualCashFlows[0].debtService : 0;
+
+  // GRM
+  const grm = annualCashFlows[0].grossRent > 0 ? price / annualCashFlows[0].grossRent : 0;
+
+  return {
+    annualCashFlows,
+    exitValue,
+    sellingCosts,
+    saleProceeds,
+    npv,
+    irr,
+    totalCashFlow,
+    totalReturn,
+    totalROI,
+    equityMultiple,
+    dscr,
+    grm,
+    totalInvested,
+  };
+}
+
+function calcIRR(initialInvestment, cashFlows, terminalValue, maxIter = 100) {
+  let guess = 0.15;
+  for (let i = 0; i < maxIter; i++) {
+    let npv = -initialInvestment;
+    let dnpv = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      const factor = Math.pow(1 + guess, t + 1);
+      npv += cashFlows[t] / factor;
+      dnpv -= (t + 1) * cashFlows[t] / Math.pow(1 + guess, t + 2);
+    }
+    const n = cashFlows.length;
+    npv += terminalValue / Math.pow(1 + guess, n);
+    dnpv -= n * terminalValue / Math.pow(1 + guess, n + 1);
+
+    if (Math.abs(dnpv) < 1e-10) break;
+    const newGuess = guess - npv / dnpv;
+    if (Math.abs(newGuess - guess) < 1e-8) { guess = newGuess; break; }
+    guess = newGuess;
+    if (guess < -0.99) guess = -0.5;
+    if (guess > 10) guess = 5;
+  }
+  return guess * 100;
+}
+
+// Loan amortization schedule
+export function amortizationSchedule(loanAmount, rate, years = 30) {
+  const monthlyPmt = monthlyPayment(loanAmount, rate);
+  const r = rate / 100 / 12;
+  let balance = loanAmount;
+  const yearly = [];
+
+  for (let year = 1; year <= years; year++) {
+    let yearInterest = 0, yearPrincipal = 0;
+    for (let m = 0; m < 12; m++) {
+      const interest = balance * r;
+      const principal = monthlyPmt - interest;
+      yearInterest += interest;
+      yearPrincipal += principal;
+      balance -= principal;
+    }
+    yearly.push({ year, principal: yearPrincipal, interest: yearInterest, balance: Math.max(0, balance) });
+  }
+  return yearly;
+}
+
 export function fullAnalysis(property, assumptions = {}) {
   const {
     downPct = 3.5,
@@ -72,6 +227,10 @@ export function fullAnalysis(property, assumptions = {}) {
     closingCostPct = 3,
     appreciationPct = 3,
     rentPerUnit = null,
+    holdYears = 5,
+    rentGrowthPct = 2,
+    discountRate = 10,
+    sellingCostPct = 6,
   } = assumptions;
 
   const price = property.price || 0;
@@ -97,6 +256,21 @@ export function fullAnalysis(property, assumptions = {}) {
   const noi = fullCF.effectiveRent * 12;
   const cap = capRate(noi, price);
 
+  // DCF Analysis
+  const dcf = dcfAnalysis(price, housing.loanAmount, rate, estimatedRent, units, holdYears, {
+    vacancyPct, maintenancePct, appreciationPct, rentGrowthPct,
+    discountRate, taxRate, insuranceAnnual, closingCostPct, downPct, sellingCostPct,
+  });
+
+  // Expense ratio
+  const grossRentAnnual = estimatedRent * units * 12;
+  const totalExpensesAnnual = (estimatedRent * units * maintenancePct / 100 * 12)
+    + (price * taxRate / 100) + insuranceAnnual;
+  const expenseRatio = grossRentAnnual > 0 ? (totalExpensesAnnual / grossRentAnnual) * 100 : 0;
+
+  // Rent-to-price ratio (monthly rent / price * 100)
+  const rentToPriceRatio = price > 0 ? (estimatedRent * units / price) * 100 : 0;
+
   return {
     price,
     units,
@@ -110,6 +284,9 @@ export function fullAnalysis(property, assumptions = {}) {
     equity,
     breakEvenRent: breakEven,
     capRate: cap,
+    dcf,
+    expenseRatio,
+    rentToPriceRatio,
   };
 }
 
