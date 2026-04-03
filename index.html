@@ -102,8 +102,12 @@
             justify-content: center;
             gap: 20px;
             transition: opacity 0.8s var(--ease-smooth), visibility 0.8s;
+            animation: loaderAutoHide 0.8s 2.5s ease forwards;
         }
         #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        @keyframes loaderAutoHide {
+            to { opacity: 0; visibility: hidden; pointer-events: none; }
+        }
 
         .loader-text {
             font-family: var(--font-display);
@@ -1695,9 +1699,13 @@
 
         /* ═══ LOADER ═══ */
         const loader = document.getElementById('loader');
-        window.addEventListener('load', () => {
-            setTimeout(() => loader.classList.add('hidden'), 1400);
-        });
+        if (loader) {
+            window.addEventListener('load', () => {
+                setTimeout(() => loader.classList.add('hidden'), 1400);
+            });
+            // Fallback: hide loader after 3s no matter what
+            setTimeout(() => loader.classList.add('hidden'), 3000);
+        }
 
         /* ═══ NAV SCROLL STATE ═══ */
         const nav = document.querySelector('nav');
