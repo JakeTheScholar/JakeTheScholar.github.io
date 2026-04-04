@@ -64,15 +64,7 @@
             text-rendering: optimizeLegibility;
         }
         body.custom-cursor-active,
-        body.custom-cursor-active a,
-        body.custom-cursor-active button,
-        body.custom-cursor-active .btn-linkedin,
-        body.custom-cursor-active .btn-ghost,
-        body.custom-cursor-active .skill-item,
-        body.custom-cursor-active .interest-card,
-        body.custom-cursor-active .exp-card,
-        body.custom-cursor-active .form-submit,
-        body.custom-cursor-active .contact-item-value a { cursor: none; }
+        body.custom-cursor-active * { cursor: none !important; }
 
         ::selection {
             background: rgba(201, 169, 110, 0.25);
@@ -1107,6 +1099,7 @@
 
         /* ── Reduced Motion ── */
         @media (prefers-reduced-motion: reduce) {
+            body.custom-cursor-active, body.custom-cursor-active * { cursor: auto !important; }
             *, *::before, *::after {
                 animation-duration: 0.01ms !important;
                 animation-iteration-count: 1 !important;
@@ -1650,15 +1643,21 @@
         let cursorX = 0, cursorY = 0;
         let dotX = 0, dotY = 0;
 
+        const isTouchDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const enableCustomCursor = cursor && cursorDot && !isTouchDevice && !prefersReducedMotion;
+
         document.addEventListener('mousemove', e => {
             mouseX = e.clientX;
             mouseY = e.clientY;
-            cursorX = e.clientX;
-            cursorY = e.clientY;
-            cursor.classList.add('visible');
-            cursorDot.classList.add('visible');
-            if (!document.body.classList.contains('custom-cursor-active')) {
-                document.body.classList.add('custom-cursor-active');
+            if (enableCustomCursor) {
+                cursorX = e.clientX;
+                cursorY = e.clientY;
+                cursor.classList.add('visible');
+                cursorDot.classList.add('visible');
+                if (!document.body.classList.contains('custom-cursor-active')) {
+                    document.body.classList.add('custom-cursor-active');
+                }
             }
         });
 
