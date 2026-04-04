@@ -60,17 +60,26 @@
             background: var(--void);
             color: var(--text-primary);
             overflow-x: hidden;
-            cursor: none;
             font-feature-settings: "kern" 1, "liga" 1;
             text-rendering: optimizeLegibility;
         }
+        body.custom-cursor-active,
+        body.custom-cursor-active a,
+        body.custom-cursor-active button,
+        body.custom-cursor-active .btn-linkedin,
+        body.custom-cursor-active .btn-ghost,
+        body.custom-cursor-active .skill-item,
+        body.custom-cursor-active .interest-card,
+        body.custom-cursor-active .exp-card,
+        body.custom-cursor-active .form-submit,
+        body.custom-cursor-active .contact-item-value a { cursor: none; }
 
         ::selection {
             background: rgba(201, 169, 110, 0.25);
             color: var(--text-primary);
         }
 
-        a { color: inherit; text-decoration: none; cursor: none; }
+        a { color: inherit; text-decoration: none; }
         img { display: block; max-width: 100%; }
         ul { list-style: none; }
 
@@ -385,7 +394,7 @@
             letter-spacing: 0.04em;
             border-radius: 8px;
             border: none;
-            cursor: none;
+
             transition: all 0.3s var(--ease-out);
         }
         .btn-linkedin:hover {
@@ -407,7 +416,7 @@
             letter-spacing: 0.04em;
             border: 1px solid var(--glass-border);
             border-radius: 8px;
-            cursor: none;
+
             transition: all 0.3s var(--ease-out);
         }
         .btn-ghost:hover {
@@ -575,7 +584,7 @@
             border-left: 2px solid transparent;
             text-align: center;
             transition: all 0.3s var(--ease-out);
-            cursor: none;
+
         }
         .skill-item:hover {
             background: var(--glass-hover);
@@ -602,7 +611,7 @@
             padding: 32px 28px;
             text-align: center;
             transition: all 0.4s var(--ease-out);
-            cursor: none;
+
         }
         .interest-card:hover {
             background: var(--glass-hover);
@@ -678,7 +687,7 @@
             align-items: start;
             text-align: left;
             transition: all 0.4s var(--ease-out);
-            cursor: none;
+
         }
         .exp-card:hover {
             background: var(--glass-hover);
@@ -870,7 +879,7 @@
             font-weight: 500;
             color: var(--text-primary);
             transition: color 0.3s;
-            cursor: none;
+
         }
         .contact-item-value a:hover { color: var(--gold); }
 
@@ -932,7 +941,7 @@
             background: linear-gradient(135deg, var(--gold), var(--gold-bright));
             border: none;
             border-radius: 8px;
-            cursor: none;
+
             transition: all 0.3s var(--ease-out);
             display: flex;
             align-items: center;
@@ -1001,7 +1010,7 @@
             justify-content: center;
             color: var(--text-secondary);
             transition: all 0.3s var(--ease-out);
-            cursor: none;
+
         }
         .footer-social a:hover {
             background: var(--glass-hover);
@@ -1090,7 +1099,7 @@
 
         /* ── Touch devices ── */
         @media (hover: none), (pointer: coarse) {
-            body { cursor: auto; }
+            body, body.custom-cursor-active { cursor: auto; }
             a, .skill-item, .interest-card, .exp-card, .btn-linkedin, .btn-ghost, .form-submit,
             .contact-item-value a { cursor: pointer; }
             #cursor, #cursor-dot { display: none !important; }
@@ -1648,6 +1657,9 @@
             cursorY = e.clientY;
             cursor.classList.add('visible');
             cursorDot.classList.add('visible');
+            if (!document.body.classList.contains('custom-cursor-active')) {
+                document.body.classList.add('custom-cursor-active');
+            }
         });
 
         function updateCursor() {

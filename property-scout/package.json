@@ -1,0 +1,18 @@
+{
+  "name": "property-scout",
+  "version": "1.0.0",
+  "description": "House hack duplex property scout & ROI analyzer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "concurrently \"node server.js\" \"cd client && npx vite --port 5176 --strictPort\"",
+    "build": "cd client && npx vite build",
+    "setup": "npm install && cd client && npm install && npm run build"
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.0",
+    "express": "^4.21.2"
+  }
+}
