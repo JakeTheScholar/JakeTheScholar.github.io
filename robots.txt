@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /projects.html
+
+Disallow: /agent-farm/
+Disallow: /trading-command-center/
+Disallow: /trading-dashboard/
+Disallow: /property-scout/
+Disallow: /vendor-comparison-matrix/
+
+Sitemap: https://jakemcgaha.com/sitemap.xml
