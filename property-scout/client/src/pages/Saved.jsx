@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropertyCard from '../components/PropertyCard';
 import ROICalculator from '../components/ROICalculator';
+import OwnedPortfolio from '../components/OwnedPortfolio';
 import { getSavedProperties, saveProperty, removeProperty } from '../utils/api';
 
 export default function Saved() {
@@ -25,6 +26,8 @@ export default function Saved() {
         <h1 className="text-2xl font-bold text-white mb-1">Saved Properties</h1>
         <p className="text-gray-500 text-sm">{saved.length} properties saved for analysis</p>
       </div>
+
+      <OwnedPortfolio />
 
       {saved.length === 0 ? (
         <div className="card p-12 text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
