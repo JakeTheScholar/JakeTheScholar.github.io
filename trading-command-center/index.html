@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' http://localhost:5555 http://127.0.0.1:5555; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#07060b">
+<title>Trading Command Center</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307060b'/%3E%3Cpath d='M16 44 L32 16 L48 44 Z' fill='none' stroke='%23c9a96e' stroke-width='3'/%3E%3Ccircle cx='32' cy='35' r='5' fill='%23c9a96e'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Bodoni+Moda:opsz,wght@6..96,400..700&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
+<!-- Note: SRI hashes cannot be used with cdn.tailwindcss.com as its content changes between versions.
+     For production, self-host Tailwind CSS with a pinned version. -->
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        void: '#07060b',
+        deep: '#0e0d15',
+        surface: '#16141f',
+        'surface-raised': '#1e1b2a',
+        gold: { DEFAULT: '#c9a96e', bright: '#e4c87e', dim: '#8a7a52' },
+        violet: '#8b5cf6',
+        positive: '#34d399',
+        negative: '#f87171',
+        warning: '#fbbf24',
+      }
+    }
+  }
+};
+</script>
+<style>
+:root {
+  --void: #07060b; --deep: #0e0d15; --surface: #16141f; --surface-raised: #1e1b2a;
+  --gold: #c9a96e; --gold-bright: #e4c87e; --gold-dim: #8a7a52;
+  --violet: #8b5cf6; --green: #34d399; --red: #f87171; --yellow: #fbbf24;
+  --text: #ede8e0; --text-secondary: #9a94a8; --text-muted: #5a5468;
+  --glass-bg: rgba(255,255,255,0.025); --glass-border: rgba(255,255,255,0.06);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { overflow-x: hidden; }
+body {
+  font-family: 'Outfit', system-ui, sans-serif;
+  background: var(--void);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  pointer-events: none; z-index: -1;
+  background: radial-gradient(ellipse at 20% 0%, rgba(139,92,246,0.06) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 0%, rgba(201,169,110,0.04) 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 100%, rgba(139,92,246,0.03) 0%, transparent 40%);
+}
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9000; opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ───── Keyframe Animations ───── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(52,211,153,0.4); }
+  50% { box-shadow: 0 0 14px rgba(52,211,153,0.7); }
+}
+@keyframes headerGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes barGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ───── Header ───── */
+.header-title {
+  font-family: 'Cinzel', serif; font-size: 36px; font-weight: 700; letter-spacing: 4px;
+  background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold) 30%, var(--violet) 60%, var(--gold-bright) 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: headerGradient 8s ease infinite;
+}
+.header-line {
+  height: 1px; margin: 8px 0 4px; position: relative; overflow: hidden;
+  background: linear-gradient(90deg, var(--gold), var(--violet), transparent);
+}
+.header-line::after {
+  content: ''; position: absolute; top: 0; left: -100%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+/* ───── Status dot ───── */
+.status-dot {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* ───── Tabs ───── */
+.tab {
+  padding: 10px 24px; font-size: 14px; font-weight: 500; color: var(--text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative;
+}
+.tab:hover { color: var(--text-secondary); }
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+.tab.active::after {
+  content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+  width: 100%; height: 2px;
+  box-shadow: 0 0 10px rgba(201,169,110,0.5), 0 0 20px rgba(201,169,110,0.2);
+}
+
+/* ───── Stat Cards ───── */
+.stat-card {
+  background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px;
+  padding: 16px 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative; overflow: hidden;
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.stat-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: 12px; opacity: 0;
+  background: linear-gradient(135deg, rgba(201,169,110,0.05) 0%, rgba(139,92,246,0.05) 100%);
+  transition: opacity 0.3s;
+}
+.stat-card:hover { border-color: rgba(201,169,110,0.15); transform: translateY(-2px); }
+.stat-card:hover::before { opacity: 1; }
+.stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; position: relative; }
+.stat-value { font-family: 'DM Sans', sans-serif; font-size: 28px; font-weight: 800; position: relative; }
+
+/* ───── Content area animated entry ───── */
+#content > * {
+  animation: fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ───── Buttons ───── */
+.btn {
+  padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; font-family: 'Outfit', sans-serif;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+}
+.btn::after {
+  content: ''; position: absolute; inset: 0; opacity: 0;
+  background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.15), transparent 60%);
+  transition: opacity 0.3s;
+}
+.btn:hover::after { opacity: 1; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--gold); color: var(--void); }
+.btn-primary:hover { background: var(--gold-bright); box-shadow: 0 4px 20px rgba(201,169,110,0.3); }
+.btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--glass-border); }
+.btn-ghost:hover { border-color: rgba(201,169,110,0.3); color: var(--text); background: rgba(201,169,110,0.04); }
+.btn-danger { background: transparent; color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+.btn-danger:hover { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.35); }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* ───── Form Inputs ───── */
+.form-input {
+  background: var(--deep); border: 1px solid var(--glass-border); border-radius: 8px;
+  padding: 10px 12px; color: var(--text); font-family: 'Outfit', sans-serif; font-size: 14px;
+  outline: none; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); width: 100%;
+}
+.form-input:focus { border-color: rgba(201,169,110,0.4); box-shadow: 0 0 0 3px rgba(201,169,110,0.08); }
+.form-input::placeholder { color: var(--text-muted); }
+select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%239a94a8' fill='none' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+.form-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 4px; }
+
+/* ───── Badges ───── */
+.badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+.badge-eval { background: rgba(139,92,246,0.12); color: var(--violet); }
+.badge-funded { background: rgba(52,211,153,0.12); color: var(--green); }
+.badge-live { background: rgba(201,169,110,0.12); color: var(--gold); }
+.badge-active { background: rgba(52,211,153,0.12); color: var(--green); }
+.badge-archived { background: rgba(154,148,168,0.12); color: var(--text-secondary); }
+
+/* ───── Range pills / Filter chips ───── */
+.range-pill {
+  padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--glass-border); color: var(--text-muted);
+  background: transparent; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.range-pill:hover { border-color: rgba(201,169,110,0.2); color: var(--text-secondary); }
+.range-pill.active { border-color: var(--gold); color: var(--gold); background: rgba(201,169,110,0.08); box-shadow: 0 0 12px rgba(201,169,110,0.1); }
+.filter-chip {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--glass-border); color: var(--text-secondary);
+  background: transparent; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.filter-chip:hover { border-color: rgba(201,169,110,0.2); color: var(--text); }
+.filter-chip.active { border-color: var(--gold); color: var(--gold); background: rgba(201,169,110,0.08); box-shadow: 0 0 12px rgba(201,169,110,0.1); }
+
+/* ───── Alert Banners ───── */
+.alert-banner {
+  background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); border-radius: 8px;
+  padding: 10px 16px; font-size: 13px; color: var(--red); display: flex; align-items: center; gap: 8px;
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ───── Section titles ───── */
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin: 24px 0 12px; }
+
+/* ───── Account cards on dashboard ───── */
+.account-card {
+  background: var(--surface); border: 1px solid var(--glass-border); border-radius: 12px;
+  padding: 20px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+.account-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,169,110,0.2), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+.account-card:hover { border-color: rgba(201,169,110,0.15); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+.account-card:hover::before { opacity: 1; }
+
+/* ───── Account rows (accounts view) ───── */
+.account-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.account-row:hover { background: rgba(201,169,110,0.03); }
+
+/* ───── Journal rows ───── */
+.journal-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.journal-row:hover { background: rgba(201,169,110,0.03); }
+
+/* ───── Panel surfaces ───── */
+.panel {
+  background: var(--surface); border: 1px solid var(--glass-border); border-radius: 12px;
+  transition: border-color 0.3s;
+}
+.panel:hover { border-color: rgba(255,255,255,0.08); }
+
+/* ───── Progress bars animated fill ───── */
+.progress-fill {
+  transform-origin: left; animation: barGrow 0.6s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ───── Gauge bars animated fill ───── */
+.gauge-fill {
+  transform-origin: left; animation: barGrow 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* ───── Scrollbar styling ───── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(154,148,168,0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(154,148,168,0.35); }
+
+/* ───── Selection ───── */
+::selection { background: rgba(201,169,110,0.25); color: var(--text); }
+
+/* ───── Reduced motion ───── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="max-w-7xl mx-auto px-6 py-6" style="max-width:80rem;margin-left:auto;margin-right:auto;padding:1.5rem">
+  <!-- Header -->
+  <div class="header-title">TRADING COMMAND CENTER</div>
+  <div class="header-line"></div>
+  <div class="flex items-center gap-4 text-sm mt-1 mb-6" style="display:flex;align-items:center;gap:16px;font-size:14px;margin-top:4px;margin-bottom:24px;color:var(--text-secondary)">
+    <span class="w-1.5 h-1.5 rounded-full bg-positive status-dot" style="width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(52,211,153,0.5)"></span>
+    <span id="header-account-count">0 Active Accounts</span>
+    <span style="color:var(--text-muted)">/</span>
+    <span>MNQ Dual ORB v4</span>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex border-b mb-6" style="display:flex;border-bottom:1px solid var(--glass-border);margin-bottom:24px">
+    <div class="tab active" data-tab="dashboard">Dashboard</div>
+    <div class="tab" data-tab="journal">Journal</div>
+    <div class="tab" data-tab="accounts">Accounts</div>
+    <div class="tab" data-tab="settings">Settings</div>
+  </div>
+
+  <!-- Content -->
+  <div id="content"></div>
+</div>
+
+<script src="js/ui.js"></script>
+<script src="js/store.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/journal.js"></script>
+<script src="js/accounts.js"></script>
+<script src="js/email_sync.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+<script>
+// Button radial hover glow follows cursor
+document.addEventListener('mousemove', e => {
+  const btn = e.target.closest('.btn');
+  if (btn) {
+    const r = btn.getBoundingClientRect();
+    btn.style.setProperty('--x', ((e.clientX - r.left) / r.width * 100) + '%');
+    btn.style.setProperty('--y', ((e.clientY - r.top) / r.height * 100) + '%');
+  }
+});
+</script>
+</body>
+</html>

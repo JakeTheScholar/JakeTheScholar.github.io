@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; frame-ancestors 'none'; base-uri 'self';">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Vendor Matrix - Decision Engine</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f172a'/%3E%3Crect x='12' y='36' width='10' height='16' rx='2' fill='%233b82f6'/%3E%3Crect x='27' y='24' width='10' height='28' rx='2' fill='%2360a5fa'/%3E%3Crect x='42' y='14' width='10' height='38' rx='2' fill='%2393c5fd'/%3E%3Cline x1='10' y1='54' x2='54' y2='54' stroke='%23475569' stroke-width='2'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{}}}</script>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  /* Smooth page transitions */
+  #content{animation:fadeUp .3s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* Score buttons */
+  .score-btn{width:38px;height:38px;border-radius:10px;font-weight:700;font-size:14px;border:2px solid transparent;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}
+  .score-btn.active{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;transform:scale(1.1);box-shadow:0 4px 12px rgba(99,102,241,.35);border-color:transparent}
+  .score-btn:not(.active){background:#f8fafc;color:#94a3b8;border-color:#e2e8f0}
+  .score-btn:not(.active):hover{background:#eef2ff;color:#6366f1;border-color:#c7d2fe;transform:scale(1.05)}
+
+  /* Nav links */
+  .nav-link{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;font-size:14px;font-weight:500;color:#94a3b8;transition:all .2s cubic-bezier(.4,0,.2,1);text-decoration:none}
+  .nav-link:hover{background:rgba(255,255,255,.06);color:#e2e8f0;transform:translateX(2px)}
+  .nav-link.active{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;box-shadow:0 4px 12px rgba(99,102,241,.3)}
+
+  /* Section buttons */
+  .section-btn{text-align:left;padding:10px 14px;border-radius:10px;font-size:13px;border:1.5px solid transparent;cursor:pointer;transition:all .2s cubic-bezier(.4,0,.2,1)}
+  .section-btn.selected{background:linear-gradient(135deg,#eef2ff,#e0e7ff);color:#4338ca;font-weight:600;border-color:#a5b4fc;box-shadow:0 2px 8px rgba(99,102,241,.12)}
+  .section-btn:not(.selected){background:#f8fafc;color:#64748b;border-color:#e2e8f0}
+  .section-btn:not(.selected):hover{background:#f1f5f9;border-color:#cbd5e1;color:#475569}
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+
+  /* Progress bar animation */
+  .bar-fill{transition:width .6s cubic-bezier(.4,0,.2,1)}
+
+  /* AI score pill (read-only) */
+  .ai-pill{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;font-weight:700;font-size:13px;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#4338ca;border:1.5px solid #a5b4fc}
+  .user-pill{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;font-weight:700;font-size:13px;background:#f1f5f9;color:#94a3b8;border:1.5px solid #e2e8f0}
+
+  /* Mobile sidebar */
+  @media(max-width:767px){
+    #sidebar{position:fixed;left:0;top:0;bottom:0;z-index:50;transform:translateX(-100%);transition:transform .25s ease}
+    #sidebar.open{transform:translateX(0)}
+    #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40}
+    #sidebar-overlay.open{display:block}
+    #mobile-header{display:flex!important}
+  }
+  @media(min-width:768px){
+    #sidebar-overlay,#mobile-header{display:none!important}
+  }
+</style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col" style="background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 50%,#eef2ff 100%)">
+<!-- Mobile header -->
+<div id="mobile-header" class="hidden items-center justify-between px-4 py-3 border-b border-slate-200 bg-white/90 backdrop-blur-sm flex-shrink-0" style="display:none">
+  <button id="menu-btn" class="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 text-slate-600">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+  </button>
+  <div class="flex items-center gap-2">
+    <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </div>
+    <span class="text-sm font-bold text-gray-900">Vendor Matrix</span>
+  </div>
+  <div class="w-10"></div>
+</div>
+<!-- Sidebar overlay -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="flex flex-1 min-h-0" id="app-shell">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="w-64 flex flex-col flex-shrink-0" style="background:linear-gradient(180deg,#0f172a 0%,#1e1b4b 100%)">
+    <div class="p-5 border-b border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <div>
+          <h1 class="text-base font-bold tracking-tight text-white">Vendor Matrix</h1>
+          <p class="text-[11px] text-indigo-300/70 font-medium">Decision Engine</p>
+        </div>
+      </div>
+    </div>
+    <nav id="nav" class="flex-1 p-3 space-y-1 overflow-y-auto"></nav>
+    <div class="p-4 border-t border-white/10">
+      <p class="text-[11px] text-indigo-300/50 font-medium">AF Group Vendor Evaluation</p>
+      <p class="text-[11px] text-indigo-300/30 mt-1">Data stored locally in browser</p>
+    </div>
+  </aside>
+  <!-- Main -->
+  <main id="main" class="flex-1 overflow-auto">
+    <div class="px-4 py-5 pb-16 md:p-8 md:pb-12 max-w-7xl mx-auto" id="content"></div>
+  </main>
+</div>
+
+<script>
+"use strict";
+
+// ── Mobile sidebar toggle ─────────────────────────────────────────────
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('menu-btn');
+  if (btn) btn.addEventListener('click', openSidebar);
+});
+
+// ── Data Layer (localStorage) ──────────────────────────────────────────
+const Store = {
+  _get(key) { try { return JSON.parse(localStorage.getItem('vm_' + key)) || []; } catch { return []; } },
+  _set(key, val) { localStorage.setItem('vm_' + key, JSON.stringify(val)); },
+  _nextId(key) {
+    const counter = 'vm_id_' + key;
+    const id = (parseInt(localStorage.getItem(counter) || '0', 10)) + 1;
+    localStorage.setItem(counter, String(id));
+    return id;
+  },
+
+  // Vendors
+  getVendors() { return this._get('vendors'); },
+  getVendor(id) { return this.getVendors().find(v => v.id === id) || null; },
+  saveVendor(data) {
+    const vendors = this.getVendors();
+    if (data.id) {
+      const i = vendors.findIndex(v => v.id === data.id);
+      if (i >= 0) vendors[i] = { ...vendors[i], ...data, updatedAt: Date.now() };
+    } else {
+      data.id = this._nextId('vendors');
+      data.createdAt = Date.now();
+      data.updatedAt = Date.now();
+      vendors.push(data);
+    }
+    this._set('vendors', vendors);
+    return data;
+  },
+  deleteVendor(id) {
+    this._set('vendors', this.getVendors().filter(v => v.id !== id));
+    this._set('scores', this._get('scores').filter(s => s.vendorId !== id));
+    this._set('ai_scores', this._get('ai_scores').filter(s => s.vendorId !== id));
+    const ud = Array.isArray(this._get('user_decisions')) ? this._get('user_decisions') : [];
+    this._set('user_decisions', ud.filter(d => d.vendorId !== id));
+    this._set('docs', this._get('docs').filter(d => d.vendorId !== id));
+    // Remove from campaigns
+    const cv = this._get('campaign_vendors').filter(c => c.vendorId !== id);
+    this._set('campaign_vendors', cv);
+  },
+
+  // AI Scores (auto-generated, read-only)
+  getAIScores(vendorId) { return this._get('ai_scores').filter(s => s.vendorId === vendorId); },
+  setAIScore(vendorId, criterion, score) {
+    const all = this._get('ai_scores');
+    const i = all.findIndex(s => s.vendorId === vendorId && s.criterion === criterion);
+    if (i >= 0) { all[i].score = score; } else { all.push({ vendorId, criterion, score }); }
+    this._set('ai_scores', all);
+  },
+  // Ensure AI scores exist for a vendor (lazy generation)
+  ensureAIScores(vendor) {
+    if (this.getAIScores(vendor.id).length === 0) {
+      const scores = generateAIScores(vendor);
+      Object.entries(scores).forEach(([c, s]) => this.setAIScore(vendor.id, c, s));
+    }
+  },
+
+  // User Scores (manually entered)
+  getScores(vendorId) { return this._get('scores').filter(s => s.vendorId === vendorId); },
+  setScore(vendorId, criterion, score) {
+    const all = this._get('scores');
+    const i = all.findIndex(s => s.vendorId === vendorId && s.criterion === criterion);
+    if (i >= 0) { all[i].score = score; } else { all.push({ vendorId, criterion, score }); }
+    this._set('scores', all);
+  },
+
+  // User manual decision (Buy/Build/Partner pick)
+  getUserDecision(vendorId) {
+    const all = this._get('user_decisions');
+    return (Array.isArray(all) ? all : []).find(d => d.vendorId === vendorId) || null;
+  },
+  setUserDecision(vendorId, choice) {
+    const all = Array.isArray(this._get('user_decisions')) ? this._get('user_decisions') : [];
+    const i = all.findIndex(d => d.vendorId === vendorId);
+    if (i >= 0) { all[i].choice = choice; all[i].updatedAt = Date.now(); }
+    else all.push({ vendorId, choice, updatedAt: Date.now() });
+    this._set('user_decisions', all);
+  },
+  clearUserDecision(vendorId) {
+    const all = Array.isArray(this._get('user_decisions')) ? this._get('user_decisions') : [];
+    this._set('user_decisions', all.filter(d => d.vendorId !== vendorId));
+  },
+
+  // Campaigns
+  getCampaigns() { return this._get('campaigns'); },
+  getCampaign(id) { return this.getCampaigns().find(c => c.id === id) || null; },
+  saveCampaign(data) {
+    const campaigns = this.getCampaigns();
+    if (data.id) {
+      const i = campaigns.findIndex(c => c.id === data.id);
+      if (i >= 0) campaigns[i] = { ...campaigns[i], ...data };
+    } else {
+      data.id = this._nextId('campaigns');
+      data.createdAt = Date.now();
+      data.status = 'active';
+      campaigns.push(data);
+    }
+    this._set('campaigns', campaigns);
+    return data;
+  },
+  deleteCampaign(id) {
+    this._set('campaigns', this.getCampaigns().filter(c => c.id !== id));
+    this._set('campaign_vendors', this._get('campaign_vendors').filter(c => c.campaignId !== id));
+  },
+
+  // Campaign-Vendor links
+  getCampaignVendors(campaignId) {
+    return this._get('campaign_vendors').filter(c => c.campaignId === campaignId).map(c => c.vendorId);
+  },
+  getVendorCampaigns(vendorId) {
+    const ids = this._get('campaign_vendors').filter(c => c.vendorId === vendorId).map(c => c.campaignId);
+    return this.getCampaigns().filter(c => ids.includes(c.id));
+  },
+  addVendorToCampaign(campaignId, vendorId) {
+    const all = this._get('campaign_vendors');
+    if (!all.find(c => c.campaignId === campaignId && c.vendorId === vendorId)) {
+      all.push({ campaignId, vendorId });
+      this._set('campaign_vendors', all);
+    }
+  },
+  removeVendorFromCampaign(campaignId, vendorId) {
+    this._set('campaign_vendors', this._get('campaign_vendors').filter(c => !(c.campaignId === campaignId && c.vendorId === vendorId)));
+  },
+
+  // Documents (stored as base64 - small files only)
+  getDocs(vendorId) { return this._get('docs').filter(d => d.vendorId === vendorId); },
+  addDoc(vendorId, name, type, dataUrl) {
+    const all = this._get('docs');
+    all.push({ id: this._nextId('docs'), vendorId, name, type, dataUrl, uploadedAt: Date.now() });
+    this._set('docs', all);
+  },
+  deleteDoc(id) { this._set('docs', this._get('docs').filter(d => d.id !== id)); }
+};
+
+// ── AI Auto-Score (generates intelligent defaults for new vendors) ────
+function generateAIScores(vendor) {
+  const has = f => vendor[f] && String(vendor[f]).trim().length > 0;
+  const len = f => (vendor[f] || '').trim().length;
+  const secs = (vendor.sections || []).length;
+  const hasSocial = [vendor.socialLinkedin, vendor.socialTwitter, vendor.socialFacebook].filter(Boolean).length;
+  const hasContact = [vendor.contactName, vendor.contactEmail, vendor.contactPhone].filter(Boolean).length;
+  const profileDepth = [has('name'), has('website'), has('missionStatement'), has('project'),
+    has('contactName'), has('contactEmail'), hasSocial > 0, secs > 0].filter(Boolean).length;
+
+  // Seeded pseudo-random per vendor name for consistent but varied scores
+  let seed = 0;
+  for (let i = 0; i < (vendor.name || '').length; i++) seed = ((seed << 5) - seed + vendor.name.charCodeAt(i)) | 0;
+  const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return (seed & 0x7fffffff) / 2147483647; };
+
+  const base = Math.min(Math.max(Math.round(profileDepth / 8 * 3) + 1, 2), 4);
+  const scores = {};
+  const CRITERIA_LIST = [
+    'Cost Effectiveness','Technical Fit','Integration Complexity','Vendor Stability',
+    'Support Quality','Security & Compliance','Scalability','Innovation',
+    'Implementation Timeline','Cultural Fit'
+  ];
+  CRITERIA_LIST.forEach(c => {
+    let s = base;
+    if (c === 'Vendor Stability') { if (has('website') && hasSocial >= 2) s++; if (!has('website')) s--; }
+    if (c === 'Technical Fit') { if (has('project') && len('project') > 20) s++; if (secs >= 3) s++; }
+    if (c === 'Support Quality') { if (hasContact >= 2) s++; if (!has('contactEmail')) s--; }
+    if (c === 'Security & Compliance') { if (has('website') && has('missionStatement')) s++; }
+    if (c === 'Cultural Fit') { if (has('missionStatement') && len('missionStatement') > 30) s++; if (secs >= 2) s++; }
+    if (c === 'Cost Effectiveness') { s += (rand() > 0.5 ? 1 : 0); }
+    if (c === 'Scalability') { if (secs >= 4) s++; }
+    if (c === 'Innovation') { if (hasSocial >= 2 && has('project')) s++; }
+    if (c === 'Integration Complexity') { s = Math.max(5 - base, 2) + (rand() > 0.6 ? 1 : 0); }
+    if (c === 'Implementation Timeline') { s = Math.max(5 - base, 2) + (secs > 5 ? -1 : 0); }
+    s += (rand() > 0.7 ? 1 : rand() < 0.2 ? -1 : 0);
+    scores[c] = Math.min(Math.max(s, 1), 5);
+  });
+  return scores;
+}
+
+// ── Constants ──────────────────────────────────────────────────────────
+const CRITERIA = [
+  'Cost Effectiveness','Technical Fit','Integration Complexity','Vendor Stability',
+  'Support Quality','Security & Compliance','Scalability','Innovation',
+  'Implementation Timeline','Cultural Fit'
+];
+const SECTIONS = [
+  'Claims','Underwriting','IT / Technology','Marketing','Human Resources',
+  'Finance / Accounting','Legal / Compliance','Customer Service','Risk Management',
+  'Sales','Operations','Actuarial','Loss Control','Executive Leadership'
+];
+const NAV = [
+  { hash: '#/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4' },
+  { hash: '#/vendors', label: 'Vendors', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
+  { hash: '#/campaigns', label: 'Campaigns', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+  { hash: '#/scoring', label: 'Scoring', icon: 'M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z' },
+  { hash: '#/decisions', label: 'Decisions', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' }
+];
+
+// ── AI Scoring ─────────────────────────────────────────────────────────
+function calcAIScore(vendor) {
+  const aiScores = Store.getAIScores(vendor.id);
+  let total = 0;
+  const fields = ['name','website','contactName','contactEmail','missionStatement','project'];
+  const filled = fields.filter(f => vendor[f] && String(vendor[f]).trim()).length;
+  total += (filled / fields.length) * 20;
+  if (aiScores.length > 0) {
+    const avg = aiScores.reduce((s, sc) => s + sc.score, 0) / aiScores.length;
+    total += (avg / 5) * 50;
+  }
+  const secs = (vendor.sections || []).length;
+  total += Math.min(secs / 5, 1) * 15;
+  let web = 0;
+  if (vendor.website) web += 5;
+  if (vendor.socialLinkedin) web += 4;
+  if (vendor.socialTwitter) web += 3;
+  if (vendor.socialFacebook) web += 3;
+  total += Math.min(web, 15);
+  return Math.round(total);
+}
+
+function calcUserScore(vendor) {
+  const userScores = Store.getScores(vendor.id);
+  if (userScores.length === 0) return null;
+  let total = 0;
+  const fields = ['name','website','contactName','contactEmail','missionStatement','project'];
+  const filled = fields.filter(f => vendor[f] && String(vendor[f]).trim()).length;
+  total += (filled / fields.length) * 20;
+  const avg = userScores.reduce((s, sc) => s + sc.score, 0) / userScores.length;
+  total += (avg / 5) * 50;
+  const secs = (vendor.sections || []).length;
+  total += Math.min(secs / 5, 1) * 15;
+  let web = 0;
+  if (vendor.website) web += 5;
+  if (vendor.socialLinkedin) web += 4;
+  if (vendor.socialTwitter) web += 3;
+  if (vendor.socialFacebook) web += 3;
+  total += Math.min(web, 15);
+  return Math.round(total);
+}
+
+function calcDecision(vendorId, scoreSource) {
+  const scores = scoreSource === 'ai' ? Store.getAIScores(vendorId) : Store.getScores(vendorId);
+  if (scores.length === 0) return null;
+  const m = {};
+  scores.forEach(s => { m[s.criterion] = s.score; });
+  const inv = v => 6 - (v || 3);
+  const buy = (m['Technical Fit']||0)*3 + (m['Cost Effectiveness']||0)*2 + (m['Vendor Stability']||0)*3 + (m['Support Quality']||0)*2 + inv(m['Integration Complexity'])*2;
+  const build = (m['Scalability']||0)*3 + (m['Security & Compliance']||0)*3 + (m['Innovation']||0)*2 + inv(m['Implementation Timeline'])*2 + inv(m['Vendor Stability'])*2;
+  const partner = (m['Cultural Fit']||0)*3 + (m['Innovation']||0)*3 + (m['Technical Fit']||0)*2 + (m['Scalability']||0)*2 + (m['Support Quality']||0)*2;
+  const best = Math.max(buy, build, partner);
+  let rec = 'BUY';
+  if (best === build && build > buy) rec = 'BUILD';
+  if (best === partner && partner > buy && partner > build) rec = 'PARTNER';
+  return {
+    recommendation: rec,
+    confidence: Math.round((best / 60) * 100),
+    scores: { buy: Math.round((buy/60)*100), build: Math.round((build/60)*100), partner: Math.round((partner/60)*100) }
+  };
+}
+
+// ── Secure DOM Helpers ─────────────────────────────────────────────────
+function el(tag, attrs, ...children) {
+  const e = document.createElement(tag);
+  if (attrs) {
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v === undefined || v === null) continue;
+      if (k === 'className') e.className = v;
+      else if (k === 'onclick' || k === 'onchange' || k === 'oninput') e.addEventListener(k.slice(2), v);
+      else if (k === 'htmlFor') e.htmlFor = v;
+      else if (k === 'value') e.value = v;
+      else if (k === 'type') e.type = v;
+      else if (k === 'placeholder') e.placeholder = v;
+      else if (k === 'rows') e.rows = v;
+      else if (k === 'disabled') e.disabled = v;
+      else if (k === 'selected') e.selected = v;
+      else if (k === 'multiple') e.multiple = v;
+      else if (k === 'title') e.title = v;
+      else if (k === 'href') e.href = v;
+      else if (k === 'target') e.target = v;
+      else if (k === 'rel') e.rel = v;
+      else e.setAttribute(k, v);
+    }
+  }
+  for (const c of children) {
+    if (c == null) continue;
+    if (typeof c === 'string' || typeof c === 'number') e.appendChild(document.createTextNode(String(c)));
+    else if (c instanceof Node) e.appendChild(c);
+    else if (Array.isArray(c)) c.forEach(x => { if (x instanceof Node) e.appendChild(x); });
+  }
+  return e;
+}
+
+function svg(d) {
+  const s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  s.setAttribute('class','w-5 h-5 flex-shrink-0');
+  s.setAttribute('fill','none');
+  s.setAttribute('stroke','currentColor');
+  s.setAttribute('viewBox','0 0 24 24');
+  s.setAttribute('stroke-width','1.5');
+  const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('stroke-linecap','round');
+  p.setAttribute('stroke-linejoin','round');
+  p.setAttribute('d', d);
+  s.appendChild(p);
+  return s;
+}
+
+function aiBadge(score, large) {
+  const gradient = score >= 40 ? 'from-emerald-400 to-emerald-600'
+    : score >= 30 ? 'from-blue-400 to-blue-600'
+    : score >= 20 ? 'from-amber-400 to-amber-600'
+    : 'from-red-400 to-red-600';
+  const ringColor = score >= 40 ? 'ring-emerald-200' : score >= 30 ? 'ring-blue-200' : score >= 20 ? 'ring-amber-200' : 'ring-red-200';
+  const textColor = score >= 40 ? 'text-emerald-600' : score >= 30 ? 'text-blue-600' : score >= 20 ? 'text-amber-600' : 'text-red-600';
+  const label = score >= 40 ? 'Strong' : score >= 30 ? 'Good' : score >= 20 ? 'Fair' : 'Weak';
+  const sz = large ? 'w-20 h-20 text-xl' : 'w-14 h-14 text-sm';
+  return el('div', { className: 'flex flex-col items-center gap-1.5' },
+    el('div', { className: `${sz} rounded-full ring-4 ${ringColor} bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm` }, score + '/50'),
+    el('span', { className: `text-[11px] font-semibold ${textColor} uppercase tracking-wider` }, label)
+  );
+}
+
+function userScoreBadge(score, large) {
+  const gradient = score >= 40 ? 'from-emerald-400 to-emerald-600'
+    : score >= 30 ? 'from-teal-400 to-teal-600'
+    : score >= 20 ? 'from-amber-400 to-amber-600'
+    : 'from-red-400 to-red-600';
+  const ringColor = score >= 40 ? 'ring-emerald-200' : score >= 30 ? 'ring-teal-200' : score >= 20 ? 'ring-amber-200' : 'ring-red-200';
+  const textColor = score >= 40 ? 'text-emerald-600' : score >= 30 ? 'text-teal-600' : score >= 20 ? 'text-amber-600' : 'text-red-600';
+  const label = score >= 40 ? 'Strong' : score >= 30 ? 'Good' : score >= 20 ? 'Fair' : 'Weak';
+  const sz = large ? 'w-20 h-20 text-xl' : 'w-14 h-14 text-sm';
+  return el('div', { className: 'flex flex-col items-center gap-1.5' },
+    el('div', { className: `${sz} rounded-full ring-4 ${ringColor} bg-gradient-to-br ${gradient} flex items-center justify-center font-bold text-white shadow-sm` }, score + '/50'),
+    el('span', { className: `text-[11px] font-semibold ${textColor} uppercase tracking-wider` }, 'Yours')
+  );
+}
+
+function scoreButtons(current, onSelect) {
+  const wrap = el('div', { className: 'flex gap-1.5' });
+  for (let n = 1; n <= 5; n++) {
+    const btn = el('button', {
+      className: `score-btn ${current === n ? 'active' : ''}`,
+      title: ['','Poor','Fair','Good','Very Good','Excellent'][n],
+      onclick: () => onSelect(n)
+    }, String(n));
+    wrap.appendChild(btn);
+  }
+  return wrap;
+}
+
+function decisionBadge(rec) {
+  const colors = { BUY:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', BUILD:'bg-blue-50 text-blue-700 ring-1 ring-blue-200', PARTNER:'bg-purple-50 text-purple-700 ring-1 ring-purple-200' };
+  return el('span', { className: `px-3 py-1 rounded-full text-xs font-bold ${colors[rec] || ''}` }, rec);
+}
+
+function card(...children) { return el('div', { className: 'bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/60 p-4 md:p-6 transition-all duration-200 hover:shadow-md' }, ...children); }
+
+// ── Input sanitization ─────────────────────────────────────────────────
+function sanitize(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/[<>"'&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;','&':'&amp;'}[c]));
+}
+function cleanStr(str) {
+  if (typeof str !== 'string') return '';
+  return str.trim().slice(0, 5000); // limit length
+}
+
+// ── Router ─────────────────────────────────────────────────────────────
+function getRoute() {
+  const h = location.hash || '#/';
+  const parts = h.slice(2).split('/');
+  return { path: parts[0] || '', id: parts[1] ? parseInt(parts[1], 10) : null, action: parts[2] || '' };
+}
+
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = '';
+  const current = location.hash || '#/';
+  NAV.forEach(n => {
+    const a = el('a', { href: n.hash, className: `nav-link ${current === n.hash || (n.hash !== '#/' && current.startsWith(n.hash)) ? 'active' : ''}`, onclick: closeSidebar }, svg(n.icon), n.label);
+    nav.appendChild(a);
+  });
+}
+
+function render() {
+  renderNav();
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  const route = getRoute();
+  try {
+    if (route.path === '' || route.path === undefined) renderDashboard(content);
+    else if (route.path === 'vendors' && route.action === 'new') renderVendorForm(content);
+    else if (route.path === 'vendors' && route.action === 'edit') renderVendorForm(content, route.id);
+    else if (route.path === 'vendors') renderVendors(content);
+    else if (route.path === 'campaigns' && route.action === 'new') renderCampaignForm(content);
+    else if (route.path === 'campaigns' && route.id) renderCampaignDetail(content, route.id);
+    else if (route.path === 'campaigns') renderCampaigns(content);
+    else if (route.path === 'scoring') renderScoring(content);
+    else if (route.path === 'decisions') renderDecisions(content);
+    else renderDashboard(content);
+  } catch (err) {
+    content.appendChild(el('div', { className: 'text-red-600' }, 'Error rendering page: ' + err.message));
+  }
+}
+
+window.addEventListener('hashchange', render);
+window.addEventListener('DOMContentLoaded', render);
+
+// ── Dashboard ──────────────────────────────────────────────────────────
+function renderDashboard(root) {
+  const vendors = Store.getVendors();
+  vendors.forEach(v => Store.ensureAIScores(v));
+  const campaigns = Store.getCampaigns().filter(c => c.status === 'active');
+  const vendorData = vendors.map(v => {
+    const aiScoresArr = Store.getAIScores(v.id);
+    const userScoresArr = Store.getScores(v.id);
+    const aiSum = aiScoresArr.reduce((t, s) => t + s.score, 0);
+    const userSum = userScoresArr.length > 0 ? userScoresArr.reduce((t, s) => t + s.score, 0) : null;
+    return { ...v, aiSum, userSum, effectiveScore: userSum !== null ? userSum : aiSum, decision: calcDecision(v.id, 'ai') };
+  });
+  const scored = vendorData.filter(v => v.decision);
+  const userScored = vendorData.filter(v => v.userSum !== null);
+  const avgScore = userScored.length
+    ? Math.round(userScored.reduce((s, v) => s + v.userSum, 0) / userScored.length)
+    : (scored.length ? Math.round(scored.reduce((s, v) => s + v.aiSum, 0) / scored.length) : 0);
+  const top5 = [...vendorData].sort((a, b) => b.effectiveScore - a.effectiveScore).slice(0, 5);
+  const counts = { BUY: 0, BUILD: 0, PARTNER: 0 };
+  scored.forEach(v => counts[v.decision.recommendation]++);
+
+  root.appendChild(el('div', { className: 'mb-8' },
+    el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Dashboard'),
+    el('p', { className: 'text-gray-500 text-sm mt-1' }, 'Vendor evaluation overview for AF Group')
+  ));
+
+  // Stats
+  const stats = el('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 mb-8' });
+  [
+    { label: 'TOTAL VENDORS', val: vendors.length, color: 'text-indigo-700', href: '#/vendors' },
+    { label: 'ACTIVE CAMPAIGNS', val: campaigns.length, color: 'text-purple-700', href: '#/campaigns' },
+    { label: 'VENDORS SCORED', val: scored.length, color: 'text-emerald-700', href: '#/scoring' },
+    { label: userScored.length ? 'AVG YOUR SCORE' : 'AVG AI SCORE', val: avgScore, color: 'text-amber-700', href: '#/decisions' }
+  ].forEach(s => {
+    const c = el('a', { href: s.href, className: 'bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/60 p-6 block hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 no-underline group' },
+      el('p', { className: 'text-[11px] font-semibold text-slate-400 uppercase tracking-wider' }, s.label),
+      el('p', { className: `text-3xl font-bold mt-2 ${s.color} group-hover:scale-105 transition-transform duration-200 origin-left` }, String(s.val))
+    );
+    stats.appendChild(c);
+  });
+  root.appendChild(stats);
+
+  const grid = el('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' });
+
+  // Top vendors
+  const topCard = card(
+    el('div', { className: 'flex items-center justify-between mb-4' },
+      el('h2', { className: 'font-semibold text-gray-900' }, 'Top Rated Vendors'),
+      el('a', { href: '#/vendors', className: 'text-sm text-indigo-600 hover:underline' }, 'View all')
+    )
+  );
+  if (top5.length === 0) {
+    topCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'No vendors yet. ',
+      el('a', { href: '#/vendors/0/new', className: 'text-indigo-600 hover:underline' }, 'Add one')));
+  } else {
+    top5.forEach((v, i) => {
+      const hasUser = v.userSum !== null;
+      const badge = hasUser
+        ? userScoreBadge(v.userSum)
+        : aiBadge(v.aiSum);
+      topCard.appendChild(el('div', { className: 'flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors' },
+        el('div', { className: 'flex items-center gap-3' },
+          el('span', { className: 'w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold' }, String(i + 1)),
+          el('div', {},
+            el('p', { className: 'font-medium text-sm text-gray-900' }, v.name),
+            v.project ? el('p', { className: 'text-xs text-gray-400' }, v.project) : null
+          )
+        ),
+        badge
+      ));
+    });
+  }
+  grid.appendChild(topCard);
+
+  // Decision summary
+  const decCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Decision Summary'));
+  if (scored.length === 0) {
+    decCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'Score vendors to see recommendations.'));
+  } else {
+    [{ l:'Buy',c:counts.BUY,bg:'bg-emerald-500' }, { l:'Build',c:counts.BUILD,bg:'bg-blue-500' }, { l:'Partner',c:counts.PARTNER,bg:'bg-purple-500' }].forEach(r => {
+      const pct = scored.length > 0 ? (r.c / scored.length) * 100 : 0;
+      decCard.appendChild(el('div', { className: 'mb-4' },
+        el('div', { className: 'flex justify-between text-sm mb-1.5' },
+          el('span', { className: 'font-medium text-gray-700' }, r.l),
+          el('span', { className: 'text-slate-400 text-xs' }, `${r.c} vendor${r.c !== 1 ? 's' : ''}`)
+        ),
+        el('div', { className: 'w-full bg-gray-100 rounded-full h-2.5 overflow-hidden' },
+          Object.assign(el('div', { className: `${r.bg} h-2.5 rounded-full bar-fill` }), { style: { width: pct + '%' } })
+        )
+      ));
+    });
+  }
+  grid.appendChild(decCard);
+  root.appendChild(grid);
+}
+
+// ── Vendors List ───────────────────────────────────────────────────────
+function renderVendors(root) {
+  let search = '';
+  const header = el('div', { className: 'flex items-center justify-between mb-6' },
+    el('div', {},
+      el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Vendors'),
+      el('p', { className: 'text-gray-500 text-sm mt-1' }, `${Store.getVendors().length} vendors registered`)
+    ),
+    el('a', { href: '#/vendors/0/new', className: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:from-indigo-600 hover:to-indigo-700 font-semibold text-sm shadow-sm shadow-indigo-200 hover:shadow-md hover:shadow-indigo-200 transition-all duration-200 no-underline' }, '+ Add Vendor')
+  );
+  root.appendChild(header);
+
+  const searchInput = el('input', {
+    type: 'text', placeholder: 'Search vendors by name, project, or contact...',
+    className: 'w-full max-w-md border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none mb-5 bg-white/60 backdrop-blur-sm placeholder:text-slate-400 transition-all duration-200',
+    oninput: e => { search = e.target.value; renderList(); }
+  });
+  root.appendChild(searchInput);
+
+  const listEl = el('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5' });
+  root.appendChild(listEl);
+
+  function renderList() {
+    listEl.innerHTML = '';
+    const vendors = Store.getVendors().filter(v =>
+      v.name.toLowerCase().includes(search.toLowerCase()) ||
+      (v.project || '').toLowerCase().includes(search.toLowerCase()) ||
+      (v.contactName || '').toLowerCase().includes(search.toLowerCase())
+    );
+    if (vendors.length === 0) {
+      listEl.appendChild(card(el('p', { className: 'text-gray-400 text-center py-6' }, 'No vendors found.')));
+      return;
+    }
+    const allCampaigns = Store.getCampaigns();
+    vendors.forEach(v => {
+      const secs = v.sections || [];
+      const vCamps = Store.getVendorCampaigns(v.id);
+      const c = card(
+        el('div', { className: 'flex items-start justify-between mb-3' },
+          el('p', { className: 'font-semibold text-gray-900' }, v.name),
+          el('div', { className: 'flex gap-1' },
+            el('a', { href: `#/vendors/${v.id}/edit`, className: 'text-gray-400 hover:text-indigo-600 p-1 text-xs' }, 'Edit'),
+            el('button', { className: 'text-gray-400 hover:text-red-600 p-1 text-xs', onclick: () => {
+              if (confirm(`Delete "${v.name}"?`)) { Store.deleteVendor(v.id); renderList(); }
+            }}, 'Del')
+          )
+        ),
+        v.project ? el('p', { className: 'text-xs text-gray-500 mb-2' }, v.project) : null,
+        v.contactName ? el('p', { className: 'text-xs text-gray-400 mb-2' }, 'Contact: ' + v.contactName) : null
+      );
+      if (secs.length > 0) {
+        const tags = el('div', { className: 'flex flex-wrap gap-1 mt-2' });
+        secs.slice(0, 3).forEach(s => tags.appendChild(el('span', { className: 'text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full' }, s)));
+        if (secs.length > 3) tags.appendChild(el('span', { className: 'text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full' }, `+${secs.length - 3}`));
+        c.appendChild(tags);
+      }
+      // Campaign membership — editable tags with remove
+      if (allCampaigns.length > 0) {
+        const campRow = el('div', { className: 'mt-3 pt-3 border-t border-slate-100' });
+        if (vCamps.length > 0) {
+          const campTags = el('div', { className: 'flex flex-wrap gap-1.5 mb-2' });
+          vCamps.forEach(camp => {
+            campTags.appendChild(el('span', { className: 'text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full inline-flex items-center gap-1' },
+              camp.name,
+              el('button', { className: 'text-purple-400 hover:text-red-500 font-bold ml-0.5', title: 'Remove from campaign', onclick: () => { Store.removeVendorFromCampaign(camp.id, v.id); renderList(); } }, '\u00d7')
+            ));
+          });
+          campRow.appendChild(campTags);
+        }
+        const availableCamps = allCampaigns.filter(camp => !vCamps.find(vc => vc.id === camp.id));
+        if (availableCamps.length > 0) {
+          const addWrap = el('div', { className: 'flex items-center gap-1' });
+          const sel = el('select', { className: 'text-xs border border-slate-200 rounded-lg px-2 py-1 bg-white/60 outline-none' });
+          sel.appendChild(el('option', { value: '' }, 'Add to campaign...'));
+          availableCamps.forEach(camp => sel.appendChild(el('option', { value: String(camp.id) }, camp.name)));
+          addWrap.appendChild(sel);
+          addWrap.appendChild(el('button', {
+            className: 'text-xs text-indigo-600 font-semibold hover:text-indigo-700',
+            onclick: () => { const cid = parseInt(sel.value, 10); if (cid) { Store.addVendorToCampaign(cid, v.id); renderList(); } }
+          }, 'Add'));
+          campRow.appendChild(addWrap);
+        }
+        c.appendChild(campRow);
+      }
+      listEl.appendChild(c);
+    });
+  }
+  renderList();
+}
+
+// ── Vendor Form ────────────────────────────────────────────────────────
+function renderVendorForm(root, editId) {
+  const existing = editId ? Store.getVendor(editId) : null;
+  const form = {
+    name: existing?.name || '', website: existing?.website || '',
+    socialLinkedin: existing?.socialLinkedin || '', socialTwitter: existing?.socialTwitter || '', socialFacebook: existing?.socialFacebook || '',
+    contactName: existing?.contactName || '', contactEmail: existing?.contactEmail || '', contactPhone: existing?.contactPhone || '',
+    missionStatement: existing?.missionStatement || '', project: existing?.project || '',
+    sections: [...(existing?.sections || [])], notes: existing?.notes || ''
+  };
+
+  root.appendChild(el('div', { className: 'mb-6' },
+    el('h1', { className: 'text-2xl font-bold text-gray-900' }, existing ? 'Edit Vendor' : 'Add New Vendor'),
+    el('p', { className: 'text-gray-500 text-sm mt-1' }, 'Fill in the vendor details below')
+  ));
+
+  const formEl = el('div', { className: 'max-w-3xl space-y-6' });
+
+  function field(label, key, type, placeholder, opts) {
+    const isTextarea = type === 'textarea';
+    const input = el(isTextarea ? 'textarea' : 'input', {
+      className: 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none bg-white/60 placeholder:text-slate-400 transition-all duration-200',
+      type: isTextarea ? undefined : type, placeholder: placeholder || '',
+      value: isTextarea ? undefined : form[key], rows: isTextarea ? (opts?.rows || 3) : undefined,
+      oninput: e => { form[key] = e.target.value; }
+    });
+    if (isTextarea) input.textContent = form[key];
+    return el('div', { className: opts?.full ? 'md:col-span-2' : '', ...(opts?.colSpan3 ? { className: '' } : {}) },
+      el('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, label + (opts?.required ? ' *' : '')),
+      input
+    );
+  }
+
+  // Basic Info
+  formEl.appendChild(card(
+    el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Basic Information'),
+    el('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+      field('Vendor Name', 'name', 'text', 'e.g., Anthropic', { full: true, required: true }),
+      field('Website', 'website', 'url', 'https://...', { full: true }),
+      field('Mission Statement', 'missionStatement', 'textarea', "What is this vendor's mission?", { full: true }),
+      field('Project / Use Case', 'project', 'textarea', 'What project will this vendor be used for?', { full: true, rows: 2 })
+    )
+  ));
+
+  // Social
+  formEl.appendChild(card(
+    el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Social Media'),
+    el('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      field('LinkedIn', 'socialLinkedin', 'url', 'LinkedIn URL'),
+      field('Twitter / X', 'socialTwitter', 'url', 'Twitter URL'),
+      field('Facebook', 'socialFacebook', 'url', 'Facebook URL')
+    )
+  ));
+
+  // Contact
+  formEl.appendChild(card(
+    el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Contact Person'),
+    el('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4' },
+      field('Name', 'contactName', 'text', 'Full name'),
+      field('Email', 'contactEmail', 'email', 'email@vendor.com'),
+      field('Phone', 'contactPhone', 'tel', '(555) 123-4567')
+    )
+  ));
+
+  // Sections
+  const secCard = card(
+    el('h2', { className: 'font-semibold text-gray-900 mb-2' }, 'AF Group Sections'),
+    el('p', { className: 'text-xs text-gray-500 mb-4' }, 'Select which departments this vendor could serve')
+  );
+  const secGrid = el('div', { className: 'grid grid-cols-2 md:grid-cols-3 gap-2' });
+  function renderSections() {
+    secGrid.innerHTML = '';
+    SECTIONS.forEach(s => {
+      const sel = form.sections.includes(s);
+      const btn = el('button', {
+        type: 'button', className: `section-btn ${sel ? 'selected' : ''}`,
+        onclick: () => {
+          if (sel) form.sections = form.sections.filter(x => x !== s);
+          else form.sections.push(s);
+          renderSections();
+        }
+      }, (sel ? '\u2713 ' : '') + s);
+      secGrid.appendChild(btn);
+    });
+  }
+  renderSections();
+  secCard.appendChild(secGrid);
+  formEl.appendChild(secCard);
+
+  // Notes
+  formEl.appendChild(card(
+    el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Additional Notes'),
+    field('', 'notes', 'textarea', 'Any additional notes...', { full: true })
+  ));
+
+  // Actions
+  const errEl = el('div', { className: 'text-red-600 text-sm mb-2 hidden' });
+  formEl.appendChild(errEl);
+  formEl.appendChild(el('div', { className: 'flex gap-3' },
+    el('button', {
+      className: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:from-indigo-600 hover:to-indigo-700 font-semibold text-sm shadow-sm shadow-indigo-200 hover:shadow-md hover:shadow-indigo-200 transition-all duration-200',
+      onclick: () => {
+        const name = cleanStr(form.name);
+        if (!name) { errEl.textContent = 'Vendor name is required'; errEl.className = 'text-red-600 text-sm mb-2'; return; }
+        const data = {
+          ...(existing || {}),
+          name, website: cleanStr(form.website),
+          socialLinkedin: cleanStr(form.socialLinkedin), socialTwitter: cleanStr(form.socialTwitter), socialFacebook: cleanStr(form.socialFacebook),
+          contactName: cleanStr(form.contactName), contactEmail: cleanStr(form.contactEmail), contactPhone: cleanStr(form.contactPhone),
+          missionStatement: cleanStr(form.missionStatement), project: cleanStr(form.project),
+          sections: form.sections, notes: cleanStr(form.notes)
+        };
+        const saved = Store.saveVendor(data);
+        if (!existing) {
+          const aiScores = generateAIScores(saved);
+          CRITERIA.forEach(c => Store.setAIScore(saved.id, c, aiScores[c]));
+        }
+        location.hash = '#/vendors';
+      }
+    }, existing ? 'Update Vendor' : 'Create Vendor'),
+    el('button', {
+      className: 'bg-white/80 text-slate-600 px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 font-medium text-sm transition-all duration-200',
+      onclick: () => history.back()
+    }, 'Cancel')
+  ));
+
+  root.appendChild(formEl);
+}
+
+// ── Vendor Detail REMOVED ──
+function _renderVendorDetail_REMOVED(root, id) {
+  const vendor = Store.getVendor(id);
+  if (!vendor) { root.appendChild(el('p', { className: 'text-gray-400' }, 'Vendor not found')); return; }
+  Store.ensureAIScores(vendor);
+  const aiScore = calcAIScore(vendor);
+  const aiDec = calcDecision(id, 'ai');
+  const aiScoresArr = Store.getAIScores(id);
+  const userScoresArr = Store.getScores(id);
+  const aiMap = {}; aiScoresArr.forEach(s => { aiMap[s.criterion] = s.score; });
+  const userMap = {}; userScoresArr.forEach(s => { userMap[s.criterion] = s.score; });
+
+  // Header
+  const hdr = el('div', { className: 'flex items-start justify-between mb-6' });
+  const titleArea = el('div', { className: 'flex items-center gap-3' },
+    el('h1', { className: 'text-2xl font-bold text-gray-900' }, vendor.name),
+    aiDec ? decisionBadge(aiDec.recommendation) : null
+  );
+  hdr.appendChild(el('div', {}, titleArea, vendor.project ? el('p', { className: 'text-gray-500 text-sm mt-1' }, vendor.project) : null));
+  hdr.appendChild(el('div', { className: 'flex items-center gap-3' },
+    aiBadge(aiScore, true),
+    el('div', { className: 'flex flex-col gap-1' },
+      el('a', { href: `#/vendors/${id}/edit`, className: 'bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium no-underline text-center' }, 'Edit'),
+      el('a', { href: '#/vendors', className: 'bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-medium no-underline text-center' }, 'Back')
+    )
+  ));
+  root.appendChild(hdr);
+
+  const grid = el('div', { className: 'grid grid-cols-1 lg:grid-cols-3 gap-6' });
+  const left = el('div', { className: 'lg:col-span-2 space-y-6' });
+  const right = el('div', { className: 'space-y-6' });
+
+  // Details
+  const detCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Vendor Details'));
+  const detGrid = el('div', { className: 'grid grid-cols-2 gap-4 text-sm' });
+  if (vendor.website) detGrid.appendChild(el('div', {}, el('span', { className: 'text-gray-500' }, 'Website: '), el('a', { href: vendor.website, target: '_blank', rel: 'noopener noreferrer', className: 'text-indigo-600 hover:underline' }, vendor.website)));
+  if (vendor.contactName) detGrid.appendChild(el('div', {}, el('span', { className: 'text-gray-500' }, 'Contact: '), vendor.contactName));
+  if (vendor.contactEmail) detGrid.appendChild(el('div', {}, el('span', { className: 'text-gray-500' }, 'Email: '), vendor.contactEmail));
+  if (vendor.contactPhone) detGrid.appendChild(el('div', {}, el('span', { className: 'text-gray-500' }, 'Phone: '), vendor.contactPhone));
+  detCard.appendChild(detGrid);
+  if (vendor.missionStatement) {
+    detCard.appendChild(el('div', { className: 'mt-4 pt-4 border-t border-gray-100' },
+      el('p', { className: 'text-xs font-medium text-gray-500 uppercase mb-1' }, 'Mission Statement'),
+      el('p', { className: 'text-sm text-gray-700' }, vendor.missionStatement)
+    ));
+  }
+  left.appendChild(detCard);
+
+  // Sections
+  if ((vendor.sections || []).length > 0) {
+    const secCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-3' }, 'AF Group Sections'));
+    const tags = el('div', { className: 'flex flex-wrap gap-2' });
+    vendor.sections.forEach(s => tags.appendChild(el('span', { className: 'text-sm bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full' }, s)));
+    secCard.appendChild(tags);
+    left.appendChild(secCard);
+  }
+
+  // Scoring — side by side AI vs User
+  const scCard = card(
+    el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Scoring Matrix'),
+    el('div', { className: 'flex items-center py-2 mb-1 border-b-2 border-slate-200' },
+      el('div', { className: 'flex-1' }, el('span', { className: 'text-xs font-semibold text-slate-500 uppercase tracking-wider' }, 'Criterion')),
+      el('div', { className: 'w-16 text-center' }, el('span', { className: 'text-xs font-semibold text-indigo-500 uppercase tracking-wider' }, 'AI')),
+      el('div', { className: 'w-44 text-center' }, el('span', { className: 'text-xs font-semibold text-emerald-600 uppercase tracking-wider' }, 'Yours'))
+    )
+  );
+  CRITERIA.forEach(c => {
+    scCard.appendChild(el('div', { className: 'flex items-center py-2.5 border-b border-slate-100/80' },
+      el('div', { className: 'flex-1 mr-2' }, el('span', { className: 'text-sm text-gray-700 font-medium' }, c)),
+      el('div', { className: 'w-16 flex justify-center' }, el('span', { className: 'ai-pill' }, String(aiMap[c] || '-'))),
+      el('div', { className: 'w-44 flex justify-center' },
+        scoreButtons(userMap[c] || 0, score => { Store.setScore(id, c, score); render(); })
+      )
+    ));
+  });
+  left.appendChild(scCard);
+
+  // Decision — AI vs Your Pick side by side
+  const recColor = { BUY: 'text-emerald-600', BUILD: 'text-blue-600', PARTNER: 'text-purple-600' };
+  const userPick = Store.getUserDecision(id);
+  const decGrid = el('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6' });
+  if (aiDec) {
+    const aiDecCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'AI Decision'));
+    aiDecCard.style.borderTop = '3px solid #6366f1';
+    [{ l:'Buy',s:aiDec.scores.buy,bg:'bg-emerald-500' },{ l:'Build',s:aiDec.scores.build,bg:'bg-blue-500' },{ l:'Partner',s:aiDec.scores.partner,bg:'bg-purple-500' }].forEach(x => {
+      aiDecCard.appendChild(el('div', { className: 'mb-4' },
+        el('div', { className: 'flex justify-between text-xs mb-1' }, el('span', { className: 'font-medium text-slate-600' }, x.l), el('span', { className: 'font-bold' }, x.s + '%')),
+        el('div', { className: 'w-full bg-gray-100 rounded-full h-2.5 overflow-hidden' },
+          Object.assign(el('div', { className: `${x.bg} h-2.5 rounded-full bar-fill` }), { style: { width: x.s + '%' } }))
+      ));
+    });
+    aiDecCard.appendChild(el('div', { className: 'p-3 rounded-xl bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-100 text-center' },
+      el('p', { className: 'text-xs text-slate-500' }, 'Recommendation'),
+      el('p', { className: `font-bold text-lg ${recColor[aiDec.recommendation]}` }, aiDec.recommendation),
+      el('p', { className: 'text-xs text-slate-400' }, aiDec.confidence + '% confidence')
+    ));
+    decGrid.appendChild(aiDecCard);
+  }
+  // Your Decision — manual picker
+  const yourDecCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Your Decision'));
+  yourDecCard.style.borderTop = '3px solid #10b981';
+  yourDecCard.appendChild(el('p', { className: 'text-xs text-slate-400 mb-4' }, 'Click to choose your recommendation for this vendor'));
+  const pickBtns = el('div', { className: 'flex flex-col gap-3' });
+  [{ choice:'BUY', label:'Buy', desc:'Purchase this solution', color:'emerald' },
+   { choice:'BUILD', label:'Build', desc:'Build in-house', color:'blue' },
+   { choice:'PARTNER', label:'Partner', desc:'Strategic partnership', color:'purple' }
+  ].forEach(opt => {
+    const isSelected = userPick && userPick.choice === opt.choice;
+    const btnClass = isSelected
+      ? `bg-${opt.color}-500 text-white ring-2 ring-${opt.color}-300 shadow-md`
+      : `bg-white text-${opt.color}-700 ring-1 ring-${opt.color}-200 hover:bg-${opt.color}-50`;
+    pickBtns.appendChild(el('button', {
+      className: `w-full px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 text-left ${btnClass}`,
+      onclick: () => {
+        if (isSelected) Store.clearUserDecision(id);
+        else Store.setUserDecision(id, opt.choice);
+        render();
+      }
+    },
+      el('div', { className: 'flex items-center justify-between' },
+        el('div', {}, el('span', {}, opt.label), el('span', { className: `ml-2 font-normal text-xs ${isSelected ? 'text-white/70' : 'text-slate-400'}` }, opt.desc)),
+        isSelected ? el('span', { className: 'text-white text-lg' }, '\u2713') : null
+      )
+    ));
+  });
+  yourDecCard.appendChild(pickBtns);
+  if (userPick && aiDec) {
+    const match = userPick.choice === aiDec.recommendation;
+    yourDecCard.appendChild(el('div', { className: `mt-4 p-2.5 rounded-xl text-center text-xs font-bold ${match ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}` },
+      match ? 'Your decision aligns with the AI recommendation' : 'Your decision differs from the AI recommendation'
+    ));
+  }
+  decGrid.appendChild(yourDecCard);
+  left.appendChild(decGrid);
+
+  // Right: Documents
+  const docCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-3' }, 'Documents'));
+  const fileInput = el('input', { type: 'file', multiple: true, className: 'hidden', onchange: e => {
+    Array.from(e.target.files).forEach(f => {
+      if (f.size > 5 * 1024 * 1024) { alert(`File "${f.name}" exceeds 5MB limit for local storage.`); return; }
+      const reader = new FileReader();
+      reader.onload = () => { Store.addDoc(id, f.name, f.type, reader.result); render(); };
+      reader.readAsDataURL(f);
+    });
+  }});
+  docCard.appendChild(fileInput);
+  docCard.appendChild(el('button', {
+    className: 'bg-white text-gray-700 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 font-medium text-xs w-full mb-3',
+    onclick: () => fileInput.click()
+  }, 'Upload Documents'));
+  const docs = Store.getDocs(id);
+  if (docs.length === 0) {
+    docCard.appendChild(el('p', { className: 'text-xs text-gray-400 text-center py-3' }, 'No documents uploaded'));
+  } else {
+    docs.forEach(d => {
+      docCard.appendChild(el('div', { className: 'flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-1' },
+        el('a', { href: d.dataUrl, target: '_blank', rel: 'noopener', className: 'text-xs text-indigo-600 hover:underline truncate flex-1 mr-2' }, d.name),
+        el('button', { className: 'text-gray-400 hover:text-red-600 text-xs', onclick: () => { Store.deleteDoc(d.id); render(); } }, 'X')
+      ));
+    });
+  }
+  right.appendChild(docCard);
+
+  // Right: Campaigns
+  const campCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-3' }, 'Campaigns'));
+  const vCamps = Store.getVendorCampaigns(id);
+  if (vCamps.length === 0) campCard.appendChild(el('p', { className: 'text-xs text-gray-400 text-center py-3' }, 'Not part of any campaigns'));
+  else vCamps.forEach(c => campCard.appendChild(el('a', { href: `#/campaigns/${c.id}`, className: 'block p-2 bg-gray-50 rounded-lg text-xs text-indigo-600 hover:underline mb-1 no-underline' }, c.name)));
+  right.appendChild(campCard);
+
+  if (vendor.notes) {
+    right.appendChild(card(
+      el('h2', { className: 'font-semibold text-gray-900 mb-2' }, 'Notes'),
+      el('p', { className: 'text-sm text-gray-600 whitespace-pre-wrap' }, vendor.notes)
+    ));
+  }
+
+  grid.appendChild(left);
+  grid.appendChild(right);
+  root.appendChild(grid);
+}
+
+// ── Campaigns ──────────────────────────────────────────────────────────
+function renderCampaigns(root) {
+  root.appendChild(el('div', { className: 'flex items-center justify-between mb-6' },
+    el('div', {},
+      el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Campaigns'),
+      el('p', { className: 'text-gray-500 text-sm mt-1' }, 'Group vendors under strategic initiatives')
+    ),
+    el('a', { href: '#/campaigns/0/new', className: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:from-indigo-600 hover:to-indigo-700 font-semibold text-sm shadow-sm shadow-indigo-200 hover:shadow-md hover:shadow-indigo-200 transition-all duration-200 no-underline' }, '+ New Campaign')
+  ));
+
+  const campaigns = Store.getCampaigns();
+  if (campaigns.length === 0) {
+    root.appendChild(card(el('p', { className: 'text-gray-400 text-center py-12' }, 'No campaigns yet.')));
+    return;
+  }
+
+  const grid = el('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-5' });
+  campaigns.forEach(c => {
+    const vendorIds = Store.getCampaignVendors(c.id);
+    const crd = card(
+      el('div', { className: 'flex items-start justify-between mb-2' },
+        el('a', { href: `#/campaigns/${c.id}`, className: 'font-semibold text-gray-900 hover:text-indigo-600 no-underline' }, c.name),
+        el('div', { className: 'flex items-center gap-2' },
+          el('span', { className: `text-xs px-2 py-0.5 rounded-full ${c.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}` }, c.status),
+          el('button', { className: 'text-gray-400 hover:text-red-600 text-xs', onclick: () => {
+            if (confirm(`Delete "${c.name}"?`)) { Store.deleteCampaign(c.id); render(); }
+          }}, 'Del')
+        )
+      ),
+      c.description ? el('p', { className: 'text-sm text-gray-500 mb-3' }, c.description) : null,
+      el('div', { className: 'pt-3 border-t border-gray-100' },
+        el('span', { className: 'text-sm text-indigo-600 font-medium' }, `${vendorIds.length} vendor${vendorIds.length !== 1 ? 's' : ''}`)
+      )
+    );
+    grid.appendChild(crd);
+  });
+  root.appendChild(grid);
+}
+
+function renderCampaignForm(root) {
+  const form = { name: '', description: '', objective: '' };
+  root.appendChild(el('div', { className: 'mb-6' },
+    el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'New Campaign'),
+    el('p', { className: 'text-gray-500 text-sm mt-1' }, 'Create a campaign to group related vendor evaluations')
+  ));
+  const errEl = el('div', { className: 'text-red-600 text-sm mb-2 hidden' });
+  const formEl = el('div', { className: 'max-w-2xl space-y-6' });
+  formEl.appendChild(card(
+    el('div', { className: 'space-y-4' },
+      el('div', {},
+        el('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Campaign Name *'),
+        el('input', { className: 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none bg-white/60 placeholder:text-slate-400 transition-all duration-200', placeholder: 'e.g., AI Platform Evaluation 2026', oninput: e => { form.name = e.target.value; } })
+      ),
+      el('div', {},
+        el('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Description'),
+        el('textarea', { className: 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none bg-white/60 placeholder:text-slate-400 transition-all duration-200', rows: 3, placeholder: 'What is this campaign about?', oninput: e => { form.description = e.target.value; } })
+      ),
+      el('div', {},
+        el('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Objective'),
+        el('textarea', { className: 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none bg-white/60 placeholder:text-slate-400 transition-all duration-200', rows: 2, placeholder: 'What is the goal?', oninput: e => { form.objective = e.target.value; } })
+      )
+    )
+  ));
+  formEl.appendChild(errEl);
+  formEl.appendChild(el('div', { className: 'flex gap-3' },
+    el('button', { className: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:from-indigo-600 hover:to-indigo-700 font-semibold text-sm shadow-sm shadow-indigo-200 hover:shadow-md hover:shadow-indigo-200 transition-all duration-200', onclick: () => {
+      if (!cleanStr(form.name)) { errEl.textContent = 'Campaign name required'; errEl.className = 'text-red-600 text-sm mb-2'; return; }
+      const c = Store.saveCampaign({ name: cleanStr(form.name), description: cleanStr(form.description), objective: cleanStr(form.objective) });
+      location.hash = `#/campaigns/${c.id}`;
+    }}, 'Create Campaign'),
+    el('button', { className: 'bg-white/80 text-slate-600 px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 font-medium text-sm transition-all duration-200', onclick: () => history.back() }, 'Cancel')
+  ));
+  root.appendChild(formEl);
+}
+
+function renderCampaignDetail(root, id) {
+  const campaign = Store.getCampaign(id);
+  if (!campaign) { root.appendChild(el('p', { className: 'text-gray-400' }, 'Campaign not found')); return; }
+
+  root.appendChild(el('div', { className: 'flex items-start justify-between mb-6' },
+    el('div', {},
+      el('a', { href: '#/campaigns', className: 'text-sm text-indigo-600 hover:underline mb-2 inline-block' }, '\u2190 All Campaigns'),
+      el('h1', { className: 'text-2xl font-bold text-gray-900' }, campaign.name),
+      campaign.description ? el('p', { className: 'text-gray-500 text-sm mt-1' }, campaign.description) : null,
+      campaign.objective ? el('p', { className: 'text-gray-400 text-xs mt-1' }, 'Objective: ' + campaign.objective) : null
+    ),
+    el('span', { className: `text-xs px-3 py-1 rounded-full ${campaign.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}` }, campaign.status)
+  ));
+
+  // Add vendor
+  const vendorIds = Store.getCampaignVendors(id);
+  const allVendors = Store.getVendors();
+  const available = allVendors.filter(v => !vendorIds.includes(v.id));
+
+  const addCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-3' }, 'Add Vendor to Campaign'));
+  const select = el('select', { className: 'w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 outline-none bg-white/60 placeholder:text-slate-400 transition-all duration-200 flex-1' });
+  select.appendChild(el('option', { value: '' }, 'Select a vendor...'));
+  available.forEach(v => select.appendChild(el('option', { value: String(v.id) }, v.name)));
+  addCard.appendChild(el('div', { className: 'flex gap-2' },
+    select,
+    el('button', { className: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:from-indigo-600 hover:to-indigo-700 font-semibold text-sm shadow-sm shadow-indigo-200 hover:shadow-md hover:shadow-indigo-200 transition-all duration-200', onclick: () => {
+      const vid = parseInt(select.value, 10);
+      if (vid) { Store.addVendorToCampaign(id, vid); render(); }
+    }}, 'Add')
+  ));
+  if (available.length === 0 && allVendors.length > 0) addCard.appendChild(el('p', { className: 'text-xs text-gray-400 mt-2' }, 'All vendors are in this campaign.'));
+  if (allVendors.length === 0) addCard.appendChild(el('p', { className: 'text-xs text-gray-400 mt-2' }, 'No vendors available. Add one first.'));
+  root.appendChild(addCard);
+
+  // Comparison table
+  const vendors = vendorIds.map(vid => Store.getVendor(vid)).filter(Boolean);
+  if (vendors.length > 0) {
+    const tableCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Vendor Comparison'));
+    const table = el('table', { className: 'w-full text-sm' });
+    const thead = el('thead', {},
+      el('tr', { className: 'border-b border-gray-200' },
+        el('th', { className: 'text-left py-3 px-2 font-medium text-gray-500' }, 'Vendor'),
+        el('th', { className: 'text-center py-3 px-2 font-medium text-indigo-500' }, 'AI Score'),
+        el('th', { className: 'text-center py-3 px-2 font-medium text-emerald-600' }, 'Your Score'),
+        el('th', { className: 'text-center py-3 px-2 font-medium text-indigo-500' }, 'AI Rec'),
+        el('th', { className: 'text-center py-3 px-2 font-medium text-emerald-600' }, 'Your Pick'),
+        el('th', { className: 'text-center py-3 px-2 font-medium text-gray-500' }, 'Match'),
+        el('th', { className: 'py-3 px-2' }, '')
+      )
+    );
+    table.appendChild(thead);
+    const tbody = el('tbody', {});
+    vendors.forEach(v => {
+      Store.ensureAIScores(v);
+      const aiScoresArr = Store.getAIScores(v.id);
+      const userScoresArr = Store.getScores(v.id);
+      const aiSum = aiScoresArr.reduce((t, s) => t + s.score, 0);
+      const userSum = userScoresArr.reduce((t, s) => t + s.score, 0);
+      const dec = calcDecision(v.id, 'ai');
+      const userPick = Store.getUserDecision(v.id);
+      const aiRec = dec ? dec.recommendation : null;
+      const uPick = userPick ? userPick.choice : null;
+      const match = aiRec && uPick ? (aiRec === uPick) : null;
+      tbody.appendChild(el('tr', { className: 'border-b border-gray-50 hover:bg-gray-50' },
+        el('td', { className: 'py-3 px-2 font-medium text-gray-900' }, v.name),
+        el('td', { className: 'py-3 px-2 text-center font-bold text-indigo-600' }, String(aiSum) + '/50'),
+        el('td', { className: 'py-3 px-2 text-center font-bold' }, userScoresArr.length > 0
+          ? el('span', { className: 'text-emerald-600' }, String(userSum) + '/50')
+          : el('span', { className: 'text-slate-300' }, '--')),
+        el('td', { className: 'py-3 px-2 text-center' }, aiRec ? decisionBadge(aiRec) : el('span', { className: 'text-gray-300 text-xs' }, '--')),
+        el('td', { className: 'py-3 px-2 text-center' }, uPick ? decisionBadge(uPick) : el('span', { className: 'text-slate-300 text-xs' }, '--')),
+        el('td', { className: 'py-3 px-2 text-center' }, match === null
+          ? el('span', { className: 'text-slate-300 text-xs' }, '--')
+          : match
+            ? el('span', { className: 'text-xs font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full' }, 'Aligned')
+            : el('span', { className: 'text-xs font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full' }, 'Differs')),
+        el('td', { className: 'py-3 px-2 text-right' },
+          el('button', { className: 'text-gray-400 hover:text-red-600 text-xs', title: 'Remove', onclick: () => { Store.removeVendorFromCampaign(id, v.id); render(); } }, 'X')
+        )
+      ));
+    });
+    table.appendChild(tbody);
+    tableCard.appendChild(el('div', { className: 'overflow-x-auto' }, table));
+    root.appendChild(tableCard);
+  } else {
+    root.appendChild(card(el('p', { className: 'text-gray-400 text-center py-12' }, 'No vendors in this campaign yet.')));
+  }
+}
+
+// ── Scoring ────────────────────────────────────────────────────────────
+function renderScoring(root) {
+  const vendors = Store.getVendors();
+  vendors.forEach(v => Store.ensureAIScores(v));
+  let selectedId = null;
+
+  root.appendChild(el('div', { className: 'mb-6' },
+    el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Scoring Matrix'),
+    el('p', { className: 'text-gray-500 text-sm mt-1' }, 'Compare AI-generated scores with your own ratings side by side.')
+  ));
+
+  if (vendors.length === 0) {
+    root.appendChild(card(el('p', { className: 'text-gray-400 text-center py-12' }, 'No vendors to score. '),
+      el('a', { href: '#/vendors/0/new', className: 'text-indigo-600 hover:underline' }, 'Add a Vendor')));
+    return;
+  }
+
+  const grid = el('div', { className: 'flex flex-col lg:grid lg:grid-cols-4 gap-6' });
+  const listCol = el('div', { className: 'flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 lg:overflow-visible' });
+  listCol.appendChild(el('p', { className: 'text-xs font-medium text-gray-500 uppercase tracking-wide mb-2' }, 'Select Vendor'));
+  const panel = el('div', { className: 'lg:col-span-3' });
+
+  function renderPanel() {
+    panel.innerHTML = '';
+    if (!selectedId) {
+      panel.appendChild(card(el('p', { className: 'text-gray-400 text-center py-16' }, 'Select a vendor from the list to start scoring')));
+      return;
+    }
+    const vendor = Store.getVendor(selectedId);
+    if (!vendor) return;
+    Store.ensureAIScores(vendor);
+    const aiScoresArr = Store.getAIScores(selectedId);
+    const userScoresArr = Store.getScores(selectedId);
+    const aiMap = {}; aiScoresArr.forEach(s => { aiMap[s.criterion] = s.score; });
+    const userMap = {}; userScoresArr.forEach(s => { userMap[s.criterion] = s.score; });
+    const aiTotal = calcAIScore(vendor);
+    const aiDec = calcDecision(selectedId, 'ai');
+
+    // Calculate totals first for the header badges
+    let aiSum = 0, userSum = 0, userCount = 0;
+    CRITERIA.forEach(c => {
+      aiSum += (aiMap[c] || 0);
+      const uv = userMap[c] || 0;
+      if (uv) { userSum += uv; userCount++; }
+    });
+
+    // Scoring table with side-by-side columns
+    const scCard = card(
+      el('div', { className: 'flex flex-col sm:flex-row sm:items-center justify-between mb-5 gap-3' },
+        el('div', {},
+          el('h2', { className: 'font-semibold text-gray-900 text-lg' }, vendor.name),
+          el('p', { className: 'text-xs text-gray-400' }, 'AI scores on the left, click 1-5 on the right to add yours')
+        ),
+        el('div', { className: 'flex items-center gap-3 md:gap-5' },
+          el('div', { className: 'text-center' },
+            el('div', { className: 'w-14 h-14 md:w-20 md:h-20 rounded-full ring-4 ring-indigo-200 bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-lg md:text-2xl font-bold text-white shadow-sm' }, String(aiSum)),
+            el('p', { className: 'text-[10px] text-indigo-400 font-semibold mt-1.5 uppercase tracking-wider' }, 'AI / 50')
+          ),
+          el('div', { className: 'text-center' },
+            userCount > 0
+              ? el('div', { className: 'w-14 h-14 md:w-20 md:h-20 rounded-full ring-4 ring-emerald-200 bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-lg md:text-2xl font-bold text-white shadow-sm' }, String(userSum))
+              : el('div', { className: 'w-14 h-14 md:w-20 md:h-20 rounded-full ring-4 ring-slate-200 bg-slate-100 flex items-center justify-center text-lg md:text-2xl font-bold text-slate-300' }, '--'),
+            el('p', { className: 'text-[10px] text-emerald-500 font-semibold mt-1.5 uppercase tracking-wider' }, 'You / 50')
+          )
+        )
+      )
+    );
+    // Column headers
+    scCard.appendChild(el('div', { className: 'hidden md:flex items-center py-2 mb-1 border-b-2 border-slate-200' },
+      el('div', { className: 'flex-1' }, el('span', { className: 'text-xs font-semibold text-slate-500 uppercase tracking-wider' }, 'Criterion')),
+      el('div', { className: 'w-12 text-center' }, el('span', { className: 'text-xs font-semibold text-indigo-500 uppercase tracking-wider' }, 'AI')),
+      el('div', { className: 'w-52 text-center' }, el('span', { className: 'text-xs font-semibold text-emerald-600 uppercase tracking-wider' }, 'Your Score'))
+    ));
+
+    CRITERIA.forEach(c => {
+      const aiVal = aiMap[c] || 0;
+      const userVal = userMap[c] || 0;
+      scCard.appendChild(el('div', { className: 'flex flex-wrap md:flex-nowrap items-center py-3 border-b border-slate-100/80 gap-2 md:gap-0' },
+        el('div', { className: 'w-full md:w-auto md:flex-1 md:mr-3 flex items-center justify-between md:block' },
+          el('p', { className: 'text-sm font-medium text-gray-700' }, c),
+          el('span', { className: 'ai-pill md:hidden' }, String(aiVal))
+        ),
+        el('div', { className: 'w-12 hidden md:flex justify-center' }, el('span', { className: 'ai-pill' }, String(aiVal))),
+        el('div', { className: 'w-full md:w-52 flex justify-center md:justify-center' },
+          scoreButtons(userVal, score => { Store.setScore(selectedId, c, score); renderVendorList(); renderPanel(); })
+        )
+      ));
+    });
+
+    // Totals row
+    scCard.appendChild(el('div', { className: 'flex items-center py-3 mt-1 bg-slate-50/80 rounded-xl px-3 -mx-1' },
+      el('div', { className: 'flex-1' }, el('p', { className: 'text-sm font-bold text-slate-700' }, 'Total')),
+      el('div', { className: 'w-12 text-center' }, el('span', { className: 'text-sm font-bold text-indigo-600' }, String(aiSum) + '/50')),
+      el('div', { className: 'w-auto md:w-52 text-center' }, el('span', { className: 'text-sm font-bold text-emerald-600' }, userCount > 0 ? String(userSum) + '/50' : '--'))
+    ));
+    panel.appendChild(scCard);
+
+    // AI Decision card (read-only)
+    if (aiDec) {
+      const aiDecCard = card(el('h3', { className: 'font-semibold text-gray-900 mb-4' }, 'AI Decision'));
+      aiDecCard.style.borderTop = '3px solid #6366f1';
+      [{ l:'Buy',s:aiDec.scores.buy,bg:'bg-emerald-500' },{ l:'Build',s:aiDec.scores.build,bg:'bg-blue-500' },{ l:'Partner',s:aiDec.scores.partner,bg:'bg-purple-500' }].forEach(d => {
+        aiDecCard.appendChild(el('div', { className: 'mb-3' },
+          el('div', { className: 'flex justify-between text-xs mb-1' }, el('span', { className: 'font-medium text-slate-600' }, d.l), el('span', { className: 'font-bold text-slate-800' }, d.s + '%')),
+          el('div', { className: 'w-full bg-gray-100 rounded-full h-2.5 overflow-hidden' },
+            Object.assign(el('div', { className: `${d.bg} h-2.5 rounded-full bar-fill` }), { style: { width: d.s + '%' } }))
+        ));
+      });
+      const recColor = { BUY:'text-emerald-600', BUILD:'text-blue-600', PARTNER:'text-purple-600' };
+      aiDecCard.appendChild(el('div', { className: 'p-3 bg-gradient-to-r from-indigo-50 to-violet-50 rounded-xl border border-indigo-100 text-center mt-2' },
+        el('p', { className: 'text-xs text-slate-500' }, 'AI Recommends'),
+        el('p', { className: `font-bold text-lg ${recColor[aiDec.recommendation]}` }, aiDec.recommendation),
+        el('p', { className: 'text-xs text-slate-400' }, aiDec.confidence + '% confidence')
+      ));
+      panel.appendChild(el('div', { className: 'mt-6' }, aiDecCard));
+    }
+  }
+
+  function renderVendorList() {
+    listCol.querySelectorAll('.vendor-item').forEach(e => e.remove());
+    vendors.forEach(v => {
+      const userScoresArr = Store.getScores(v.id);
+      const aiScoresArr = Store.getAIScores(v.id);
+      const aiSum = aiScoresArr.reduce((t, s) => t + s.score, 0);
+      const userSum = userScoresArr.reduce((t, s) => t + s.score, 0);
+      const btn = el('button', {
+        className: `vendor-item flex-shrink-0 lg:flex-shrink lg:w-full text-left p-3 rounded-xl transition-all duration-200 ${selectedId === v.id ? 'bg-indigo-50 border-2 border-indigo-300 shadow-sm shadow-indigo-100' : 'bg-white/80 border border-gray-200/80 hover:border-indigo-200 hover:bg-indigo-50/30'}`,
+        onclick: () => { selectedId = v.id; renderVendorList(); renderPanel(); }
+      },
+        el('p', { className: 'font-medium text-sm text-gray-900 mb-1' }, v.name),
+        el('div', { className: 'flex gap-3' },
+          el('span', { className: 'text-xs text-indigo-500 font-semibold' }, `AI: ${aiSum}/50`),
+          el('span', { className: `text-xs font-semibold ${userScoresArr.length > 0 ? 'text-emerald-500' : 'text-slate-300'}` }, `You: ${userScoresArr.length > 0 ? userSum + '/50' : '--'}`)
+        )
+      );
+      listCol.appendChild(btn);
+    });
+  }
+
+  renderVendorList();
+  renderPanel();
+  grid.appendChild(listCol);
+  grid.appendChild(panel);
+  root.appendChild(grid);
+}
+
+// ── Decisions ──────────────────────────────────────────────────────────
+function renderDecisions(root) {
+  const vendors = Store.getVendors();
+  vendors.forEach(v => Store.ensureAIScores(v));
+
+  root.appendChild(el('div', { className: 'mb-6' },
+    el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Buy / Build / Partner Decisions'),
+    el('p', { className: 'text-gray-500 text-sm mt-1' }, 'AI recommends a path for each vendor. Choose your own decision to compare.')
+  ));
+
+  if (vendors.length === 0) {
+    root.appendChild(card(el('p', { className: 'text-gray-400 text-center py-12' }, 'No vendors yet. '),
+      el('a', { href: '#/vendors/0/new', className: 'text-indigo-600 hover:underline' }, 'Add a Vendor')));
+    return;
+  }
+
+  const tableWrap = el('div', {});
+  root.appendChild(tableWrap);
+
+  function renderTable() {
+    tableWrap.innerHTML = '';
+    const vendorData = vendors.map(v => {
+      const aiDec = calcDecision(v.id, 'ai');
+      const userPick = Store.getUserDecision(v.id);
+      return { ...v, aiScore: calcAIScore(v), aiDec, userPick: userPick ? userPick.choice : null };
+    });
+
+    // Summary cards
+    const aiCounts = { BUY:0, BUILD:0, PARTNER:0 };
+    const userCounts = { BUY:0, BUILD:0, PARTNER:0 };
+    vendorData.forEach(v => {
+      if (v.aiDec) aiCounts[v.aiDec.recommendation]++;
+      if (v.userPick) userCounts[v.userPick]++;
+    });
+    const summary = el('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-6 mb-6' });
+    // AI summary
+    const aiSumCard = card(el('div', { className: 'flex items-center gap-2 mb-4' },
+      el('span', { className: 'w-2.5 h-2.5 rounded-full bg-indigo-500' }),
+      el('h3', { className: 'font-semibold text-slate-800 text-sm' }, 'AI Recommendations')
+    ));
+    aiSumCard.style.borderTop = '3px solid #6366f1';
+    const aiRow = el('div', { className: 'grid grid-cols-3 gap-3' });
+    [{ l:'Buy',c:aiCounts.BUY,color:'text-emerald-600' },{ l:'Build',c:aiCounts.BUILD,color:'text-blue-600' },{ l:'Partner',c:aiCounts.PARTNER,color:'text-purple-600' }].forEach(s => {
+      aiRow.appendChild(el('div', { className: 'text-center' },
+        el('p', { className: `text-2xl font-bold ${s.color}` }, String(s.c)),
+        el('p', { className: 'text-[11px] text-slate-400 font-medium uppercase tracking-wider' }, s.l)
+      ));
+    });
+    aiSumCard.appendChild(aiRow);
+    summary.appendChild(aiSumCard);
+    // User summary
+    const userSumCard = card(el('div', { className: 'flex items-center gap-2 mb-4' },
+      el('span', { className: 'w-2.5 h-2.5 rounded-full bg-emerald-500' }),
+      el('h3', { className: 'font-semibold text-slate-800 text-sm' }, 'Your Decisions')
+    ));
+    userSumCard.style.borderTop = '3px solid #10b981';
+    const hasAnyUser = vendorData.some(v => v.userPick);
+    if (hasAnyUser) {
+      const userRow = el('div', { className: 'grid grid-cols-3 gap-3' });
+      [{ l:'Buy',c:userCounts.BUY,color:'text-emerald-600' },{ l:'Build',c:userCounts.BUILD,color:'text-blue-600' },{ l:'Partner',c:userCounts.PARTNER,color:'text-purple-600' }].forEach(s => {
+        userRow.appendChild(el('div', { className: 'text-center' },
+          el('p', { className: `text-2xl font-bold ${s.color}` }, String(s.c)),
+          el('p', { className: 'text-[11px] text-slate-400 font-medium uppercase tracking-wider' }, s.l)
+        ));
+      });
+      userSumCard.appendChild(userRow);
+    } else {
+      userSumCard.appendChild(el('p', { className: 'text-sm text-slate-400 text-center py-3' }, 'Click Buy, Build, or Partner below to make your decisions'));
+    }
+    summary.appendChild(userSumCard);
+    tableWrap.appendChild(summary);
+
+    // Vendor decision rows
+    vendorData.forEach(v => {
+      const rowCard = card(
+        el('div', { className: 'flex flex-col md:flex-row md:items-center gap-4' },
+          // Vendor info
+          el('div', { className: 'md:w-48 flex-shrink-0' },
+            el('p', { className: 'font-semibold text-sm text-gray-900' }, v.name),
+            v.project ? el('p', { className: 'text-xs text-slate-400' }, v.project) : null,
+            el('div', { className: 'flex gap-3 mt-1' },
+              el('span', { className: 'text-xs text-indigo-500 font-semibold' }, 'AI: ' + (Store.getAIScores(v.id).reduce((t,s)=>t+s.score,0)) + '/50'),
+              el('span', { className: `text-xs font-semibold ${Store.getScores(v.id).length > 0 ? 'text-emerald-500' : 'text-slate-300'}` }, 'You: ' + (Store.getScores(v.id).length > 0 ? Store.getScores(v.id).reduce((t,s)=>t+s.score,0) + '/50' : '--'))
+            )
+          ),
+          // AI recommendation
+          el('div', { className: 'flex-1' },
+            el('p', { className: 'text-[10px] text-indigo-400 font-semibold uppercase tracking-wider mb-1.5' }, 'AI Recommends'),
+            v.aiDec
+              ? el('div', { className: 'flex items-center gap-2' },
+                  decisionBadge(v.aiDec.recommendation),
+                  el('span', { className: 'text-xs text-slate-400' }, v.aiDec.confidence + '% confidence')
+                )
+              : el('span', { className: 'text-xs text-slate-300' }, 'No AI scores')
+          ),
+          // User decision picker
+          el('div', { className: 'flex-1' },
+            el('p', { className: 'text-[10px] text-emerald-500 font-semibold uppercase tracking-wider mb-1.5' }, 'Your Decision'),
+            el('div', { className: 'flex gap-2' },
+              ...['BUY','BUILD','PARTNER'].map(choice => {
+                const colors = {
+                  BUY: v.userPick === choice ? 'bg-emerald-500 text-white ring-2 ring-emerald-300 shadow-sm' : 'bg-white text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-50',
+                  BUILD: v.userPick === choice ? 'bg-blue-500 text-white ring-2 ring-blue-300 shadow-sm' : 'bg-white text-blue-700 ring-1 ring-blue-200 hover:bg-blue-50',
+                  PARTNER: v.userPick === choice ? 'bg-purple-500 text-white ring-2 ring-purple-300 shadow-sm' : 'bg-white text-purple-700 ring-1 ring-purple-200 hover:bg-purple-50'
+                };
+                return el('button', {
+                  className: `px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${colors[choice]}`,
+                  onclick: () => {
+                    if (v.userPick === choice) Store.clearUserDecision(v.id);
+                    else Store.setUserDecision(v.id, choice);
+                    renderTable();
+                  }
+                }, choice);
+              })
+            )
+          ),
+          // Match indicator
+          el('div', { className: 'md:w-20 text-center flex-shrink-0' },
+            v.aiDec && v.userPick
+              ? v.aiDec.recommendation === v.userPick
+                ? el('span', { className: 'text-xs font-bold text-emerald-500 bg-emerald-50 px-2.5 py-1 rounded-full' }, 'Aligned')
+                : el('span', { className: 'text-xs font-bold text-amber-500 bg-amber-50 px-2.5 py-1 rounded-full' }, 'Differs')
+              : el('span', { className: 'text-xs text-slate-300' }, '--')
+          )
+        )
+      );
+      tableWrap.appendChild(el('div', { className: 'mb-3' }, rowCard));
+    });
+  }
+  renderTable();
+}
+</script>
+</body>
+</html>
