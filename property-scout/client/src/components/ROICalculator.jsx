@@ -42,9 +42,9 @@ export default function ROICalculator({ property, onClose }) {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 animate-fade-in">
       <div className="card max-w-4xl w-full my-8 shadow-2xl animate-scale-in">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-gray-800">
-          <div>
-            <h2 className="text-xl font-bold text-white">{property.address}</h2>
+        <div className="flex items-start justify-between p-4 md:p-6 border-b border-gray-800">
+          <div className="min-w-0 flex-1 mr-3">
+            <h2 className="text-lg md:text-xl font-bold text-white truncate">{property.address}</h2>
             <div className="flex items-center gap-3 mt-1">
               <span className="text-2xl font-bold text-green-400">{formatCurrency(property.price)}</span>
               <NeighborhoodBadge badge={nh.badge} score={nh.overall} />
@@ -58,12 +58,12 @@ export default function ROICalculator({ property, onClose }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-800 px-6">
+        <div className="flex overflow-x-auto border-b border-gray-800 px-4 md:px-6 scrollbar-hide">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              className={`px-3 md:px-4 py-2.5 text-xs md:text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-green-500 text-green-400'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -74,7 +74,7 @@ export default function ROICalculator({ property, onClose }) {
           ))}
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-6">
           {/* Assumptions (always visible) */}
           <div>
             <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Assumptions</h3>

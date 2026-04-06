@@ -131,6 +131,15 @@
     opacity: 1;
   }
 
+  /* Hide scrollbar for tab strips on mobile */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Loading skeleton shimmer */
   .skeleton-shimmer {
     background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
