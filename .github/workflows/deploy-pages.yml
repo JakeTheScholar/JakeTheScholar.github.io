@@ -25,7 +25,7 @@ jobs:
           mkdir -p _site
 
           # Root static files
-          cp -f index.html jake.html favicon.svg headshot.jpg CNAME _site/ 2>/dev/null || true
+          cp -f index.html projects.html jake.html favicon.svg headshot.jpg CNAME _site/ 2>/dev/null || true
 
           # Agent Farm — frontend only (no server/)
           mkdir -p _site/agent-farm/js
@@ -41,6 +41,15 @@ jobs:
           mkdir -p _site/property-scout/client/dist/assets
           cp property-scout/client/dist/index.html _site/property-scout/client/dist/
           cp property-scout/client/dist/assets/* _site/property-scout/client/dist/assets/
+
+          # Vendor Comparison Matrix — frontend only
+          mkdir -p _site/vendor-comparison-matrix
+          cp vendor-comparison-matrix/index.html _site/vendor-comparison-matrix/
+
+          # Trading Command Center — frontend only (no server/, no test.html)
+          mkdir -p _site/trading-command-center/js
+          cp trading-command-center/index.html _site/trading-command-center/
+          cp -r trading-command-center/js/*.js _site/trading-command-center/js/ 2>/dev/null || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
