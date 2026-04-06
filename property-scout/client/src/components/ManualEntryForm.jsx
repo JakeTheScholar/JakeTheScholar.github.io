@@ -29,7 +29,7 @@ export default function ManualEntryForm({ onAdd, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-4 space-y-4">
+    <form onSubmit={handleSubmit} className="card p-4 space-y-4 animate-slide-down">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-white">Add Property Manually</h3>
         <button type="button" onClick={onCancel} className="text-gray-500 hover:text-white text-sm">Cancel</button>

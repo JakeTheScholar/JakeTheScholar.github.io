@@ -19,7 +19,7 @@ export default function SearchBar({ onSearch, loading }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-4">
+    <form onSubmit={handleSubmit} className="card p-4 animate-fade-in-up">
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[200px]">
           <label className="block text-xs text-gray-400 mb-1">City, ZIP, or Address</label>
