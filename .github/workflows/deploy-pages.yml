@@ -1,0 +1,59 @@
+name: Deploy static site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy only static files for deployment
+        run: |
+          mkdir -p _site
+
+          # Root static files
+          cp -f index.html jake.html favicon.svg headshot.jpg CNAME _site/ 2>/dev/null || true
+
+          # Agent Farm — frontend only (no server/)
+          mkdir -p _site/agent-farm/js
+          cp agent-farm/index.html _site/agent-farm/
+          cp agent-farm/js/*.js _site/agent-farm/js/
+
+          # Franchise Command Center — frontend only (no test.html)
+          mkdir -p _site/franchise-command-center/js
+          cp franchise-command-center/index.html _site/franchise-command-center/
+          cp franchise-command-center/js/*.js _site/franchise-command-center/js/
+
+          # Property Scout — built dist only (no server.js, no source)
+          mkdir -p _site/property-scout/client/dist/assets
+          cp property-scout/client/dist/index.html _site/property-scout/client/dist/
+          cp property-scout/client/dist/assets/* _site/property-scout/client/dist/assets/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
