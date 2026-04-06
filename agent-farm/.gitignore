@@ -1,0 +1,20 @@
+# Environment & secrets
+.env
+server/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated output
+server/output/
+server/data/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
