@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07060b">
+    <title>Projects &mdash; Jake McGaha</title>
+    <meta name="description" content="Projects by Jake McGaha — real estate tools, financial modeling, trading systems, and more.">
+
+    <!-- Security -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src 'none'; frame-ancestors 'none'; base-uri 'self';">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin>
+
+    <style>
+        /* ── Custom Properties ── */
+        :root {
+            --void: #07060b;
+            --deep: #0e0d15;
+            --surface: #16141f;
+            --surface-raised: #1e1b2a;
+            --gold: #c9a96e;
+            --gold-bright: #e4c87e;
+            --gold-dim: #8a7a52;
+            --violet: #8b5cf6;
+            --violet-dim: #6d3fd4;
+            --rose: #ec6d8c;
+            --emerald: #10b981;
+            --text-primary: #ede8e0;
+            --text-secondary: #9a94a8;
+            --text-muted: #5a5468;
+            --glass-bg: rgba(255, 255, 255, 0.025);
+            --glass-border: rgba(255, 255, 255, 0.06);
+            --glass-hover: rgba(255, 255, 255, 0.05);
+
+            --font-display: 'DM Serif Display', 'Georgia', serif;
+            --font-body: 'Outfit', system-ui, sans-serif;
+
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ── Reset ── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--void);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            font-feature-settings: "kern" 1, "liga" 1;
+            text-rendering: optimizeLegibility;
+        }
+        body.custom-cursor-active,
+        body.custom-cursor-active * { cursor: none !important; }
+
+        ::selection {
+            background: rgba(201, 169, 110, 0.25);
+            color: var(--text-primary);
+        }
+
+        a { color: inherit; text-decoration: none; }
+        img { display: block; max-width: 100%; }
+        ul { list-style: none; }
+
+        /* ── Vignette ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8999;
+            background: radial-gradient(ellipse at center, transparent 55%, rgba(7, 6, 11, 0.5) 100%);
+        }
+
+        /* ── Grain Overlay ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9000;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+        }
+
+        /* ── Loading Screen ── */
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            background: var(--void);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            transition: opacity 0.8s var(--ease-smooth), visibility 0.8s;
+            animation: loaderAutoHide 0.8s 2s ease forwards;
+        }
+        #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        @keyframes loaderAutoHide {
+            to { opacity: 0; visibility: hidden; pointer-events: none; }
+        }
+        .loader-text {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--gold);
+            opacity: 0;
+            animation: loaderTextIn 0.6s 0.2s var(--ease-out) forwards;
+        }
+        .loader-line {
+            width: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            animation: loaderLineExpand 1.2s 0.4s var(--ease-out) forwards;
+        }
+        @keyframes loaderTextIn { to { opacity: 1; } }
+        @keyframes loaderLineExpand { to { width: 180px; } }
+
+        /* ── Custom Cursor ── */
+        #cursor {
+            position: fixed;
+            width: 24px;
+            height: 24px;
+            border: 1.5px solid var(--gold);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: width 0.35s var(--ease-out), height 0.35s var(--ease-out),
+                        border-color 0.3s, opacity 0.3s;
+            opacity: 0;
+            will-change: transform;
+        }
+        #cursor.visible { opacity: 1; }
+        #cursor.hover { width: 52px; height: 52px; border-color: var(--gold-bright); }
+
+        #cursor-dot {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            will-change: transform;
+        }
+        #cursor-dot.visible { opacity: 1; }
+
+        /* ── Particle Canvas ── */
+        #particles {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ── Navigation ── */
+        nav {
+            position: fixed;
+            top: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 36px;
+            padding: 14px 36px;
+            background: rgba(7, 6, 11, 0.85);
+            border: 1px solid var(--glass-border);
+            border-radius: 100px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            opacity: 0;
+            animation: navFadeIn 0.8s 1.6s var(--ease-out) forwards;
+        }
+        @keyframes navFadeIn { to { opacity: 1; } }
+
+        nav a {
+            position: relative;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            transition: color 0.3s;
+            padding: 2px 0;
+        }
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--gold);
+            transition: width 0.4s var(--ease-out);
+        }
+        nav a:hover { color: var(--gold); }
+        nav a:hover::after { width: 100%; }
+        nav a.active { color: var(--gold); }
+        nav a.active::after { width: 100%; }
+
+        /* ── Shared Section ── */
+        section { position: relative; z-index: 1; }
+
+        .section-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 140px 32px;
+            text-align: center;
+        }
+
+        .section-label {
+            font-family: var(--font-body);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .section-label::before,
+        .section-label::after {
+            content: '';
+            width: 32px;
+            height: 1px;
+            background: var(--gold-dim);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 4.5vw, 3.2rem);
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            max-width: 65ch;
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .section-subtitle {
+            font-size: 16px;
+            font-weight: 300;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto 56px;
+        }
+
+        .section-divider {
+            width: 60px;
+            height: 1px;
+            margin: 0 auto;
+            background: linear-gradient(to right, transparent, var(--gold-dim), transparent);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── Page Hero ── */
+        .page-hero {
+            min-height: 55vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 160px 32px 80px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-hero .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            transition: color 0.3s;
+            opacity: 0;
+            animation: fadeUp 0.6s 1.4s var(--ease-out) forwards;
+        }
+        .page-hero .back-link:hover { color: var(--gold); }
+        .page-hero .back-link svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.3s var(--ease-out);
+        }
+        .page-hero .back-link:hover svg { transform: translateX(-3px); }
+
+        .page-hero .hero-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            opacity: 0;
+            animation: fadeUp 0.7s 1.5s var(--ease-out) forwards;
+        }
+        .page-hero .hero-label::before,
+        .page-hero .hero-label::after {
+            content: '';
+            width: 32px;
+            height: 1px;
+            background: var(--gold-dim);
+        }
+
+        .page-hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 7vw, 5rem);
+            font-weight: 400;
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: fadeUp 0.8s 1.6s var(--ease-out) forwards;
+        }
+        .page-hero h1 .gold-accent {
+            background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-hero p {
+            font-size: 17px;
+            font-weight: 300;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto 32px;
+            opacity: 0;
+            animation: fadeUp 0.8s 1.8s var(--ease-out) forwards;
+        }
+
+        .hero-stat-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            opacity: 0;
+            animation: fadeUp 0.8s 2s var(--ease-out) forwards;
+        }
+        .hero-stat {
+            text-align: center;
+        }
+        .hero-stat .stat-num {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            color: var(--gold);
+            line-height: 1;
+        }
+        .hero-stat .stat-text {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .hero-stat-divider {
+            width: 1px;
+            height: 32px;
+            background: var(--glass-border);
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Project Cards Grid ── */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 28px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .project-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            text-align: left;
+            transition: all 0.5s var(--ease-out);
+            position: relative;
+            overflow: hidden;
+        }
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .project-card:hover {
+            background: var(--glass-hover);
+            border-color: rgba(201, 169, 110, 0.15);
+            transform: translateY(-6px);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+        }
+        .project-card:hover::before { opacity: 1; }
+
+        .project-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        .project-icon svg {
+            width: 26px;
+            height: 26px;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .project-icon.gold {
+            background: rgba(201, 169, 110, 0.1);
+            border: 1px solid rgba(201, 169, 110, 0.15);
+            color: var(--gold);
+        }
+        .project-icon.violet {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+            color: var(--violet);
+        }
+        .project-icon.rose {
+            background: rgba(236, 109, 140, 0.1);
+            border: 1px solid rgba(236, 109, 140, 0.15);
+            color: var(--rose);
+        }
+        .project-icon.emerald {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            color: var(--emerald);
+        }
+
+        .project-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .project-card .project-desc {
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .project-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 24px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 12px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+        .tag-gold {
+            background: rgba(201, 169, 110, 0.1);
+            color: var(--gold);
+            border: 1px solid rgba(201, 169, 110, 0.15);
+        }
+        .tag-violet {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--violet);
+            border: 1px solid rgba(139, 92, 246, 0.15);
+        }
+        .tag-rose {
+            background: rgba(236, 109, 140, 0.1);
+            color: var(--rose);
+            border: 1px solid rgba(236, 109, 140, 0.15);
+        }
+        .tag-muted {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-secondary);
+            border: 1px solid var(--glass-border);
+        }
+
+        .project-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--gold);
+            transition: all 0.3s var(--ease-out);
+        }
+        .project-link svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.3s var(--ease-out);
+        }
+        .project-link:hover { color: var(--gold-bright); }
+        .project-link:hover svg { transform: translateX(4px); }
+
+        /* ── Private / Classified Section ── */
+        .classified-section {
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .classified-card {
+            position: relative;
+            background: var(--glass-bg);
+            border: 1px solid rgba(201, 169, 110, 0.12);
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 700px;
+            margin: 0 auto;
+            text-align: center;
+            overflow: hidden;
+        }
+        .classified-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 24px;
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(201, 169, 110, 0.3), transparent 40%, transparent 60%, rgba(139, 92, 246, 0.2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: borderPulse 4s ease-in-out infinite;
+        }
+        @keyframes borderPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .classified-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(201, 169, 110, 0.03) 0%, transparent 50%, rgba(139, 92, 246, 0.02) 100%);
+            pointer-events: none;
+        }
+
+        .classified-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(201, 169, 110, 0.08);
+            border: 1px solid rgba(201, 169, 110, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px;
+            position: relative;
+            z-index: 1;
+            animation: lockPulse 3s ease-in-out infinite;
+        }
+        @keyframes lockPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(201, 169, 110, 0.15); }
+            50% { box-shadow: 0 0 30px 8px rgba(201, 169, 110, 0.08); }
+        }
+        .classified-icon svg {
+            width: 28px;
+            height: 28px;
+            stroke: var(--gold);
+            stroke-width: 1.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .classified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+        .classified-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gold);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
+        }
+
+        .classified-card h3 {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 3vw, 2.2rem);
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+        .classified-card .classified-subtitle {
+            font-size: 15px;
+            font-weight: 400;
+            color: var(--gold-dim);
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+        .classified-card .classified-desc {
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            max-width: 440px;
+            margin: 0 auto 28px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .classified-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(201, 169, 110, 0.05);
+            border: 1px solid rgba(201, 169, 110, 0.15);
+            border-radius: 12px;
+            padding: 14px 28px;
+            margin-bottom: 32px;
+            position: relative;
+            z-index: 1;
+        }
+        .classified-stat .stat-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            color: var(--gold-bright);
+            line-height: 1;
+            background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .classified-stat .stat-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(201, 169, 110, 0.2);
+        }
+        .classified-stat .stat-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.03em;
+            text-align: left;
+            line-height: 1.3;
+        }
+
+        .btn-classified {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: transparent;
+            color: var(--gold);
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            border: 1px solid rgba(201, 169, 110, 0.25);
+            border-radius: 8px;
+            transition: all 0.4s var(--ease-out);
+            position: relative;
+            z-index: 1;
+        }
+        .btn-classified:hover {
+            background: rgba(201, 169, 110, 0.08);
+            border-color: rgba(201, 169, 110, 0.5);
+            box-shadow: 0 0 32px rgba(201, 169, 110, 0.12);
+            transform: translateY(-2px);
+        }
+        .btn-classified svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* ── Scan Line Effect ── */
+        .classified-card .scanline {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.3), transparent);
+            animation: scanDown 4s linear infinite;
+            pointer-events: none;
+            z-index: 2;
+        }
+        @keyframes scanDown {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* ── Coming Soon Section ── */
+        .coming-soon-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 28px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .coming-soon-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.5s var(--ease-out);
+        }
+        .coming-soon-card:hover {
+            background: var(--glass-hover);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .coming-soon-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 100px;
+            margin-bottom: 20px;
+        }
+        .coming-soon-badge.wip {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--violet);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+        .coming-soon-badge .dot-sm {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        .coming-soon-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .coming-soon-card .cs-desc {
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .cs-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        /* ── Footer ── */
+        footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 40px 32px;
+            border-top: 1px solid var(--glass-border);
+        }
+        .footer-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .footer-copy {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+        .footer-social {
+            display: flex;
+            gap: 10px;
+        }
+        .footer-social a {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.3s var(--ease-out);
+        }
+        .footer-social a:hover {
+            background: var(--glass-hover);
+            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+        .footer-social a svg { width: 16px; height: 16px; fill: currentColor; }
+
+        /* ── Scroll Reveal ── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(36px);
+            transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out);
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        .reveal-delay-1 { transition-delay: 0.1s; }
+        .reveal-delay-2 { transition-delay: 0.2s; }
+        .reveal-delay-3 { transition-delay: 0.25s; }
+        .reveal-delay-4 { transition-delay: 0.35s; }
+        .reveal-delay-5 { transition-delay: 0.45s; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            nav { gap: 20px; padding: 12px 24px; top: 16px; }
+            nav a { font-size: 11px; letter-spacing: 0.06em; }
+            .section-inner { padding: 100px 20px; }
+            .page-hero { padding: 120px 20px 60px; }
+            .hero-stat-row { gap: 24px; }
+            .hero-stat .stat-num { font-size: 1.4rem; }
+            .projects-grid { grid-template-columns: 1fr; }
+            .coming-soon-grid { grid-template-columns: 1fr; }
+            .classified-card { padding: 36px 24px; }
+            .footer-inner { flex-direction: column; gap: 16px; }
+        }
+
+        /* ── Touch devices ── */
+        @media (hover: none), (pointer: coarse) {
+            body, body.custom-cursor-active { cursor: auto; }
+            a, .project-card, .coming-soon-card, .btn-classified, .project-link { cursor: pointer; }
+            #cursor, #cursor-dot { display: none !important; }
+        }
+
+        /* ── Reduced Motion ── */
+        @media (prefers-reduced-motion: reduce) {
+            body.custom-cursor-active, body.custom-cursor-active * { cursor: auto !important; }
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.2s !important;
+            }
+            .reveal { opacity: 1 !important; transform: none !important; }
+            #cursor, #cursor-dot { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Screen -->
+    <div id="loader" role="status" aria-label="Loading">
+        <div class="loader-text">Projects</div>
+        <div class="loader-line"></div>
+    </div>
+
+    <!-- Custom Cursor -->
+    <div id="cursor"></div>
+    <div id="cursor-dot"></div>
+
+    <!-- Particle Background -->
+    <canvas id="particles" aria-hidden="true"></canvas>
+
+    <!-- Navigation -->
+    <nav aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="index.html#about">About</a>
+        <a href="projects.html" class="active">Projects</a>
+        <a href="index.html#contact">Contact</a>
+    </nav>
+
+    <main>
+        <!-- ════════ PAGE HERO ════════ -->
+        <div class="page-hero">
+            <div>
+                <a href="index.html" class="back-link">
+                    <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                    Back to Home
+                </a>
+                <div class="hero-label">Portfolio</div>
+                <h1>What I&rsquo;ve <span class="gold-accent">Built</span></h1>
+                <p>Full-stack tools, financial models, and trading systems &mdash; built from scratch with a bias toward things that actually work.</p>
+                <div class="hero-stat-row">
+                    <div class="hero-stat">
+                        <div class="stat-num">5+</div>
+                        <div class="stat-text">Projects Shipped</div>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <div class="stat-num">3</div>
+                        <div class="stat-text">Domains</div>
+                    </div>
+                    <div class="hero-stat-divider"></div>
+                    <div class="hero-stat">
+                        <div class="stat-num">2.5&times;</div>
+                        <div class="stat-text">Beat NASDAQ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-divider" aria-hidden="true"></div>
+
+        <!-- ════════ LIVE PROJECTS ════════ -->
+        <section id="live-projects">
+            <div class="section-inner">
+                <div class="section-label reveal">Live Projects</div>
+                <h2 class="section-title reveal reveal-delay-1">Shipped &amp; Running</h2>
+                <p class="section-subtitle reveal reveal-delay-2">Production tools I designed, built, and deployed.</p>
+
+                <div class="projects-grid">
+
+                    <!-- Property Scout -->
+                    <a href="property-scout/client/dist/" class="project-card reveal reveal-delay-3">
+                        <div class="project-icon gold">
+                            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        </div>
+                        <h3>Property Scout</h3>
+                        <p class="project-desc">Full-stack real estate analysis tool with automated deal scoring, market comparisons, and investment projections.</p>
+                        <div class="project-tags">
+                            <span class="tag tag-violet">Node.js</span>
+                            <span class="tag tag-gold">Real Estate</span>
+                            <span class="tag tag-muted">Full-Stack</span>
+                        </div>
+                        <span class="project-link">
+                            View Project
+                            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                    </a>
+
+                    <!-- Franchise Command Center -->
+                    <a href="franchise-command-center/" class="project-card reveal reveal-delay-4">
+                        <div class="project-icon violet">
+                            <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        </div>
+                        <h3>Franchise Command Center</h3>
+                        <p class="project-desc">Financial modeling dashboard for franchise evaluation. Break-even analysis, cash flow projections, and scenario planning.</p>
+                        <div class="project-tags">
+                            <span class="tag tag-gold">Finance</span>
+                            <span class="tag tag-violet">Modeling</span>
+                            <span class="tag tag-muted">Dashboard</span>
+                        </div>
+                        <span class="project-link">
+                            View Project
+                            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                    </a>
+
+                    <!-- Vendor Comparison Matrix -->
+                    <a href="vendor-comparison-matrix/" class="project-card reveal reveal-delay-3">
+                        <div class="project-icon rose">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        </div>
+                        <h3>Vendor Comparison Matrix</h3>
+                        <p class="project-desc">Side-by-side vendor evaluation tool with weighted scoring, cost analysis, and decision-support recommendations.</p>
+                        <div class="project-tags">
+                            <span class="tag tag-rose">Analysis</span>
+                            <span class="tag tag-gold">Decision Support</span>
+                            <span class="tag tag-muted">Tool</span>
+                        </div>
+                        <span class="project-link">
+                            View Project
+                            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                    </a>
+
+                    <!-- Trading Command Center -->
+                    <a href="trading-command-center/" class="project-card reveal reveal-delay-4">
+                        <div class="project-icon emerald">
+                            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        </div>
+                        <h3>Trading Command Center</h3>
+                        <p class="project-desc">Real-time trading template with position tracking, risk management overlays, and performance analytics built for futures markets.</p>
+                        <div class="project-tags">
+                            <span class="tag tag-gold">Trading</span>
+                            <span class="tag tag-violet">Analytics</span>
+                            <span class="tag tag-muted">Template</span>
+                        </div>
+                        <span class="project-link">
+                            View Project
+                            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                    </a>
+
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider" aria-hidden="true"></div>
+
+        <!-- ════════ CLASSIFIED / PRIVATE ════════ -->
+        <section id="classified" class="classified-section">
+            <div class="section-inner">
+                <div class="section-label reveal">Private</div>
+                <h2 class="section-title reveal reveal-delay-1">Classified Projects</h2>
+                <p class="section-subtitle reveal reveal-delay-2">Proprietary systems. Access by invitation only.</p>
+
+                <!-- JARVIS -->
+                <div class="classified-card reveal reveal-delay-3" style="margin-bottom: 32px;">
+                    <div class="scanline"></div>
+                    <div class="classified-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                    </div>
+                    <div class="classified-badge">
+                        <span class="dot"></span>
+                        J.A.R.V.I.S. &mdash; Private AI System
+                    </div>
+                    <h3>JARVIS</h3>
+                    <p class="classified-subtitle">Personal AI Assistant &bull; Multi-Model Intelligence</p>
+                    <p class="classified-desc">Custom-built AI assistant with voice control, memory persistence, multi-model routing, and integrated automation across email, calendar, job tracking, and research.</p>
+                    <a href="index.html#contact" class="btn-classified">
+                        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        Contact Me
+                    </a>
+                </div>
+
+                <!-- Trading Bot -->
+                <div class="classified-card reveal reveal-delay-4">
+                    <div class="scanline"></div>
+                    <div class="classified-icon">
+                        <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    </div>
+                    <div class="classified-badge">
+                        <span class="dot"></span>
+                        Proprietary Trading System
+                    </div>
+                    <h3>Algorithmic Trading Bot</h3>
+                    <p class="classified-subtitle">MNQ Futures &bull; Dual ORB Strategy &bull; Fully Automated</p>
+                    <p class="classified-desc">Custom-built algorithmic trading bot executing an Opening Range Breakout strategy on Micro NASDAQ futures. Automated entry, exit, and risk management with real-time performance tracking.</p>
+                    <div class="classified-stat">
+                        <span class="stat-value">2.5&times;</span>
+                        <span class="stat-divider"></span>
+                        <span class="stat-label">Outperformed<br>the NASDAQ</span>
+                    </div>
+                    <div style="margin-bottom: 0;"></div>
+                    <a href="index.html#contact" class="btn-classified">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Contact Me
+                    </a>
+                </div>
+
+            </div>
+        </section>
+
+        <div class="section-divider" aria-hidden="true"></div>
+
+        <!-- ════════ COMING SOON ════════ -->
+        <section id="coming-soon">
+            <div class="section-inner">
+                <div class="section-label reveal">On the Horizon</div>
+                <h2 class="section-title reveal reveal-delay-1">What&rsquo;s Next</h2>
+                <p class="section-subtitle reveal reveal-delay-2">Future projects currently in research and development.</p>
+
+                <div class="coming-soon-grid">
+
+                    <!-- Bitcoin / Crypto Trading -->
+                    <div class="coming-soon-card reveal reveal-delay-3">
+                        <div class="coming-soon-badge wip">
+                            <span class="dot-sm"></span>
+                            In Development
+                        </div>
+                        <div class="project-icon gold" style="margin-bottom: 20px;">
+                            <svg viewBox="0 0 24 24"><path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/></svg>
+                        </div>
+                        <h3>Bitcoin &amp; Crypto Trading</h3>
+                        <p class="cs-desc">Extending algorithmic trading into cryptocurrency markets. Automated position management, cross-exchange execution, and portfolio rebalancing for BTC and select altcoins.</p>
+                        <div class="cs-tags">
+                            <span class="tag tag-gold">Bitcoin</span>
+                            <span class="tag tag-violet">Crypto</span>
+                            <span class="tag tag-muted">Algo Trading</span>
+                        </div>
+                    </div>
+
+                    <!-- AI Agents -->
+                    <div class="coming-soon-card reveal reveal-delay-4">
+                        <div class="coming-soon-badge wip">
+                            <span class="dot-sm"></span>
+                            In Development
+                        </div>
+                        <div class="project-icon violet" style="margin-bottom: 20px;">
+                            <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 22h-4a7 7 0 0 1-6.93-6H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9.5" cy="15.5" r="1"/><circle cx="14.5" cy="15.5" r="1"/></svg>
+                        </div>
+                        <h3>AI Agent Farm</h3>
+                        <p class="cs-desc">Multi-agent AI system with autonomous task execution, inter-agent communication, and scalable deployment. Designed for content generation, research automation, and e-commerce operations.</p>
+                        <div class="cs-tags">
+                            <span class="tag tag-violet">AI Agents</span>
+                            <span class="tag tag-rose">Automation</span>
+                            <span class="tag tag-muted">Multi-Agent</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-inner">
+            <p class="footer-copy">&copy; 2026 Jake McGaha. Crafted with intention.</p>
+            <div class="footer-social" aria-label="Social media">
+                <a href="https://www.linkedin.com/in/jakemcgaha/" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/>
+                        <circle cx="4" cy="4" r="2"/>
+                    </svg>
+                </a>
+                <a href="mailto:mcgahajake810@gmail.com" aria-label="Email">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="22,6 12,13 2,6" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function() {
+        'use strict';
+
+        /* ═══ CONFIG ═══ */
+        const CONFIG = {
+            particles: {
+                count: 140,
+                connectionDist: 130,
+                mouseRadius: 220,
+                baseSpeed: 0.25,
+                goldRatio: 0.3,
+                connectionOpacity: 0.12,
+                mouseForce: 0.00008
+            },
+            colors: {
+                gold: { r: 201, g: 169, b: 110 },
+                white: { r: 237, g: 232, b: 224 }
+            }
+        };
+
+        /* ═══ PARTICLE SYSTEM ═══ */
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouseX = -1000, mouseY = -1000;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * CONFIG.particles.baseSpeed * 2;
+                this.vy = (Math.random() - 0.5) * CONFIG.particles.baseSpeed * 2;
+                this.size = Math.random() * 2 + 0.5;
+                this.baseOpacity = Math.random() * 0.4 + 0.15;
+                this.opacity = this.baseOpacity;
+                this.isGold = Math.random() < CONFIG.particles.goldRatio;
+                this.pulsePhase = Math.random() * Math.PI * 2;
+                this.pulseSpeed = Math.random() * 0.005 + 0.002;
+            }
+            update() {
+                this.pulsePhase += this.pulseSpeed;
+                this.opacity = this.baseOpacity + Math.sin(this.pulsePhase) * 0.08;
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < CONFIG.particles.mouseRadius && dist > 1) {
+                    const force = CONFIG.particles.mouseForce * (1 - dist / CONFIG.particles.mouseRadius);
+                    this.vx += dx * force;
+                    this.vy += dy * force;
+                }
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.995;
+                this.vy *= 0.995;
+                if (this.x < -10) this.x = canvas.width + 10;
+                if (this.x > canvas.width + 10) this.x = -10;
+                if (this.y < -10) this.y = canvas.height + 10;
+                if (this.y > canvas.height + 10) this.y = -10;
+            }
+            draw() {
+                const c = this.isGold ? CONFIG.colors.gold : CONFIG.colors.white;
+                const a = this.isGold ? this.opacity : this.opacity * 0.5;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${c.r},${c.g},${c.b},${a})`;
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const isMobile = window.innerWidth < 768;
+            const count = isMobile ? Math.floor(CONFIG.particles.count * 0.5) : CONFIG.particles.count;
+            for (let i = 0; i < count; i++) particles.push(new Particle());
+        }
+
+        function drawConnections() {
+            const maxDist = CONFIG.particles.connectionDist;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < maxDist * maxDist) {
+                        const dist = Math.sqrt(distSq);
+                        const alpha = (1 - dist / maxDist) * CONFIG.particles.connectionOpacity;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = `rgba(${CONFIG.colors.gold.r},${CONFIG.colors.gold.g},${CONFIG.colors.gold.b},${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function drawMouseGlow() {
+            if (mouseX < 0 || mouseY < 0) return;
+            const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, 180);
+            gradient.addColorStop(0, 'rgba(201, 169, 110, 0.025)');
+            gradient.addColorStop(1, 'rgba(201, 169, 110, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(mouseX, mouseY, 180, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawMouseGlow();
+            drawConnections();
+            for (const p of particles) { p.update(); p.draw(); }
+            requestAnimationFrame(animate);
+        }
+
+        resizeCanvas();
+        initParticles();
+        animate();
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
+        });
+
+        /* ═══ CUSTOM CURSOR ═══ */
+        const cursor = document.getElementById('cursor');
+        const cursorDot = document.getElementById('cursor-dot');
+        let cursorX = 0, cursorY = 0;
+        let dotX = 0, dotY = 0;
+
+        const isTouchDevice = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const enableCustomCursor = cursor && cursorDot && !isTouchDevice && !prefersReducedMotion;
+
+        document.addEventListener('mousemove', e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            if (enableCustomCursor) {
+                cursorX = e.clientX;
+                cursorY = e.clientY;
+                cursor.classList.add('visible');
+                cursorDot.classList.add('visible');
+                if (!document.body.classList.contains('custom-cursor-active')) {
+                    document.body.classList.add('custom-cursor-active');
+                }
+            }
+        });
+
+        function updateCursor() {
+            dotX += (cursorX - dotX) * 0.15;
+            dotY += (cursorY - dotY) * 0.15;
+            cursor.style.left = cursorX + 'px';
+            cursor.style.top = cursorY + 'px';
+            cursorDot.style.left = dotX + 'px';
+            cursorDot.style.top = dotY + 'px';
+            requestAnimationFrame(updateCursor);
+        }
+        updateCursor();
+
+        const hoverTargets = 'a, button, .project-card, .coming-soon-card, .btn-classified, .project-link';
+        document.querySelectorAll(hoverTargets).forEach(el => {
+            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+        });
+
+        /* ═══ LOADER ═══ */
+        const loader = document.getElementById('loader');
+        if (loader) {
+            window.addEventListener('load', () => {
+                setTimeout(() => loader.classList.add('hidden'), 1000);
+            });
+            setTimeout(() => loader.classList.add('hidden'), 2500);
+        }
+
+        /* ═══ SCROLL REVEAL ═══ */
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const io = new IntersectionObserver(entries => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+            document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+        }
+
+    })();
+    </script>
+
+</body>
+</html>
