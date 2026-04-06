@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html><head><title>FCC Tests</title>
+<script>if (location.protocol !== 'file:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') { document.write('<h1>Tests disabled in production</h1>'); throw new Error('Tests disabled'); }</script>
+<style>
+  body { font-family: monospace; padding: 20px; background: #111; color: #eee; }
+  .pass { color: #10b981; } .fail { color: #ef4444; font-weight: bold; }
+  h2 { color: #60a5fa; margin-top: 24px; }
+</style>
+</head><body>
+<h1>Franchise Command Center — Tests</h1>
+<div id="results"></div>
+
+<script src="js/store.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
+<script>
+"use strict";
+const results = document.getElementById('results');
+let passed = 0, failed = 0;
+
+function assert(condition, msg) {
+  if (condition) { passed++; log(msg, true); }
+  else { failed++; log(msg, false); }
+}
+function log(msg, ok) {
+  results.innerHTML += '<div class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + ': ' + msg + '</div>';
+}
+function section(name) {
+  results.innerHTML += '<h2>' + name + '</h2>';
+}
+function clearStore() {
+  Object.keys(localStorage).filter(k => k.startsWith('fcc_')).forEach(k => localStorage.removeItem(k));
+}
+
+// Store Tests
+clearStore();
+section('Store — Templates');
+
+const t1 = Store.saveTemplate({ name: 'Test Franchise', fees: { royaltyPct: 6, adFundPct: 1.5, otherFees: [] }, costDefaults: { foodCostPct: { low: 25, mid: 28, high: 32 }, laborPct: { low: 22, mid: 25, high: 28 }, utilitiesMonthly: 2000, insuranceMonthly: 700, otherMonthly: 400 }, investmentRange: { low: 200000, mid: 300000, high: 400000 }, revenueBenchmarks: { low: 40000, mid: 60000, high: 80000 }, termYears: 10 });
+assert(t1.id !== undefined, 'saveTemplate assigns an id');
+assert(t1.created !== undefined, 'saveTemplate assigns created date');
+assert(Store.getTemplates().length === 1, 'getTemplates returns 1 template');
+assert(Store.getTemplate(t1.id).name === 'Test Franchise', 'getTemplate by id works');
+
+const t1Updated = Store.saveTemplate({ ...t1, name: 'Updated Franchise' });
+assert(Store.getTemplate(t1.id).name === 'Updated Franchise', 'saveTemplate updates existing by id');
+assert(Store.getTemplates().length === 1, 'update does not create duplicate');
+
+const t2 = Store.saveTemplate({ name: 'Second Franchise', fees: { royaltyPct: 5, adFundPct: 2, otherFees: [] }, costDefaults: { foodCostPct: { low: 26, mid: 29, high: 33 }, laborPct: { low: 23, mid: 26, high: 29 }, utilitiesMonthly: 2200, insuranceMonthly: 750, otherMonthly: 450 }, investmentRange: { low: 220000, mid: 320000, high: 420000 }, revenueBenchmarks: { low: 45000, mid: 65000, high: 85000 }, termYears: 15 });
+Store.deleteTemplate(t2.id);
+assert(Store.getTemplates().length === 1, 'deleteTemplate removes template');
+
+section('Store — Scenarios');
+
+const s1 = Store.saveScenario({ name: 'Main St Location', templateId: t1.id, templateName: 'Updated Franchise', entryPoint: 'fdd', inputs: { totalInvestment: 350000, downPayment: 100000, monthlyRevenue: 70000, rentMonthly: 4500, foodCostPct: 30, laborPct: 27, royaltyPct: 5.5, adFundPct: 2, utilitiesMonthly: 2500, insuranceMonthly: 800, otherMonthly: 500 }, computed: {} });
+assert(s1.id !== undefined, 'saveScenario assigns an id');
+assert(Store.getScenarios().length === 1, 'getScenarios returns 1');
+assert(Store.getScenario(s1.id).name === 'Main St Location', 'getScenario by id works');
+
+Store.deleteScenario(s1.id);
+assert(Store.getScenarios().length === 0, 'deleteScenario removes scenario');
+
+section('Store — Portfolios');
+
+const p1 = Store.savePortfolio({ name: 'Growth Plan', locations: [] });
+assert(p1.id !== undefined, 'savePortfolio assigns an id');
+assert(Store.getPortfolios().length === 1, 'getPortfolios returns 1');
+
+Store.deletePortfolio(p1.id);
+assert(Store.getPortfolios().length === 0, 'deletePortfolio removes portfolio');
+
+section('Store — Export/Import');
+
+clearStore();
+Store.saveTemplate({ name: 'Export Test', fees: { royaltyPct: 6, adFundPct: 1, otherFees: [] }, costDefaults: { foodCostPct: { low: 25, mid: 28, high: 32 }, laborPct: { low: 22, mid: 25, high: 28 }, utilitiesMonthly: 2000, insuranceMonthly: 700, otherMonthly: 400 }, investmentRange: { low: 200000, mid: 300000, high: 400000 }, revenueBenchmarks: { low: 40000, mid: 60000, high: 80000 }, termYears: 10 });
+const exported = Store.exportAll();
+assert(exported.templates.length === 1, 'exportAll includes templates');
+clearStore();
+assert(Store.getTemplates().length === 0, 'clearStore cleared templates');
+Store.importAll(exported);
+assert(Store.getTemplates().length === 1, 'importAll restores templates');
+
+// Summary
+results.innerHTML += '<h2>Results: ' + passed + ' passed, ' + failed + ' failed</h2>';
+</script>
+</body></html>
