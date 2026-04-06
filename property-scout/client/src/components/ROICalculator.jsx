@@ -35,8 +35,8 @@ export default function ROICalculator({ property, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4">
-      <div className="card max-w-4xl w-full my-8 shadow-2xl">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 animate-fade-in">
+      <div className="card max-w-4xl w-full my-8 shadow-2xl animate-scale-in">
         {/* Header */}
         <div className="flex items-start justify-between p-6 border-b border-gray-800">
           <div>
@@ -46,8 +46,8 @@ export default function ROICalculator({ property, onClose }) {
               <NeighborhoodBadge badge={nh.badge} score={nh.overall} />
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-all duration-200 hover:rotate-90">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -324,7 +324,7 @@ function CashFlowsTab({ analysis }) {
                 <span className="w-8 text-gray-500">Yr {yr.year}</span>
                 <div className="flex-1 h-5 bg-gray-800 rounded-sm overflow-hidden relative">
                   <div
-                    className={`h-full rounded-sm ${positive ? 'bg-green-500/60' : 'bg-red-500/60'}`}
+                    className={`h-full rounded-sm transition-all duration-700 ease-out ${positive ? 'bg-green-500/60' : 'bg-red-500/60'}`}
                     style={{ width: `${Math.min(pct, 100)}%` }}
                   />
                   <span className={`absolute right-1 top-0.5 text-[10px] ${positive ? 'text-green-400' : 'text-red-400'}`}>
@@ -384,7 +384,7 @@ function Field({ label, value, onChange, prefix, suffix, step = '1' }) {
 
 function MetricBox({ label, value, sub, highlight }) {
   return (
-    <div className={`rounded-lg p-3 ${highlight ? 'bg-green-600/10 border border-green-600/20' : 'bg-gray-800/50'}`}>
+    <div className={`rounded-lg p-3 transition-all duration-200 hover:scale-[1.02] ${highlight ? 'bg-green-600/10 border border-green-600/20 hover:border-green-600/40' : 'bg-gray-800/50 hover:bg-gray-800/70'}`}>
       <p className="text-[10px] text-gray-500 uppercase">{label}</p>
       <p className={`text-lg font-bold ${highlight ? 'text-green-400' : 'text-white'}`}>{value}</p>
       {sub && <p className="text-[10px] text-gray-500">{sub}</p>}
@@ -399,7 +399,7 @@ function ScenarioCard({ title, subtitle, cashFlow, coc, annual, color }) {
     : 'border-blue-600/20 bg-blue-600/5';
 
   return (
-    <div className={`rounded-xl border p-4 ${colorClasses}`}>
+    <div className={`rounded-xl border p-4 transition-all duration-200 hover:scale-[1.01] ${colorClasses}`}>
       <h4 className="font-semibold text-white">{title}</h4>
       <p className="text-xs text-gray-500 mb-3">{subtitle}</p>
       <div className="space-y-2">

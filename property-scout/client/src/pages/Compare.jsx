@@ -14,12 +14,12 @@ export default function Compare() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="animate-fade-in-up">
         <h1 className="text-2xl font-bold text-white mb-1">Compare Properties</h1>
         <p className="text-gray-500 text-sm">Side-by-side analysis of your saved properties</p>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         <CompareTable properties={saved} onRemove={handleRemove} />
       </div>
     </div>

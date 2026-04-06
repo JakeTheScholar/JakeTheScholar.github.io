@@ -22,9 +22,10 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-950">
       <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
+        <div className="header-accent" />
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <NavLink to="/" className="flex items-center gap-2">
-            <span className="text-2xl">🏠</span>
+          <NavLink to="/" className="flex items-center gap-2 group">
+            <span className="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">🏠</span>
             <span className="text-lg font-bold text-white">Property Scout</span>
             <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full border border-green-600/30 ml-1">
               House Hack
@@ -38,9 +39,9 @@ export default function Layout() {
                   to={to}
                   end={to === '/'}
                   className={({ isActive }) =>
-                    `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    `px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                       isActive
-                        ? 'bg-green-600/20 text-green-400'
+                        ? 'bg-green-600/20 text-green-400 shadow-sm shadow-green-500/10'
                         : 'text-gray-400 hover:text-white hover:bg-gray-800'
                     }`
                   }
@@ -67,7 +68,7 @@ export default function Layout() {
         </div>
 
         {showSettings && (
-          <div className="border-t border-gray-800 bg-gray-900/90 backdrop-blur">
+          <div className="border-t border-gray-800 bg-gray-900/90 backdrop-blur animate-slide-down">
             <div className="max-w-7xl mx-auto px-4 py-3">
               <div className="flex items-end gap-3">
                 <div className="flex-1 max-w-md">
