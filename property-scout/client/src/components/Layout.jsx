@@ -24,13 +24,13 @@ export default function Layout() {
       <header className="border-b border-gray-800 bg-gray-950/80 backdrop-blur sticky top-0 z-50">
         <div className="header-accent" />
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <NavLink to="/" className="flex items-center gap-2 group">
+          <a href="/" onClick={e => { e.preventDefault(); window.location.href = window.location.pathname; }} className="flex items-center gap-2 group cursor-pointer">
             <span className="text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">🏠</span>
             <span className="text-lg font-bold text-white">Property Scout</span>
             <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded-full border border-green-600/30 ml-1">
               House Hack
             </span>
-          </NavLink>
+          </a>
           <div className="flex items-center gap-1">
             <nav className="flex gap-1">
               {navItems.map(({ to, label }) => (
