@@ -2,3 +2,67 @@ node_modules/
 vendor-matrix/
 .DS_Store
 Thumbs.db
+.env
+.env.*
+!.env.example
+
+# Skills archives (zips)
+skills/archives/
+
+# Large skill repos (downloaded resources, not our code)
+skills/claude-cookbooks-main/
+skills/claude-code-plugins-plus-skills-main/
+skills/Skill_Seekers/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Trading bot logs/data
+trading-bot/logs/
+trading-bot/orb-tests/
+
+# Jarvis sensitive files
+jarvis/venv/
+jarvis/google_credentials.json
+jarvis/google_token.json
+jarvis/*_cert.pem
+jarvis/*_key.pem
+jarvis/*.json
+!jarvis/package.json
+jarvis/security.log
+jarvis/uploads/
+
+# Jarvis Cloud sensitive files
+jarvis-cloud/.env
+jarvis-cloud/google_credentials.json
+jarvis-cloud/google_token.json
+jarvis-cloud/shared-memory.json
+jarvis-cloud/*.pem
+jarvis-cloud/*.key
+jarvis-cloud/uploads/
+jarvis-cloud/security.log
+
+# Global sensitive patterns
+*.pem
+*.key
+*.p12
+*.pfx
+*.db
+*.sqlite
+*.log
+credentials*.json
+
+# IDE
+.idea/
+.vscode/
+
+# Editor temp files
+*.bak
+*.swp
+*.swo
+
+# Shared memory (contains personal info — never commit)
+shared-memory.json

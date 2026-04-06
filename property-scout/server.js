@@ -9,12 +9,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: ['http://localhost:3001', 'http://localhost:5173', 'https://jakemcgaha.com', 'https://jakethescholar.github.io'],
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
 // Security headers
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), geolocation=()');
   res.setHeader('Content-Security-Policy',
