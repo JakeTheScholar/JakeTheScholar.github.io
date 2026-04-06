@@ -3,6 +3,7 @@
 import sys
 import os
 import random
+import asyncio
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,6 +27,7 @@ class PrintablesAgent(BaseAgent):
             color="#00d4ff",
         )
         self.tick_interval = 60
+        self.pipeline_db = None
         self.template_queue = list(TEMPLATE_TYPES.keys())
         self.style_index = 0
         self.queue_index = 0
@@ -72,6 +74,20 @@ class PrintablesAgent(BaseAgent):
 
             # Save the template
             result = save_template(html_content, f"{template_type}-{style}", fmt="html")
+
+            # Track in Etsy pipeline
+            if self.pipeline_db:
+                try:
+                    await asyncio.to_thread(
+                        self.pipeline_db.add_item,
+                        "etsy", f"{tmpl_info['title']} ({style})",
+                        subtitle=template_type,
+                        stage="drafted", score=random.randint(50, 80),
+                        metadata={"style": style, "filename": result["filename"]},
+                        source_agent=self.agent_id,
+                    )
+                except Exception:
+                    pass
 
             self.tasks_completed += 1
             self.current_task = None

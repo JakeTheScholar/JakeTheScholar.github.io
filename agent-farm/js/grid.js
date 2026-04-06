@@ -1,30 +1,51 @@
 /* ── Agent Grid Renderer ── */
 
-// Content agents (3x3)
-const CONTENT_SLOTS = [
-  { id: 'printables-001', name: 'Printables Designer', color: '#00d4ff', description: 'Financial templates for Etsy' },
-  { id: 'etsy-lister-001', name: 'Etsy Lister', color: '#39ff14', description: 'Listing copy & SEO optimization' },
-  { id: 'social-001', name: 'Social Content', color: '#c9a96e', description: 'Social media posts & captions' },
-  { id: 'fiverr-001', name: 'Fiverr Gigs', color: '#8b5cf6', description: 'Gig management & delivery' },
-  { id: 'thumbnail-001', name: 'Thumbnail Creator', color: '#f472b6', description: 'Product images & mockups' },
-  { id: 'research-001', name: 'Research Agent', color: '#fb923c', description: 'Market & trend research' },
-  { id: 'analytics-001', name: 'Analytics Agent', color: '#fbbf24', description: 'Sales tracking & A/B testing' },
-  { id: 'seo-001', name: 'SEO Agent', color: '#34d399', description: 'Keyword research & optimization' },
-  { id: 'scheduler-001', name: 'Content Scheduler', color: '#e879f9', description: 'Cross-platform scheduling' },
-];
+// ─── Agent Categories ───
 
-// Lead Gen agents (1x3)
-const LEADGEN_SLOTS = [
-  { id: 'lead-scraper-001', name: 'Lead Scraper', color: '#06b6d4', description: 'Discovers & qualifies leads' },
-  { id: 'outreach-001', name: 'Outreach Agent', color: '#f59e0b', description: 'Personalized outreach messages' },
-  { id: 'pipeline-mgr-001', name: 'Pipeline Manager', color: '#a855f7', description: 'Pipeline ops & status reports' },
-];
+const CATEGORIES = {
+  content: {
+    label: 'Content',
+    gridClass: 'content-grid',
+    slots: [
+      { id: 'printables-001', name: 'Printables Designer', color: '#00d4ff', description: 'Financial templates for Etsy' },
+      { id: 'etsy-lister-001', name: 'Etsy Lister', color: '#39ff14', description: 'Listing copy & SEO optimization' },
+      { id: 'social-001', name: 'Social Content', color: '#c9a96e', description: 'Social media posts & captions' },
+      { id: 'fiverr-001', name: 'Fiverr Gigs', color: '#8b5cf6', description: 'Gig management & delivery' },
+      { id: 'thumbnail-001', name: 'Thumbnail Creator', color: '#f472b6', description: 'Product images & mockups' },
+      { id: 'research-001', name: 'Research Agent', color: '#fb923c', description: 'Market & trend research' },
+      { id: 'analytics-001', name: 'Analytics Agent', color: '#fbbf24', description: 'Sales tracking & A/B testing' },
+      { id: 'seo-001', name: 'SEO Agent', color: '#34d399', description: 'Keyword research & optimization' },
+      { id: 'scheduler-001', name: 'Content Scheduler', color: '#e879f9', description: 'Cross-platform scheduling' },
+    ],
+  },
+  leadgen: {
+    label: 'Lead Gen',
+    gridClass: 'quadrant-grid',
+    slots: [
+      { id: 'lead-scraper-001', name: 'Lead Scraper', color: '#06b6d4', description: 'Discovers & qualifies leads' },
+      { id: 'outreach-001', name: 'Outreach Agent', color: '#f59e0b', description: 'Personalized outreach messages' },
+      { id: 'follow-up-001', name: 'Follow-Up Agent', color: '#ef4444', description: 'Follow-up sequences for leads' },
+      { id: 'pipeline-mgr-001', name: 'Pipeline Manager', color: '#a855f7', description: 'Pipeline ops & status reports' },
+    ],
+  },
+  growth: {
+    label: 'Growth',
+    gridClass: 'quadrant-grid',
+    slots: [
+      { id: 'web-dev-001', name: 'Web Dev Agent', color: '#f472b6', description: 'Client site mockups for leads' },
+      { id: 'music-001', name: 'Music Agent', color: '#fb923c', description: 'Audio branding & sellable music' },
+      { id: 'ad-copy-001', name: 'Ad Copy Agent', color: '#3b82f6', description: 'Paid ad copy & A/B variants' },
+      { id: 'review-001', name: 'Review/QA Agent', color: '#14b8a6', description: 'Quality audits on agent output' },
+    ],
+  },
+};
 
-const AGENT_SLOTS = [...CONTENT_SLOTS, ...LEADGEN_SLOTS];
+// Flat list for lookups
+const AGENT_SLOTS = Object.values(CATEGORIES).flatMap(c => c.slots);
 
 const Grid = {
-  agentData: {},  // live state from server
-  category: 'content',  // 'content' | 'leadgen'
+  agentData: {},
+  category: 'content',
 
   init() {
     this.render();
@@ -32,30 +53,30 @@ const Grid = {
   },
 
   setCategory(cat) {
+    if (!CATEGORIES[cat]) return;
     this.category = cat;
     this.render();
-    // Update sub-tab styles
-    document.querySelectorAll('.grid-subtab').forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.cat === cat);
-    });
   },
 
   render() {
     const container = document.getElementById('view-grid');
-    const slots = this.category === 'leadgen' ? LEADGEN_SLOTS : CONTENT_SLOTS;
-    const isLeadGen = this.category === 'leadgen';
+    const catConfig = CATEGORIES[this.category];
+    const slots = catConfig.slots;
 
-    // Sub-tabs + grid
+    // Sub-tabs with agent counts per category
+    const tabs = Object.entries(CATEGORIES).map(([key, cfg]) => {
+      const active = key === this.category;
+      const running = cfg.slots.filter(s => (this.agentData[s.id] || {}).status === 'running').length;
+      const countBadge = running > 0 ? `<span class="subtab-count">${running}</span>` : '';
+      return `<div class="grid-subtab ${active ? 'active' : ''}" data-cat="${key}">${cfg.label}${countBadge}</div>`;
+    }).join('');
+
     container.innerHTML =
-      `<div class="grid-subtabs">
-        <div class="grid-subtab ${this.category === 'content' ? 'active' : ''}" data-cat="content">Content</div>
-        <div class="grid-subtab ${this.category === 'leadgen' ? 'active' : ''}" data-cat="leadgen">Lead Gen</div>
-      </div>
-      <div class="agent-grid-inner ${isLeadGen ? 'leadgen-grid' : 'content-grid'}">
-        ${slots.map(slot => this._renderCard(slot)).join('')}
-      </div>`;
+      `<div class="grid-subtabs">${tabs}</div>
+       <div class="agent-grid-inner ${catConfig.gridClass}">
+         ${slots.map(slot => this._renderCard(slot)).join('')}
+       </div>`;
 
-    // Wire sub-tab clicks via event delegation
     container.querySelector('.grid-subtabs').addEventListener('click', (e) => {
       const tab = e.target.closest('.grid-subtab');
       if (tab) this.setCategory(tab.dataset.cat);
@@ -119,19 +140,16 @@ const Grid = {
 
   handleMessage(msg) {
     if (msg.type === 'system_status') {
-      // Full state snapshot
       const agents = msg.agents || {};
       for (const [id, info] of Object.entries(agents)) {
         this.agentData[id] = info;
       }
-      // Also populate recent events into agent logs
       const events = msg.recent_events || [];
       for (const evt of events) {
         const aid = evt.agent_id;
         if (this.agentData[aid]) {
           if (!this.agentData[aid].recent_log) this.agentData[aid].recent_log = [];
           this.agentData[aid].recent_log.push(evt);
-          // Keep last 10
           if (this.agentData[aid].recent_log.length > 10) {
             this.agentData[aid].recent_log = this.agentData[aid].recent_log.slice(-10);
           }
@@ -154,7 +172,6 @@ const Grid = {
         this.agentData[aid].recent_log = this.agentData[aid].recent_log.slice(-10);
       }
 
-      // Update just this card
       this._updateCard(aid);
       this._updateCounter();
     }
@@ -171,7 +188,6 @@ const Grid = {
     const newCard = temp.firstElementChild;
     el.replaceWith(newCard);
 
-    // Auto-scroll log to bottom
     const log = document.getElementById(`log-${agentId}`);
     if (log) log.scrollTop = log.scrollHeight;
   },

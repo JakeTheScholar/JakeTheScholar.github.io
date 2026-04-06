@@ -1,6 +1,7 @@
 """Content Scheduler Agent — creates cross-platform content calendars and posting schedules."""
 
 import sys
+import asyncio
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -52,6 +53,7 @@ class SchedulerAgent(BaseAgent):
             color="#e879f9",
         )
         self.tick_interval = 200
+        self.pipeline_db = None
         self.index = 0
 
     async def tick(self) -> AgentEvent:
@@ -81,6 +83,21 @@ class SchedulerAgent(BaseAgent):
 
             slug = focus.lower().replace(" ", "-")[:30]
             save_result = save_template(result, f"schedule-{task['period']}-{slug}", fmt="json")
+
+            # Track in Content pipeline
+            if self.pipeline_db:
+                try:
+                    await asyncio.to_thread(
+                        self.pipeline_db.add_item,
+                        "content", f"{task['period'].title()} Schedule: {focus[:40]}",
+                        subtitle=task["period"],
+                        stage="scheduled", score=60,
+                        metadata={"period": task["period"], "filename": save_result["filename"]},
+                        source_agent=self.agent_id,
+                    )
+                except Exception:
+                    pass
+
             self.tasks_completed += 1
             self.index += 1
             self.current_task = None

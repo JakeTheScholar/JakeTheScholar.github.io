@@ -37,7 +37,12 @@ from agents.scheduler_agent import SchedulerAgent
 from agents.lead_scraper import LeadScraperAgent
 from agents.outreach_agent import OutreachAgent
 from agents.pipeline_manager import PipelineManagerAgent
-from pipeline_db import PipelineDB
+from agents.web_dev_agent import WebDevAgent
+from agents.music_agent import MusicAgent
+from agents.follow_up_agent import FollowUpAgent
+from agents.ad_copy_agent import AdCopyAgent
+from agents.review_agent import ReviewAgent
+from pipeline_db import PipelineDB, PIPELINE_CONFIGS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 log = logging.getLogger("agent-farm")
@@ -72,10 +77,17 @@ orchestrator.register_agent(AnalyticsAgent())
 orchestrator.register_agent(SEOAgent())
 orchestrator.register_agent(SchedulerAgent())
 
-# Register Lead Gen agents (3)
+# Register Lead Gen agents (4)
 orchestrator.register_agent(LeadScraperAgent())
 orchestrator.register_agent(OutreachAgent())
+orchestrator.register_agent(FollowUpAgent())
 orchestrator.register_agent(PipelineManagerAgent())
+
+# Register Growth agents (4)
+orchestrator.register_agent(WebDevAgent())
+orchestrator.register_agent(MusicAgent())
+orchestrator.register_agent(AdCopyAgent())
+orchestrator.register_agent(ReviewAgent())
 
 VALID_AGENT_IDS = set(orchestrator.agents.keys())
 
@@ -98,11 +110,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Agent Farm", lifespan=lifespan, docs_url=None, redoc_url=None)
 
-# ─── CORS — restrict to same origin ───
+# ─── CORS — restrict to same origin + ngrok tunnels ───
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.(ngrok-free\.(app|dev)|trycloudflare\.com)",
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
@@ -320,6 +333,39 @@ async def add_pipeline_lead(lead: ManualLead):
 @app.get("/api/pipeline/stages", dependencies=[Depends(verify_api_key)])
 async def pipeline_stages():
     stages = await asyncio.to_thread(pipeline_db.get_stage_counts)
+    return stages
+
+
+# ─── Multi-Pipeline Endpoints ───
+
+@app.get("/api/pipeline/types", dependencies=[Depends(verify_api_key)])
+async def pipeline_types():
+    return {k: {"label": v["label"], "color": v["color"], "stages": v["stages"],
+                "stage_labels": v["stage_labels"]}
+            for k, v in PIPELINE_CONFIGS.items()}
+
+
+@app.get("/api/pipeline/all-stats", dependencies=[Depends(verify_api_key)])
+async def all_pipeline_stats():
+    return await asyncio.to_thread(pipeline_db.get_all_pipeline_stats)
+
+
+@app.get("/api/pipeline/items", dependencies=[Depends(verify_api_key)])
+async def pipeline_items(
+    pipeline_type: Optional[str] = None,
+    stage: Optional[str] = None,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    items = await asyncio.to_thread(pipeline_db.get_items, pipeline_type, stage, limit, offset)
+    return items
+
+
+@app.get("/api/pipeline/items/stages", dependencies=[Depends(verify_api_key)])
+async def pipeline_item_stages(pipeline_type: str):
+    if pipeline_type not in PIPELINE_CONFIGS:
+        raise HTTPException(status_code=400, detail="Invalid pipeline type")
+    stages = await asyncio.to_thread(pipeline_db.get_item_stage_counts, pipeline_type)
     return stages
 
 

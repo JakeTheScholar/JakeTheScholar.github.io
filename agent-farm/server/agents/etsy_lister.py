@@ -1,6 +1,7 @@
 """Etsy Lister Agent — generates optimized Etsy listing copy and tags."""
 
 import sys
+import asyncio
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -38,6 +39,7 @@ class EtsyListerAgent(BaseAgent):
             color="#39ff14",
         )
         self.tick_interval = 90
+        self.pipeline_db = None
         self.queue_index = 0
 
     async def tick(self) -> AgentEvent:
@@ -68,6 +70,21 @@ class EtsyListerAgent(BaseAgent):
                 result = result.split("```")[1].split("```")[0].strip()
 
             save_result = save_template(result, f"etsy-listing-{product}", fmt="json")
+
+            # Track in Etsy pipeline
+            if self.pipeline_db:
+                try:
+                    await asyncio.to_thread(
+                        self.pipeline_db.add_item,
+                        "etsy", f"{display_name} Listing",
+                        subtitle=product,
+                        stage="listed", score=65,
+                        metadata={"filename": save_result["filename"]},
+                        source_agent=self.agent_id,
+                    )
+                except Exception:
+                    pass
+
             self.tasks_completed += 1
             self.queue_index += 1
             self.current_task = None

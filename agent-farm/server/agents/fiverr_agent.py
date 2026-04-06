@@ -1,6 +1,7 @@
 """Fiverr Gig Agent — generates Fiverr gig descriptions and packages."""
 
 import sys
+import asyncio
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -47,6 +48,7 @@ class FiverrAgent(BaseAgent):
             color="#8b5cf6",
         )
         self.tick_interval = 120
+        self.pipeline_db = None
         self.index = 0
 
     async def tick(self) -> AgentEvent:
@@ -76,6 +78,21 @@ class FiverrAgent(BaseAgent):
 
             slug = service.lower().replace(" ", "-")
             save_result = save_template(result, f"fiverr-{slug}", fmt="json")
+
+            # Track in Fiverr pipeline
+            if self.pipeline_db:
+                try:
+                    await asyncio.to_thread(
+                        self.pipeline_db.add_item,
+                        "fiverr", service,
+                        subtitle=gig["category"],
+                        stage="drafted", score=60,
+                        metadata={"filename": save_result["filename"]},
+                        source_agent=self.agent_id,
+                    )
+                except Exception:
+                    pass
+
             self.tasks_completed += 1
             self.index += 1
             self.current_task = None

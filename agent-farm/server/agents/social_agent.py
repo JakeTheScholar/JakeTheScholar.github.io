@@ -2,6 +2,7 @@
 
 import sys
 import random
+import asyncio
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -42,6 +43,7 @@ class SocialAgent(BaseAgent):
             color="#c9a96e",
         )
         self.tick_interval = 75
+        self.pipeline_db = None
         self.index = 0
 
     async def tick(self) -> AgentEvent:
@@ -70,6 +72,21 @@ class SocialAgent(BaseAgent):
                 result = result.split("```")[1].split("```")[0].strip()
 
             save_result = save_template(result, f"social-{platform}-{topic.replace(' ','-')}", fmt="json")
+
+            # Track in Content pipeline
+            if self.pipeline_db:
+                try:
+                    await asyncio.to_thread(
+                        self.pipeline_db.add_item,
+                        "content", f"{platform.title()}: {topic}",
+                        subtitle=platform,
+                        stage="created", score=55,
+                        metadata={"platform": platform, "topic": topic, "filename": save_result["filename"]},
+                        source_agent=self.agent_id,
+                    )
+                except Exception:
+                    pass
+
             self.tasks_completed += 1
             self.index += 1
             self.current_task = None

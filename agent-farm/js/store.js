@@ -9,9 +9,14 @@ const Store = {
   },
 
   getConfig() {
-    return this._get('config') || {
-      serverUrl: 'ws://localhost:8000/ws',
-      apiUrl: 'http://localhost:8000',
+    const saved = this._get('config');
+    if (saved && saved.serverUrl) return saved;
+
+    // Auto-detect from current page URL (works for localhost + ngrok + any host)
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return {
+      serverUrl: `${proto}//${location.host}/ws`,
+      apiUrl: `${location.protocol}//${location.host}`,
     };
   },
   saveConfig(cfg) { this._set('config', cfg); },
