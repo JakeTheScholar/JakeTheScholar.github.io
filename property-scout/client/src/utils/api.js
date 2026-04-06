@@ -103,7 +103,11 @@ function normalizeProperty(p) {
     bedrooms: p.bedrooms || p.beds || 0,
     bathrooms: p.bathrooms || p.baths || 0,
     livingArea: p.livingArea || p.sqft || p.area || null,
-    imgSrc: p.imgSrc || p.image || p.thumbnail || p.photos?.[0] || null,
+    imgSrc: p.imgSrc || p.image || p.thumbnail || p.primaryPhotoUrl
+      || p.hiResImageLink || p.mediumImageLink || p.miniCardPhotos?.[0]?.url
+      || p.photos?.[0]?.url || p.photos?.[0]?.href || p.photos?.[0]
+      || p.carouselPhotos?.[0]?.url || p.responsivePhotos?.[0]?.url
+      || p.big || p.hugePhoto?.url || p.photoUrl || null,
     units: guessUnits(p),
     rentEstimate: p.rentZestimate || p.rentEstimate || null,
     propertyType: p.propertyType || p.homeType || p.type || '',
@@ -140,6 +144,19 @@ function generateDemoProperties(location) {
     { price: 198000, beds: 4, baths: 2, sqft: 2000, suffix: 'Ash Ave' },
   ];
 
+  // Realistic placeholder house images (royalty-free from picsum, seeded for consistency)
+  const demoImages = [
+    'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1598228723793-52759bba239c?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop',
+  ];
+
   return bases.map((b, i) => ({
     zpid: `demo-${i}-${Date.now()}`,
     address: `${100 + i * 12} ${b.suffix}, ${loc}`,
@@ -149,7 +166,7 @@ function generateDemoProperties(location) {
     livingArea: b.sqft,
     units: 2,
     rentEstimate: Math.round(b.price * 0.008),
-    imgSrc: null,
+    imgSrc: demoImages[i % demoImages.length],
     propertyType: 'Multi-family',
   }));
 }

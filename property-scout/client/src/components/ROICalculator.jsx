@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { fullAnalysis, formatCurrency, formatPct } from '../utils/mortgage';
+import { fullAnalysis, formatCurrency, formatPct, sensitivityAnalysis, monteCarloSimulation, wealthProjection, amortizationSchedule } from '../utils/mortgage';
 import { calculateNeighborhoodScore, getDefaultNeighborhoodData } from '../utils/neighborhood';
 import NeighborhoodBadge from './NeighborhoodBadge';
 
@@ -31,6 +31,10 @@ export default function ROICalculator({ property, onClose }) {
     { id: 'overview', label: 'Overview' },
     { id: 'dcf', label: 'DCF Analysis' },
     { id: 'cashflows', label: 'Cash Flows' },
+    { id: 'sensitivity', label: 'Sensitivity' },
+    { id: 'montecarlo', label: 'Monte Carlo' },
+    { id: 'wealth', label: 'Wealth' },
+    { id: 'amortization', label: 'Amortization' },
     { id: 'neighborhood', label: 'Neighborhood' },
   ];
 
@@ -93,6 +97,10 @@ export default function ROICalculator({ property, onClose }) {
           {activeTab === 'overview' && <OverviewTab analysis={analysis} assumptions={assumptions} />}
           {activeTab === 'dcf' && <DCFTab analysis={analysis} assumptions={assumptions} />}
           {activeTab === 'cashflows' && <CashFlowsTab analysis={analysis} />}
+          {activeTab === 'sensitivity' && <SensitivityTab property={property} assumptions={assumptions} />}
+          {activeTab === 'montecarlo' && <MonteCarloTab property={property} assumptions={assumptions} />}
+          {activeTab === 'wealth' && <WealthTab property={property} assumptions={assumptions} />}
+          {activeTab === 'amortization' && <AmortizationTab analysis={analysis} />}
           {activeTab === 'neighborhood' && <NeighborhoodTab nh={nh} />}
         </div>
       </div>
@@ -360,6 +368,287 @@ function NeighborhoodTab({ nh }) {
         Sweet spot = below-median price, moderate crime, strong rent-to-price ratio.
       </p>
     </div>
+  );
+}
+
+function SensitivityTab({ property, assumptions }) {
+  const { scenarios } = useMemo(() => sensitivityAnalysis(property, assumptions), [property, assumptions]);
+
+  const renderTable = (title, data, cols) => (
+    <div className="mb-6">
+      <h4 className="text-sm font-semibold text-gray-400 uppercase mb-2">{title}</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-800 text-gray-500">
+              <th className="text-left p-2">Value</th>
+              {cols.map(c => <th key={c.key} className="text-right p-2">{c.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, i) => (
+              <tr key={i} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                <td className="p-2 text-gray-300 font-medium">{row.label}</td>
+                {cols.map(c => (
+                  <td key={c.key} className={`p-2 text-right ${c.color ? (row[c.key] >= 0 ? 'text-green-400' : 'text-red-400') : 'text-gray-300'}`}>
+                    {c.fmt(row[c.key])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-4">How do changes in key assumptions affect your returns? Each table varies one factor while holding others constant.</p>
+      {renderTable('Interest Rate Sensitivity', scenarios.rate, [
+        { key: 'cashFlow', label: 'Monthly CF', fmt: formatCurrency, color: true },
+        { key: 'coc', label: 'CoC Return', fmt: formatPct, color: true },
+        { key: 'dscr', label: 'DSCR', fmt: v => v.toFixed(2) },
+        { key: 'npv', label: 'NPV', fmt: formatCurrency, color: true },
+      ])}
+      {renderTable('Vacancy Rate Sensitivity', scenarios.vacancy, [
+        { key: 'cashFlow', label: 'Monthly CF', fmt: formatCurrency, color: true },
+        { key: 'coc', label: 'CoC Return', fmt: formatPct, color: true },
+        { key: 'dscr', label: 'DSCR', fmt: v => v.toFixed(2) },
+        { key: 'npv', label: 'NPV', fmt: formatCurrency, color: true },
+      ])}
+      {renderTable('Rent Sensitivity', scenarios.rent, [
+        { key: 'pctChange', label: 'Change', fmt: v => `${v >= 0 ? '+' : ''}${v}%` },
+        { key: 'cashFlow', label: 'Monthly CF', fmt: formatCurrency, color: true },
+        { key: 'coc', label: 'CoC Return', fmt: formatPct, color: true },
+        { key: 'npv', label: 'NPV', fmt: formatCurrency, color: true },
+      ])}
+      {renderTable('Appreciation Sensitivity', scenarios.appreciation, [
+        { key: 'totalROI', label: 'Total ROI', fmt: formatPct, color: true },
+        { key: 'irr', label: 'IRR', fmt: formatPct },
+        { key: 'npv', label: 'NPV', fmt: formatCurrency, color: true },
+      ])}
+    </>
+  );
+}
+
+function MonteCarloTab({ property, assumptions }) {
+  const mc = useMemo(() => monteCarloSimulation(property, assumptions, 2000), [property, assumptions]);
+
+  const renderDistribution = (title, data, fmtVal) => {
+    const maxCount = Math.max(...data.map(b => b.count));
+    return (
+      <div className="mb-6">
+        <h4 className="text-sm font-semibold text-gray-400 uppercase mb-2">{title}</h4>
+        <div className="space-y-0.5">
+          {data.map((bucket, i) => {
+            const w = maxCount > 0 ? (bucket.count / maxCount) * 100 : 0;
+            const midVal = (bucket.min + bucket.max) / 2;
+            const positive = midVal >= 0;
+            return (
+              <div key={i} className="flex items-center gap-2 text-[10px]">
+                <span className="w-16 text-right text-gray-500">{fmtVal(bucket.min)}</span>
+                <div className="flex-1 h-4 bg-gray-800 rounded-sm overflow-hidden">
+                  <div className={`h-full rounded-sm ${positive ? 'bg-green-500/50' : 'bg-red-500/50'}`} style={{ width: `${w}%` }} />
+                </div>
+                <span className="w-8 text-gray-500">{bucket.pct.toFixed(0)}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-4">
+        {mc.numSims.toLocaleString()} simulations with randomized vacancy, rates, rent, appreciation, and maintenance. Shows range of likely outcomes.
+      </p>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="rounded-xl border border-green-600/30 bg-green-600/5 p-4">
+          <p className="text-[10px] text-gray-500 uppercase">P(NPV &gt; 0)</p>
+          <p className="text-2xl font-bold text-green-400">{mc.npv.probPositive.toFixed(0)}%</p>
+          <p className="text-[10px] text-gray-500">chance deal is profitable</p>
+        </div>
+        <div className="rounded-xl border border-blue-600/30 bg-blue-600/5 p-4">
+          <p className="text-[10px] text-gray-500 uppercase">P(CF &gt; 0)</p>
+          <p className="text-2xl font-bold text-blue-400">{mc.cashFlow.probPositive.toFixed(0)}%</p>
+          <p className="text-[10px] text-gray-500">monthly cash flow positive</p>
+        </div>
+        <div className="rounded-xl border border-purple-600/30 bg-purple-600/5 p-4">
+          <p className="text-[10px] text-gray-500 uppercase">Median ROI</p>
+          <p className="text-2xl font-bold text-purple-400">{formatPct(mc.roi.median)}</p>
+          <p className="text-[10px] text-gray-500">{assumptions.holdYears}yr hold</p>
+        </div>
+        <div className="rounded-xl border border-yellow-600/30 bg-yellow-600/5 p-4">
+          <p className="text-[10px] text-gray-500 uppercase">Median IRR</p>
+          <p className="text-2xl font-bold text-yellow-400">{formatPct(mc.irr.median)}</p>
+          <p className="text-[10px] text-gray-500">5th: {formatPct(mc.irr.p5)} | 95th: {formatPct(mc.irr.p95)}</p>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-semibold text-gray-400 uppercase mb-3">Monthly Cash Flow Distribution</h4>
+        <div className="grid grid-cols-5 gap-3 mb-4">
+          <MetricBox label="Worst (5th)" value={formatCurrency(mc.cashFlow.p5)} />
+          <MetricBox label="Bear (25th)" value={formatCurrency(mc.cashFlow.p25)} />
+          <MetricBox label="Median" value={formatCurrency(mc.cashFlow.median)} highlight />
+          <MetricBox label="Bull (75th)" value={formatCurrency(mc.cashFlow.p75)} />
+          <MetricBox label="Best (95th)" value={formatCurrency(mc.cashFlow.p95)} />
+        </div>
+      </div>
+
+      {renderDistribution('NPV Distribution', mc.npvHistogram, v => v >= 1000 || v <= -1000 ? `$${(v/1000).toFixed(0)}K` : formatCurrency(v))}
+      {renderDistribution('Monthly Cash Flow Distribution', mc.cfHistogram, formatCurrency)}
+
+      <div>
+        <h4 className="text-sm font-semibold text-gray-400 uppercase mb-3">Total ROI Percentiles ({assumptions.holdYears}yr)</h4>
+        <div className="grid grid-cols-5 gap-3">
+          <MetricBox label="5th pctile" value={formatPct(mc.roi.p5)} />
+          <MetricBox label="25th pctile" value={formatPct(mc.roi.p25)} />
+          <MetricBox label="Median" value={formatPct(mc.roi.median)} highlight />
+          <MetricBox label="75th pctile" value={formatPct(mc.roi.p75)} />
+          <MetricBox label="95th pctile" value={formatPct(mc.roi.p95)} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function WealthTab({ property, assumptions }) {
+  const wealth = useMemo(() => wealthProjection(property, assumptions), [property, assumptions]);
+  const maxWealth = Math.max(...wealth.map(w => Math.max(w.totalWealth, w.equity, w.cumulativeCashFlow)));
+  const minWealth = Math.min(...wealth.map(w => Math.min(w.totalWealth, w.cumulativeCashFlow)), 0);
+  const range = maxWealth - minWealth || 1;
+
+  return (
+    <>
+      <p className="text-xs text-gray-500 mb-4">Total wealth built over your hold period from equity growth, principal paydown, and cumulative cash flow.</p>
+
+      {/* Stacked visual */}
+      <div className="mb-6">
+        <h4 className="text-sm font-semibold text-gray-400 uppercase mb-3">Wealth Growth</h4>
+        <div className="space-y-2">
+          {wealth.map(yr => {
+            const eqPct = Math.max(0, yr.equity / range * 100);
+            const cfPct = Math.max(0, yr.cumulativeCashFlow / range * 100);
+            return (
+              <div key={yr.year} className="flex items-center gap-3">
+                <span className="w-10 text-xs text-gray-500">Yr {yr.year}</span>
+                <div className="flex-1 h-6 bg-gray-800 rounded overflow-hidden flex">
+                  <div className="h-full bg-blue-500/60" style={{ width: `${eqPct}%` }} title={`Equity: ${formatCurrency(yr.equity)}`} />
+                  <div className="h-full bg-green-500/60" style={{ width: `${Math.max(0, cfPct)}%` }} title={`Cash Flow: ${formatCurrency(yr.cumulativeCashFlow)}`} />
+                </div>
+                <span className="w-20 text-right text-xs font-medium text-white">{formatCurrency(yr.totalWealth)}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex gap-4 mt-2 text-[10px] text-gray-500">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500/60 rounded" /> Equity</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-500/60 rounded" /> Cumulative Cash Flow</span>
+        </div>
+      </div>
+
+      {/* Year-by-year table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-gray-800 text-gray-500">
+              <th className="text-left p-2">Year</th>
+              <th className="text-right p-2">Property Value</th>
+              <th className="text-right p-2">Loan Balance</th>
+              <th className="text-right p-2">Equity</th>
+              <th className="text-right p-2">Year CF</th>
+              <th className="text-right p-2">Cumulative CF</th>
+              <th className="text-right p-2">Total Wealth</th>
+            </tr>
+          </thead>
+          <tbody>
+            {wealth.map(yr => (
+              <tr key={yr.year} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                <td className="p-2 text-gray-300">Yr {yr.year}</td>
+                <td className="p-2 text-right text-gray-300">{formatCurrency(yr.propertyValue)}</td>
+                <td className="p-2 text-right text-gray-500">{formatCurrency(yr.loanBalance)}</td>
+                <td className="p-2 text-right text-blue-400">{formatCurrency(yr.equity)}</td>
+                <td className={`p-2 text-right ${yr.cashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(yr.cashFlow)}</td>
+                <td className={`p-2 text-right ${yr.cumulativeCashFlow >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(yr.cumulativeCashFlow)}</td>
+                <td className="p-2 text-right font-bold text-white">{formatCurrency(yr.totalWealth)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function AmortizationTab({ analysis }) {
+  const schedule = useMemo(() => amortizationSchedule(analysis.housing.loanAmount, 6.75), [analysis.housing.loanAmount]);
+  const totalInterest = schedule.reduce((s, y) => s + y.interest, 0);
+  const totalPrincipal = schedule.reduce((s, y) => s + y.principal, 0);
+
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <MetricBox label="Loan Amount" value={formatCurrency(analysis.housing.loanAmount)} />
+        <MetricBox label="Total Interest (30yr)" value={formatCurrency(totalInterest)} />
+        <MetricBox label="Total Paid" value={formatCurrency(totalPrincipal + totalInterest)} highlight />
+      </div>
+
+      {/* Visual: principal vs interest over time */}
+      <div className="mb-6">
+        <h4 className="text-sm font-semibold text-gray-400 uppercase mb-3">Principal vs Interest by Year</h4>
+        <div className="space-y-0.5">
+          {schedule.filter((_, i) => i < 30).map(yr => {
+            const total = yr.principal + yr.interest;
+            const pPct = total > 0 ? (yr.principal / total * 100) : 0;
+            return (
+              <div key={yr.year} className="flex items-center gap-2 text-[10px]">
+                <span className="w-6 text-gray-500">{yr.year}</span>
+                <div className="flex-1 h-4 bg-gray-800 rounded-sm overflow-hidden flex">
+                  <div className="h-full bg-blue-500/70" style={{ width: `${pPct}%` }} />
+                  <div className="h-full bg-red-500/40" style={{ width: `${100 - pPct}%` }} />
+                </div>
+                <span className="w-16 text-right text-gray-500">{formatCurrency(yr.balance)}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex gap-4 mt-2 text-[10px] text-gray-500">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-blue-500/70 rounded" /> Principal</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500/40 rounded" /> Interest</span>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto max-h-96 overflow-y-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-gray-900">
+            <tr className="border-b border-gray-800 text-gray-500">
+              <th className="text-left p-2">Year</th>
+              <th className="text-right p-2">Principal</th>
+              <th className="text-right p-2">Interest</th>
+              <th className="text-right p-2">Total Paid</th>
+              <th className="text-right p-2">Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {schedule.map(yr => (
+              <tr key={yr.year} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                <td className="p-2 text-gray-300">{yr.year}</td>
+                <td className="p-2 text-right text-blue-400">{formatCurrency(yr.principal)}</td>
+                <td className="p-2 text-right text-red-400">{formatCurrency(yr.interest)}</td>
+                <td className="p-2 text-right text-gray-300">{formatCurrency(yr.principal + yr.interest)}</td>
+                <td className="p-2 text-right text-gray-500">{formatCurrency(yr.balance)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

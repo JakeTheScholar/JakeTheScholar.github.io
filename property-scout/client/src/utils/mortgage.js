@@ -290,6 +290,173 @@ export function fullAnalysis(property, assumptions = {}) {
   };
 }
 
+// Sensitivity analysis — vary one assumption while holding others constant
+export function sensitivityAnalysis(property, baseAssumptions) {
+  const scenarios = {};
+  const base = fullAnalysis(property, baseAssumptions);
+
+  // Interest rate sensitivity
+  scenarios.rate = [];
+  for (let r = 5.0; r <= 9.0; r += 0.5) {
+    const a = fullAnalysis(property, { ...baseAssumptions, rate: r });
+    scenarios.rate.push({ value: r, label: `${r}%`, cashFlow: a.liveIn.net, coc: a.liveIn.coc, npv: a.dcf.npv, dscr: a.dcf.dscr });
+  }
+
+  // Vacancy sensitivity
+  scenarios.vacancy = [];
+  for (let v = 0; v <= 20; v += 2) {
+    const a = fullAnalysis(property, { ...baseAssumptions, vacancyPct: v });
+    scenarios.vacancy.push({ value: v, label: `${v}%`, cashFlow: a.liveIn.net, coc: a.liveIn.coc, npv: a.dcf.npv, dscr: a.dcf.dscr });
+  }
+
+  // Appreciation sensitivity
+  scenarios.appreciation = [];
+  for (let ap = 0; ap <= 6; ap += 1) {
+    const a = fullAnalysis(property, { ...baseAssumptions, appreciationPct: ap });
+    scenarios.appreciation.push({ value: ap, label: `${ap}%`, cashFlow: a.liveIn.net, totalROI: a.dcf.totalROI, npv: a.dcf.npv, irr: a.dcf.irr });
+  }
+
+  // Rent sensitivity
+  const baseRent = baseAssumptions.rentPerUnit || property.rentEstimate || Math.round((property.price || 0) * 0.008);
+  scenarios.rent = [];
+  for (let pct = -30; pct <= 30; pct += 10) {
+    const rent = Math.round(baseRent * (1 + pct / 100));
+    const a = fullAnalysis(property, { ...baseAssumptions, rentPerUnit: rent });
+    scenarios.rent.push({ value: rent, label: `$${rent}`, pctChange: pct, cashFlow: a.liveIn.net, coc: a.liveIn.coc, npv: a.dcf.npv });
+  }
+
+  return { base, scenarios };
+}
+
+// Monte Carlo cash flow simulation
+export function monteCarloSimulation(property, baseAssumptions, numSims = 2000) {
+  const price = property.price || 0;
+  const units = property.units || 2;
+  const baseRent = baseAssumptions.rentPerUnit || property.rentEstimate || Math.round(price * 0.008);
+  const holdYears = baseAssumptions.holdYears || 5;
+
+  const results = [];
+  for (let sim = 0; sim < numSims; sim++) {
+    // Randomize assumptions within realistic ranges
+    const rate = baseAssumptions.rate + (Math.random() - 0.5) * 2; // +/- 1%
+    const vacancy = Math.max(0, baseAssumptions.vacancyPct + (Math.random() - 0.5) * 16); // +/- 8%
+    const maintenance = Math.max(0, baseAssumptions.maintenancePct + (Math.random() - 0.5) * 10); // +/- 5%
+    const appreciation = baseAssumptions.appreciationPct + (Math.random() - 0.5) * 6; // +/- 3%
+    const rentGrowth = baseAssumptions.rentGrowthPct + (Math.random() - 0.5) * 4; // +/- 2%
+    const rentVariation = baseRent * (1 + (Math.random() - 0.5) * 0.2); // +/- 10%
+
+    const a = fullAnalysis(property, {
+      ...baseAssumptions,
+      rate: Math.max(3, rate),
+      vacancyPct: vacancy,
+      maintenancePct: maintenance,
+      appreciationPct: appreciation,
+      rentGrowthPct: rentGrowth,
+      rentPerUnit: Math.round(rentVariation),
+    });
+
+    results.push({
+      totalROI: a.dcf.totalROI,
+      npv: a.dcf.npv,
+      irr: a.dcf.irr,
+      monthlyCF: a.liveIn.net,
+      annualCF: a.liveIn.annual,
+      totalReturn: a.dcf.totalReturn,
+    });
+  }
+
+  // Sort and compute percentiles
+  const sorted = (arr) => [...arr].sort((a, b) => a - b);
+  const percentile = (arr, p) => { const s = sorted(arr); const i = Math.floor(s.length * p / 100); return s[Math.min(i, s.length - 1)]; };
+
+  const roiArr = results.map(r => r.totalROI);
+  const npvArr = results.map(r => r.npv);
+  const cfArr = results.map(r => r.monthlyCF);
+  const irrArr = results.map(r => r.irr);
+
+  return {
+    numSims,
+    roi: {
+      p5: percentile(roiArr, 5), p25: percentile(roiArr, 25),
+      median: percentile(roiArr, 50), p75: percentile(roiArr, 75),
+      p95: percentile(roiArr, 95), mean: roiArr.reduce((a, b) => a + b, 0) / roiArr.length,
+    },
+    npv: {
+      p5: percentile(npvArr, 5), p25: percentile(npvArr, 25),
+      median: percentile(npvArr, 50), p75: percentile(npvArr, 75),
+      p95: percentile(npvArr, 95), mean: npvArr.reduce((a, b) => a + b, 0) / npvArr.length,
+      probPositive: npvArr.filter(v => v > 0).length / npvArr.length * 100,
+    },
+    cashFlow: {
+      p5: percentile(cfArr, 5), p25: percentile(cfArr, 25),
+      median: percentile(cfArr, 50), p75: percentile(cfArr, 75),
+      p95: percentile(cfArr, 95), mean: cfArr.reduce((a, b) => a + b, 0) / cfArr.length,
+      probPositive: cfArr.filter(v => v > 0).length / cfArr.length * 100,
+    },
+    irr: {
+      p5: percentile(irrArr, 5), median: percentile(irrArr, 50), p95: percentile(irrArr, 95),
+    },
+    // Histogram buckets for NPV
+    npvHistogram: buildHistogram(npvArr, 20),
+    cfHistogram: buildHistogram(cfArr, 20),
+  };
+}
+
+function buildHistogram(arr, buckets) {
+  const min = Math.min(...arr);
+  const max = Math.max(...arr);
+  const range = max - min || 1;
+  const bucketSize = range / buckets;
+  const hist = Array(buckets).fill(0);
+  arr.forEach(v => {
+    const idx = Math.min(Math.floor((v - min) / bucketSize), buckets - 1);
+    hist[idx]++;
+  });
+  return hist.map((count, i) => ({
+    min: min + i * bucketSize,
+    max: min + (i + 1) * bucketSize,
+    count,
+    pct: count / arr.length * 100,
+  }));
+}
+
+// 5-Year wealth projection
+export function wealthProjection(property, assumptions) {
+  const analysis = fullAnalysis(property, assumptions);
+  const { dcf } = analysis;
+  const downPayment = analysis.downPayment;
+  const closingCosts = analysis.closingCosts;
+  const price = property.price || 0;
+  const rate = assumptions.rate || 6.75;
+  const appreciationPct = assumptions.appreciationPct || 3;
+
+  const years = [];
+  let cumulativeCF = 0;
+
+  for (let i = 0; i < dcf.annualCashFlows.length; i++) {
+    const yr = dcf.annualCashFlows[i];
+    cumulativeCF += yr.cashFlow;
+
+    const propertyValue = price * Math.pow(1 + appreciationPct / 100, i + 1);
+    const equityFromAppreciation = propertyValue - price;
+    const principalPaid = analysis.housing.loanAmount - yr.loanBalance;
+    const totalEquity = equityFromAppreciation + principalPaid;
+    const totalWealth = totalEquity + cumulativeCF - downPayment - closingCosts;
+
+    years.push({
+      year: i + 1,
+      propertyValue,
+      loanBalance: yr.loanBalance,
+      equity: totalEquity,
+      cumulativeCashFlow: cumulativeCF,
+      totalWealth,
+      cashFlow: yr.cashFlow,
+    });
+  }
+
+  return years;
+}
+
 export function formatCurrency(n) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 }
