@@ -250,8 +250,9 @@ tailwind.config = {
 
   /* ===== MOBILE RESPONSIVE ===== */
   @media (max-width: 768px) {
+    body { overflow: auto; }
     .mobile-header { display: flex; }
-    .main-content { padding: 16px; padding-top: 72px; }
+    .main-content { padding: 16px; padding-top: 72px; padding-bottom: 64px; }
 
     aside#sidebar {
       position: fixed; top: 0; left: 0; bottom: 0;
