@@ -42,6 +42,10 @@ from agents.music_agent import MusicAgent
 from agents.follow_up_agent import FollowUpAgent
 from agents.ad_copy_agent import AdCopyAgent
 from agents.review_agent import ReviewAgent
+from agents.image_gen_agent import ImageGenAgent
+from agents.faceless_content_agent import FacelessContentAgent
+from agents.freelance_scraper_agent import FreelanceScraperAgent
+from agents.gumroad_agent import GumroadAgent
 from pipeline_db import PipelineDB, PIPELINE_CONFIGS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -88,6 +92,12 @@ orchestrator.register_agent(WebDevAgent())
 orchestrator.register_agent(MusicAgent())
 orchestrator.register_agent(AdCopyAgent())
 orchestrator.register_agent(ReviewAgent())
+
+# Register Revenue agents (4)
+orchestrator.register_agent(ImageGenAgent())
+orchestrator.register_agent(FacelessContentAgent())
+orchestrator.register_agent(FreelanceScraperAgent())
+orchestrator.register_agent(GumroadAgent())
 
 VALID_AGENT_IDS = set(orchestrator.agents.keys())
 

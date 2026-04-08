@@ -94,6 +94,35 @@ PIPELINE_CONFIGS = {
             "generated": ("polished",), "polished": ("delivered",),
         },
     },
+    "gumroad": {
+        "label": "Gumroad Products",
+        "color": "#ff90e8",
+        "stages": ("drafted", "designed", "published", "optimized", "selling"),
+        "stage_labels": {
+            "drafted": "Listing Drafted", "designed": "Assets Created",
+            "published": "Published", "optimized": "SEO Optimized",
+            "selling": "Selling",
+        },
+        "transitions": {
+            "drafted": ("designed",), "designed": ("published",),
+            "published": ("optimized",), "optimized": ("selling",),
+        },
+    },
+    "freelance": {
+        "label": "Freelance Gigs",
+        "color": "#22d3ee",
+        "stages": ("discovered", "qualified", "applied", "interviewing", "won", "delivered"),
+        "stage_labels": {
+            "discovered": "Discovered", "qualified": "Qualified",
+            "applied": "Applied", "interviewing": "Interviewing",
+            "won": "Won", "delivered": "Delivered",
+        },
+        "transitions": {
+            "discovered": ("qualified",), "qualified": ("applied",),
+            "applied": ("interviewing",), "interviewing": ("won",),
+            "won": ("delivered",),
+        },
+    },
 }
 
 # Legacy aliases for lead gen agents
@@ -491,7 +520,7 @@ class PipelineDB:
         # Lead gen stats (from leads table)
         result["leadgen"] = self.get_pipeline_stats()
         # Generic pipeline items
-        for ptype in ("etsy", "fiverr", "content", "audio", "websites"):
+        for ptype in ("etsy", "fiverr", "content", "audio", "websites", "gumroad", "freelance"):
             result[ptype] = self.get_item_stats(ptype)
         return result
 
