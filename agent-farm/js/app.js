@@ -9,6 +9,7 @@ const App = {
     Feed.init();
     Settings.init();
     Pipeline.init();
+    Metrics.init();
 
     // Set up nav tabs
     document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -34,7 +35,7 @@ const App = {
   },
 
   navigate(view, pushHash = true) {
-    const views = ['grid', 'pipeline', 'feed', 'settings'];
+    const views = ['grid', 'pipeline', 'metrics', 'feed', 'settings'];
     if (!views.includes(view)) view = 'grid';
 
     this.currentView = view;
@@ -52,11 +53,13 @@ const App = {
 
     // Render the active view
     if (view === 'pipeline') Pipeline.render();
+    if (view === 'metrics') Metrics.render();
     if (view === 'feed') Feed.render();
     if (view === 'settings') Settings.render();
 
-    // Stop pipeline auto-refresh when leaving
+    // Stop auto-refresh when leaving
     if (view !== 'pipeline') Pipeline.stopAutoRefresh();
+    if (view !== 'metrics') Metrics.stopAutoRefresh();
 
     if (pushHash) location.hash = view;
   },

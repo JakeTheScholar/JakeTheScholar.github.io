@@ -12,6 +12,33 @@ from agent_base import BaseAgent, AgentEvent
 from tools.file_tools import ensure_output_dir
 
 
+# Hook formulas scraped from top-performing AI-agent Reels/TikToks.
+# Source pattern: @raycfu 492K-view viral Reel ("His Openclaw agent is making him $80,000 all autonomously"),
+# @itstylergermain ("I built a full content OS in a week using nothing but Claude Code"),
+# @cyphyr.ai ("Stop sending cold emails with generic portfolios"),
+# @maverickgpt ("Claude just killed video editors").
+# These are the 5 structural templates that consistently break 100K views in this niche.
+HOOK_FORMULAS = [
+    # 1. Attribution + revenue + autonomy — highest performer (492K views)
+    '"His [agent/system] is making him $[X] all autonomously" — name the creator, drop the number, credit them.',
+    # 2. Pattern interrupt — "Stop X" → here's the new way
+    '"Stop [common bad practice]" → immediate twist showing the new automated approach with receipts.',
+    # 3. Speed + tool flex — "I built X in Y days using nothing but Z"
+    '"I built [thing] in [short time] using nothing but [tool]" — list everything it does, then a DM CTA.',
+    # 4. Killed-the-profession — bold declaration + 3-step recipe
+    '"[Tool] just killed [profession]. You can now [do thing] in [N] steps." — numbered setup, immediate demo.',
+    # 5. "$X system" — frame as a repeatable template
+    '"How to create a $[X] [niche] system" — positions the build as a monetizable template, not a demo.',
+]
+
+# DM-gated engagement funnels — both top creators used this
+DM_FUNNEL_TEMPLATES = [
+    'Comment "[KEYWORD]" and I\'ll send you every prompt I used',
+    'Comment "[KEYWORD]" and I\'ll DM you the full guide',
+    'Want the source files? Comment "[KEYWORD]" below',
+]
+
+
 # Content niches and hooks that perform well in finance/hustle space
 CONTENT_NICHES = [
     {
@@ -62,6 +89,22 @@ CONTENT_NICHES = [
             "my home lab setup for running AI models locally",
         ],
     },
+    {
+        # Modeled directly on the top-performing Reels scraped via Apify:
+        # @raycfu (492K views), @itstylergermain, @cyphyr.ai, @maverickgpt.
+        "id": "ai-agent-revenue",
+        "name": "AI Agent Revenue",
+        "topics": [
+            "his Claude agent is making him $80,000 a month all autonomously",
+            "I built a full content OS in a week using nothing but Claude Code",
+            "stop sending cold emails with generic portfolios do this instead",
+            "Claude just killed video editors here's the 3-step setup",
+            "how to create a $3 million Claude content script system",
+            "my AI agent farm runs 21 bots 24/7 and I touch nothing",
+            "I replaced an entire marketing team with Claude Code and Remotion",
+            "the one prompt that turned my agency into an overnight success",
+        ],
+    },
 ]
 
 PLATFORMS = ["tiktok", "reels", "shorts"]
@@ -70,10 +113,16 @@ SCRIPT_PROMPT = """Write a viral short-form video script for {platform} about: "
 
 Niche: {niche}
 
+Use one of these proven hook formulas (scraped from top-performing AI-content creators — @raycfu's 492K-view Reel was formula #1):
+{hook_formulas}
+
+DM-gated CTA templates (both top creators in the niche used these):
+{dm_funnels}
+
 Requirements:
-- Hook (first 1-3 seconds) — must stop the scroll. Use a pattern interrupt, bold claim, or visual cue
-- Body (15-45 seconds) — deliver value fast, use numbered lists or "here's the thing" transitions
-- CTA (last 3-5 seconds) — follow, save, or comment prompt
+- Hook (first 1-3 seconds) — must stop the scroll. MUST follow one of the formulas above. If the topic names a specific creator ("his [X] agent"), use formula #1 (attribution + revenue + autonomy).
+- Body (15-45 seconds) — deliver value fast, use numbered lists or "here's the thing" transitions. If the hook promises N steps, deliver exactly N.
+- CTA (last 3-5 seconds) — USE a DM-gated funnel. Replace [KEYWORD] with something memorable (e.g. "CLAUDE", "AGENT", "BUILD").
 - Total duration: 30-60 seconds
 - Tone: confident but relatable, like talking to a friend who's also into {niche_lower}
 - Include [B-ROLL] and [TEXT ON SCREEN] cues for editing
@@ -118,11 +167,15 @@ class FacelessContentAgent(BaseAgent):
         self.emit("writing", f"Creating {platform} script — {niche['name']}")
 
         try:
+            hook_formulas_text = "\n".join(f"  {i+1}. {f}" for i, f in enumerate(HOOK_FORMULAS))
+            dm_funnels_text = "\n".join(f"  - {t}" for t in DM_FUNNEL_TEMPLATES)
             prompt = SCRIPT_PROMPT.format(
                 platform=platform,
                 topic=topic,
                 niche=niche["name"],
                 niche_lower=niche["name"].lower(),
+                hook_formulas=hook_formulas_text,
+                dm_funnels=dm_funnels_text,
             )
 
             system = (

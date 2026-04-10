@@ -5,7 +5,7 @@ import uuid
 import json
 import threading
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 
@@ -131,9 +131,10 @@ VALID_TRANSITIONS = PIPELINE_CONFIGS["leadgen"]["transitions"]
 
 
 class PipelineDB:
-    def __init__(self, db_path: Path = None):
+    def __init__(self, db_path=None):
         self.db_path = db_path or Path(__file__).parent / "data" / "pipeline.db"
-        self.db_path.parent.mkdir(exist_ok=True)
+        if str(self.db_path) != ":memory:":
+            Path(self.db_path).parent.mkdir(exist_ok=True)
         self._lock = threading.Lock()
         self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
@@ -341,6 +342,24 @@ class PipelineDB:
             ).fetchone()
         return row["cnt"] > 0
 
+    def get_item_for_lead(self, pipeline_type: str, lead_id: str) -> Optional[dict]:
+        """Fetch the most recent pipeline item linked to a lead via metadata.lead_id."""
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT * FROM pipeline_items WHERE pipeline_type = ? AND metadata LIKE ? "
+                "ORDER BY updated_at DESC LIMIT 1",
+                (pipeline_type, f'%"{lead_id}"%'),
+            ).fetchone()
+        if not row:
+            return None
+        item = dict(row)
+        if item.get("metadata"):
+            try:
+                item["metadata"] = json.loads(item["metadata"])
+            except json.JSONDecodeError:
+                pass
+        return item
+
     # ─── Stats ───
 
     def get_stage_counts(self) -> list[dict]:
@@ -523,6 +542,575 @@ class PipelineDB:
         for ptype in ("etsy", "fiverr", "content", "audio", "websites", "gumroad", "freelance"):
             result[ptype] = self.get_item_stats(ptype)
         return result
+
+    # ─── Performance Metrics ───
+
+    def get_funnel_conversion(self, pipeline_type: str = "leadgen") -> list[dict]:
+        """Conversion rate between each consecutive stage pair."""
+        if pipeline_type == "leadgen":
+            stages = list(VALID_STAGES)
+            with self._lock:
+                counts = {}
+                for s in stages:
+                    row = self._conn.execute(
+                        "SELECT COUNT(*) as cnt FROM leads WHERE stage = ?", (s,)
+                    ).fetchone()
+                    counts[s] = row["cnt"]
+        else:
+            cfg = PIPELINE_CONFIGS.get(pipeline_type)
+            if not cfg:
+                return []
+            stages = list(cfg["stages"])
+            with self._lock:
+                counts = {}
+                for s in stages:
+                    row = self._conn.execute(
+                        "SELECT COUNT(*) as cnt FROM pipeline_items WHERE pipeline_type = ? AND stage = ?",
+                        (pipeline_type, s),
+                    ).fetchone()
+                    counts[s] = row["cnt"]
+
+        # Cumulative: a lead at "closed" has passed through all prior stages
+        cumulative = {}
+        running = 0
+        for s in reversed(stages):
+            running += counts.get(s, 0)
+            cumulative[s] = running
+
+        result = []
+        for i in range(len(stages) - 1):
+            from_s, to_s = stages[i], stages[i + 1]
+            fc = cumulative.get(from_s, 0)
+            tc = cumulative.get(to_s, 0)
+            rate = tc / fc if fc > 0 else 0.0
+            result.append({
+                "from_stage": from_s, "to_stage": to_s,
+                "from_count": fc, "to_count": tc,
+                "conversion_rate": round(rate, 4),
+            })
+        return result
+
+    def get_time_to_stage_stats(self, pipeline_type: str = "leadgen") -> dict:
+        """Average and median hours between consecutive stage transitions."""
+        if pipeline_type == "leadgen":
+            with self._lock:
+                rows = self._conn.execute(
+                    """SELECT a.lead_id, a.to_stage AS from_stage, b.to_stage AS to_stage,
+                       (julianday(b.changed_at) - julianday(a.changed_at)) * 24 AS hours
+                       FROM pipeline_stages a
+                       JOIN pipeline_stages b ON a.lead_id = b.lead_id
+                         AND a.to_stage = b.from_stage
+                       WHERE a.to_stage IS NOT NULL AND b.from_stage IS NOT NULL
+                       ORDER BY a.lead_id, a.changed_at"""
+                ).fetchall()
+        else:
+            with self._lock:
+                rows = self._conn.execute(
+                    """SELECT a.item_id, a.to_stage AS from_stage, b.to_stage AS to_stage,
+                       (julianday(b.changed_at) - julianday(a.changed_at)) * 24 AS hours
+                       FROM pipeline_transitions a
+                       JOIN pipeline_transitions b ON a.item_id = b.item_id
+                         AND a.to_stage = b.from_stage
+                         AND a.pipeline_type = b.pipeline_type
+                       WHERE a.to_stage IS NOT NULL AND b.from_stage IS NOT NULL
+                         AND a.pipeline_type = ?
+                       ORDER BY a.item_id, a.changed_at""",
+                    (pipeline_type,),
+                ).fetchall()
+
+        buckets: dict[str, list[float]] = {}
+        for r in rows:
+            key = f"{r['from_stage']}_to_{r['to_stage']}"
+            buckets.setdefault(key, []).append(r["hours"])
+
+        result = {}
+        for key, hours_list in buckets.items():
+            hours_list.sort()
+            n = len(hours_list)
+            avg = sum(hours_list) / n
+            median = hours_list[n // 2] if n % 2 == 1 else (hours_list[n // 2 - 1] + hours_list[n // 2]) / 2
+            result[key] = {
+                "avg_hours": round(avg, 2),
+                "median_hours": round(median, 2),
+                "count": n,
+            }
+
+        # Total cycle: first entry to final stage per lead/item
+        if pipeline_type == "leadgen":
+            with self._lock:
+                cycle_rows = self._conn.execute(
+                    """SELECT lead_id,
+                       (julianday(MAX(changed_at)) - julianday(MIN(changed_at))) * 24 AS hours
+                       FROM pipeline_stages
+                       WHERE lead_id IN (SELECT id FROM leads WHERE stage = ?)
+                       GROUP BY lead_id
+                       HAVING COUNT(*) > 1""",
+                    (VALID_STAGES[-1],),
+                ).fetchall()
+        else:
+            cfg = PIPELINE_CONFIGS.get(pipeline_type)
+            final = cfg["stages"][-1] if cfg else None
+            if final:
+                with self._lock:
+                    cycle_rows = self._conn.execute(
+                        """SELECT item_id,
+                           (julianday(MAX(changed_at)) - julianday(MIN(changed_at))) * 24 AS hours
+                           FROM pipeline_transitions
+                           WHERE pipeline_type = ?
+                             AND item_id IN (SELECT id FROM pipeline_items WHERE stage = ? AND pipeline_type = ?)
+                           GROUP BY item_id
+                           HAVING COUNT(*) > 1""",
+                        (pipeline_type, final, pipeline_type),
+                    ).fetchall()
+            else:
+                cycle_rows = []
+
+        if cycle_rows:
+            cycle_hours = sorted([r["hours"] for r in cycle_rows])
+            n = len(cycle_hours)
+            avg = sum(cycle_hours) / n
+            median = cycle_hours[n // 2] if n % 2 == 1 else (cycle_hours[n // 2 - 1] + cycle_hours[n // 2]) / 2
+            result["total_cycle"] = {
+                "avg_hours": round(avg, 2),
+                "median_hours": round(median, 2),
+                "count": n,
+            }
+
+        return result
+
+    def get_lead_lifecycle(self, lead_id: str) -> list[dict]:
+        """Ordered stage transitions for a single lead with time in each stage."""
+        with self._lock:
+            rows = self._conn.execute(
+                """SELECT from_stage, to_stage, changed_by, changed_at, detail
+                   FROM pipeline_stages WHERE lead_id = ?
+                   ORDER BY changed_at""",
+                (lead_id,),
+            ).fetchall()
+        if not rows:
+            return []
+
+        transitions = [dict(r) for r in rows]
+        for i, t in enumerate(transitions):
+            if i < len(transitions) - 1:
+                cur = datetime.fromisoformat(t["changed_at"])
+                nxt = datetime.fromisoformat(transitions[i + 1]["changed_at"])
+                t["hours_in_stage"] = round((nxt - cur).total_seconds() / 3600, 2)
+            else:
+                t["hours_in_stage"] = None
+        return transitions
+
+    def get_score_distribution(self, pipeline_type: str = None) -> dict:
+        """Score percentiles, histogram buckets, avg/median/min/max."""
+        if pipeline_type and pipeline_type != "leadgen":
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT score FROM pipeline_items WHERE pipeline_type = ? ORDER BY score",
+                    (pipeline_type,),
+                ).fetchall()
+        else:
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT score FROM leads ORDER BY score"
+                ).fetchall()
+
+        scores = [r["score"] for r in rows]
+        n = len(scores)
+        if n == 0:
+            return {"avg": 0, "median": 0, "min": 0, "max": 0,
+                    "p25": 0, "p75": 0, "count": 0,
+                    "buckets": {"0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0}}
+
+        avg = sum(scores) / n
+        median = scores[n // 2] if n % 2 == 1 else (scores[n // 2 - 1] + scores[n // 2]) / 2
+        p25 = scores[n // 4]
+        p75 = scores[(3 * n) // 4]
+
+        buckets = {"0-20": 0, "21-40": 0, "41-60": 0, "61-80": 0, "81-100": 0}
+        for s in scores:
+            if s <= 20:
+                buckets["0-20"] += 1
+            elif s <= 40:
+                buckets["21-40"] += 1
+            elif s <= 60:
+                buckets["41-60"] += 1
+            elif s <= 80:
+                buckets["61-80"] += 1
+            else:
+                buckets["81-100"] += 1
+
+        return {
+            "avg": round(avg, 2), "median": median,
+            "min": scores[0], "max": scores[-1],
+            "p25": p25, "p75": p75,
+            "count": n, "buckets": buckets,
+        }
+
+    def get_score_by_stage(self, pipeline_type: str = "leadgen") -> dict:
+        """Average score per stage."""
+        if pipeline_type == "leadgen":
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT stage, AVG(score) as avg_score, COUNT(*) as count FROM leads GROUP BY stage"
+                ).fetchall()
+            result = {s: {"avg_score": 0, "count": 0} for s in VALID_STAGES}
+        else:
+            cfg = PIPELINE_CONFIGS.get(pipeline_type)
+            if not cfg:
+                return {}
+            with self._lock:
+                rows = self._conn.execute(
+                    "SELECT stage, AVG(score) as avg_score, COUNT(*) as count "
+                    "FROM pipeline_items WHERE pipeline_type = ? GROUP BY stage",
+                    (pipeline_type,),
+                ).fetchall()
+            result = {s: {"avg_score": 0, "count": 0} for s in cfg["stages"]}
+
+        for r in rows:
+            result[r["stage"]] = {
+                "avg_score": round(r["avg_score"], 2),
+                "count": r["count"],
+            }
+        return result
+
+    def get_score_by_industry(self) -> dict:
+        """Average score per industry (leadgen only)."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT industry, AVG(score) as avg_score, COUNT(*) as count "
+                "FROM leads GROUP BY industry"
+            ).fetchall()
+        return {
+            r["industry"]: {"avg_score": round(r["avg_score"], 2), "count": r["count"]}
+            for r in rows
+        }
+
+    def get_outreach_stats(self) -> dict:
+        """Outreach engagement: drafted vs sent, by channel, avg draft-to-send time."""
+        with self._lock:
+            total = self._conn.execute("SELECT COUNT(*) as cnt FROM outreach_log").fetchone()["cnt"]
+            sent = self._conn.execute("SELECT COUNT(*) as cnt FROM outreach_log WHERE status = 'sent'").fetchone()["cnt"]
+            drafted = total - sent
+
+            channel_rows = self._conn.execute(
+                "SELECT channel, status, COUNT(*) as cnt FROM outreach_log GROUP BY channel, status"
+            ).fetchall()
+
+            time_row = self._conn.execute(
+                """SELECT AVG((julianday(sent_at) - julianday(created_at)) * 24) as avg_hours
+                   FROM outreach_log WHERE sent_at IS NOT NULL"""
+            ).fetchone()
+
+        by_channel: dict[str, dict] = {}
+        for r in channel_rows:
+            ch = r["channel"]
+            by_channel.setdefault(ch, {"total": 0, "sent": 0})
+            by_channel[ch]["total"] += r["cnt"]
+            if r["status"] == "sent":
+                by_channel[ch]["sent"] += r["cnt"]
+
+        result = {
+            "total": total, "drafted": drafted, "sent": sent,
+            "send_rate": round(sent / total, 4) if total > 0 else 0.0,
+            "by_channel": by_channel,
+        }
+        if time_row and time_row["avg_hours"] is not None:
+            result["avg_draft_to_send_hours"] = round(time_row["avg_hours"], 2)
+        else:
+            result["avg_draft_to_send_hours"] = 0
+
+        return result
+
+    def get_industry_performance(self) -> list[dict]:
+        """Close rate, avg score, avg days-to-close, stage distribution per industry."""
+        with self._lock:
+            industries = self._conn.execute(
+                "SELECT DISTINCT industry FROM leads"
+            ).fetchall()
+
+        result = []
+        for ind_row in industries:
+            industry = ind_row["industry"]
+            with self._lock:
+                total = self._conn.execute(
+                    "SELECT COUNT(*) as cnt FROM leads WHERE industry = ?", (industry,)
+                ).fetchone()["cnt"]
+                closed = self._conn.execute(
+                    "SELECT COUNT(*) as cnt FROM leads WHERE industry = ? AND stage = 'closed'",
+                    (industry,),
+                ).fetchone()["cnt"]
+                avg_score = self._conn.execute(
+                    "SELECT AVG(score) as avg FROM leads WHERE industry = ?", (industry,)
+                ).fetchone()["avg"]
+                stage_rows = self._conn.execute(
+                    "SELECT stage, COUNT(*) as cnt FROM leads WHERE industry = ? GROUP BY stage",
+                    (industry,),
+                ).fetchall()
+
+                # Avg days to close
+                days_rows = self._conn.execute(
+                    """SELECT l.id,
+                       (julianday(MAX(ps.changed_at)) - julianday(MIN(ps.changed_at))) as days
+                       FROM leads l
+                       JOIN pipeline_stages ps ON l.id = ps.lead_id
+                       WHERE l.industry = ? AND l.stage = 'closed'
+                       GROUP BY l.id""",
+                    (industry,),
+                ).fetchall()
+
+            stage_dist = {r["stage"]: r["cnt"] for r in stage_rows}
+            avg_days = 0.0
+            if days_rows:
+                avg_days = sum(r["days"] for r in days_rows) / len(days_rows)
+
+            result.append({
+                "industry": industry,
+                "total": total,
+                "closed": closed,
+                "close_rate": round(closed / total, 4) if total > 0 else 0.0,
+                "avg_score": round(avg_score, 2) if avg_score else 0,
+                "avg_days_to_close": round(avg_days, 2),
+                "stage_distribution": stage_dist,
+            })
+        return result
+
+    def get_agent_velocity(self, days: int = 7) -> list[dict]:
+        """Items/leads created per agent within the last N days."""
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+
+        with self._lock:
+            lead_rows = self._conn.execute(
+                """SELECT source as agent_id, COUNT(*) as cnt
+                   FROM leads WHERE created_at >= ? GROUP BY source""",
+                (cutoff,),
+            ).fetchall()
+            item_rows = self._conn.execute(
+                """SELECT source_agent as agent_id, COUNT(*) as cnt
+                   FROM pipeline_items WHERE created_at >= ? GROUP BY source_agent""",
+                (cutoff,),
+            ).fetchall()
+
+        agents: dict[str, int] = {}
+        for r in lead_rows:
+            if r["agent_id"]:
+                agents[r["agent_id"]] = agents.get(r["agent_id"], 0) + r["cnt"]
+        for r in item_rows:
+            if r["agent_id"]:
+                agents[r["agent_id"]] = agents.get(r["agent_id"], 0) + r["cnt"]
+
+        return [
+            {
+                "agent_id": aid,
+                "items_created": cnt,
+                "period_days": days,
+                "items_per_day": round(cnt / days, 2),
+            }
+            for aid, cnt in sorted(agents.items(), key=lambda x: -x[1])
+        ]
+
+    def get_agent_stage_contributions(self, agent_id: str) -> dict:
+        """Which stages an agent pushes items/leads into."""
+        with self._lock:
+            lead_rows = self._conn.execute(
+                "SELECT to_stage, COUNT(*) as cnt FROM pipeline_stages WHERE changed_by = ? GROUP BY to_stage",
+                (agent_id,),
+            ).fetchall()
+            item_rows = self._conn.execute(
+                "SELECT to_stage, COUNT(*) as cnt FROM pipeline_transitions WHERE changed_by = ? GROUP BY to_stage",
+                (agent_id,),
+            ).fetchall()
+
+        transitions: dict[str, int] = {}
+        for r in lead_rows:
+            transitions[r["to_stage"]] = transitions.get(r["to_stage"], 0) + r["cnt"]
+        for r in item_rows:
+            transitions[r["to_stage"]] = transitions.get(r["to_stage"], 0) + r["cnt"]
+
+        return {
+            "agent_id": agent_id,
+            "transitions": transitions,
+            "total_transitions": sum(transitions.values()),
+        }
+
+    def get_source_agent_performance(self, pipeline_type: str = None) -> list[dict]:
+        """Avg score, item count, advancement rate per source agent."""
+        if pipeline_type == "leadgen" or pipeline_type is None:
+            with self._lock:
+                rows = self._conn.execute(
+                    """SELECT source as source_agent, COUNT(*) as items_created,
+                       AVG(score) as avg_score
+                       FROM leads GROUP BY source"""
+                ).fetchall()
+        else:
+            with self._lock:
+                rows = self._conn.execute(
+                    """SELECT source_agent, COUNT(*) as items_created,
+                       AVG(score) as avg_score
+                       FROM pipeline_items WHERE pipeline_type = ? GROUP BY source_agent""",
+                    (pipeline_type,),
+                ).fetchall()
+
+        return [
+            {
+                "source_agent": r["source_agent"],
+                "items_created": r["items_created"],
+                "avg_score": round(r["avg_score"], 2) if r["avg_score"] else 0,
+            }
+            for r in rows if r["source_agent"]
+        ]
+
+    def get_lead_quality_cohorts(self) -> dict:
+        """High/medium/low score buckets with conversion rates."""
+        cohorts = {
+            "high": {"score_range": "70-100", "min": 70, "max": 100},
+            "medium": {"score_range": "40-69", "min": 40, "max": 69},
+            "low": {"score_range": "0-39", "min": 0, "max": 39},
+        }
+        result = {}
+        for name, cfg in cohorts.items():
+            with self._lock:
+                total = self._conn.execute(
+                    "SELECT COUNT(*) as cnt FROM leads WHERE score >= ? AND score <= ?",
+                    (cfg["min"], cfg["max"]),
+                ).fetchone()["cnt"]
+                closed = self._conn.execute(
+                    "SELECT COUNT(*) as cnt FROM leads WHERE score >= ? AND score <= ? AND stage = 'closed'",
+                    (cfg["min"], cfg["max"]),
+                ).fetchone()["cnt"]
+                stage_rows = self._conn.execute(
+                    "SELECT stage, COUNT(*) as cnt FROM leads WHERE score >= ? AND score <= ? GROUP BY stage",
+                    (cfg["min"], cfg["max"]),
+                ).fetchall()
+
+            result[name] = {
+                "score_range": cfg["score_range"],
+                "count": total,
+                "closed": closed,
+                "conversion_rate": round(closed / total, 4) if total > 0 else 0.0,
+                "stages": {r["stage"]: r["cnt"] for r in stage_rows},
+            }
+        return result
+
+    def get_outreach_roi(self) -> dict:
+        """Compare close rates for leads with vs without outreach."""
+        with self._lock:
+            with_rows = self._conn.execute(
+                """SELECT COUNT(*) as cnt,
+                   SUM(CASE WHEN l.stage = 'closed' THEN 1 ELSE 0 END) as closed,
+                   AVG(l.score) as avg_score
+                   FROM leads l
+                   WHERE l.id IN (SELECT DISTINCT lead_id FROM outreach_log)"""
+            ).fetchone()
+            without_rows = self._conn.execute(
+                """SELECT COUNT(*) as cnt,
+                   SUM(CASE WHEN l.stage = 'closed' THEN 1 ELSE 0 END) as closed,
+                   AVG(l.score) as avg_score
+                   FROM leads l
+                   WHERE l.id NOT IN (SELECT DISTINCT lead_id FROM outreach_log)"""
+            ).fetchone()
+
+        w_cnt = with_rows["cnt"] or 0
+        w_closed = with_rows["closed"] or 0
+        w_score = with_rows["avg_score"] or 0
+        wo_cnt = without_rows["cnt"] or 0
+        wo_closed = without_rows["closed"] or 0
+        wo_score = without_rows["avg_score"] or 0
+
+        w_rate = w_closed / w_cnt if w_cnt > 0 else 0.0
+        wo_rate = wo_closed / wo_cnt if wo_cnt > 0 else 0.0
+
+        return {
+            "with_outreach": {
+                "count": w_cnt, "closed": w_closed,
+                "close_rate": round(w_rate, 4),
+                "avg_score": round(w_score, 2),
+            },
+            "without_outreach": {
+                "count": wo_cnt, "closed": wo_closed,
+                "close_rate": round(wo_rate, 4),
+                "avg_score": round(wo_score, 2),
+            },
+            "close_rate_delta": round(w_rate - wo_rate, 4),
+        }
+
+    def get_creation_trend(self, pipeline_type: str = "leadgen",
+                           period: str = "day", days: int = 30) -> list[dict]:
+        """Items/leads created per day or week."""
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+        if period == "week":
+            date_expr = "strftime('%Y-W%W', created_at)"
+        else:
+            date_expr = "date(created_at)"
+
+        if pipeline_type == "leadgen":
+            query = f"SELECT {date_expr} as date, COUNT(*) as count FROM leads WHERE created_at >= ? GROUP BY 1 ORDER BY 1"
+            params = (cutoff,)
+        else:
+            query = f"SELECT {date_expr} as date, COUNT(*) as count FROM pipeline_items WHERE pipeline_type = ? AND created_at >= ? GROUP BY 1 ORDER BY 1"
+            params = (pipeline_type, cutoff)
+
+        with self._lock:
+            rows = self._conn.execute(query, params).fetchall()
+        return [{"date": r["date"], "count": r["count"]} for r in rows]
+
+    def get_transition_trend(self, pipeline_type: str = "leadgen",
+                             days: int = 30) -> list[dict]:
+        """Stage transitions per day."""
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+
+        if pipeline_type == "leadgen":
+            query = "SELECT date(changed_at) as date, COUNT(*) as transitions FROM pipeline_stages WHERE changed_at >= ? GROUP BY 1 ORDER BY 1"
+            params = (cutoff,)
+        else:
+            query = "SELECT date(changed_at) as date, COUNT(*) as transitions FROM pipeline_transitions WHERE pipeline_type = ? AND changed_at >= ? GROUP BY 1 ORDER BY 1"
+            params = (pipeline_type, cutoff)
+
+        with self._lock:
+            rows = self._conn.execute(query, params).fetchall()
+        return [{"date": r["date"], "transitions": r["transitions"]} for r in rows]
+
+    def get_campaign_stats(self) -> list[dict]:
+        """Campaign effectiveness: completion rate, days active."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM campaigns ORDER BY created_at DESC"
+            ).fetchall()
+
+        now = datetime.now()
+        result = []
+        for r in rows:
+            created = datetime.fromisoformat(r["created_at"])
+            days_active = max(0, (now - created).days)
+            target = r["target_count"] or 1
+            result.append({
+                "id": r["id"],
+                "name": r["name"],
+                "industry": r["industry"],
+                "status": r["status"],
+                "target_count": r["target_count"],
+                "leads_generated": r["leads_generated"],
+                "completion_rate": round(r["leads_generated"] / target, 4),
+                "days_active": days_active,
+                "created_at": r["created_at"],
+            })
+        return result
+
+    def get_comprehensive_metrics(self) -> dict:
+        """All metrics in a single response."""
+        return {
+            "generated_at": datetime.now().isoformat(),
+            "time_to_stage": self.get_time_to_stage_stats("leadgen"),
+            "agent_velocity": self.get_agent_velocity(30),
+            "score_distribution": self.get_score_distribution(),
+            "outreach": self.get_outreach_stats(),
+            "lead_quality": self.get_lead_quality_cohorts(),
+            "industry": self.get_industry_performance(),
+            "funnel": self.get_funnel_conversion("leadgen"),
+            "source_agents": self.get_source_agent_performance(),
+            "creation_trend": self.get_creation_trend("leadgen", "day", 30),
+            "outreach_roi": self.get_outreach_roi(),
+            "campaigns": self.get_campaign_stats(),
+        }
 
     def close(self):
         self._conn.close()

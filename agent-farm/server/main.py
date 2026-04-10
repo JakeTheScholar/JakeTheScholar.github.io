@@ -46,6 +46,7 @@ from agents.image_gen_agent import ImageGenAgent
 from agents.faceless_content_agent import FacelessContentAgent
 from agents.freelance_scraper_agent import FreelanceScraperAgent
 from agents.gumroad_agent import GumroadAgent
+from agents.video_producer_agent import VideoProducerAgent
 from pipeline_db import PipelineDB, PIPELINE_CONFIGS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -93,11 +94,12 @@ orchestrator.register_agent(MusicAgent())
 orchestrator.register_agent(AdCopyAgent())
 orchestrator.register_agent(ReviewAgent())
 
-# Register Revenue agents (4)
+# Register Revenue agents (5)
 orchestrator.register_agent(ImageGenAgent())
 orchestrator.register_agent(FacelessContentAgent())
 orchestrator.register_agent(FreelanceScraperAgent())
 orchestrator.register_agent(GumroadAgent())
+orchestrator.register_agent(VideoProducerAgent())
 
 VALID_AGENT_IDS = set(orchestrator.agents.keys())
 
@@ -377,6 +379,105 @@ async def pipeline_item_stages(pipeline_type: str):
         raise HTTPException(status_code=400, detail="Invalid pipeline type")
     stages = await asyncio.to_thread(pipeline_db.get_item_stage_counts, pipeline_type)
     return stages
+
+
+# ─── Performance Metrics Endpoints ───
+
+@app.get("/api/pipeline/metrics", dependencies=[Depends(verify_api_key)])
+async def pipeline_metrics():
+    return await asyncio.to_thread(pipeline_db.get_comprehensive_metrics)
+
+
+@app.get("/api/pipeline/metrics/time-to-stage", dependencies=[Depends(verify_api_key)])
+async def metrics_time_to_stage(pipeline_type: str = "leadgen"):
+    return await asyncio.to_thread(pipeline_db.get_time_to_stage_stats, pipeline_type)
+
+
+@app.get("/api/pipeline/metrics/agent-velocity", dependencies=[Depends(verify_api_key)])
+async def metrics_agent_velocity(days: int = Query(default=7, ge=1, le=90)):
+    return await asyncio.to_thread(pipeline_db.get_agent_velocity, days)
+
+
+@app.get("/api/pipeline/metrics/agent-contributions/{agent_id}", dependencies=[Depends(verify_api_key)])
+async def metrics_agent_contributions(agent_id: str):
+    if agent_id not in VALID_AGENT_IDS:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return await asyncio.to_thread(pipeline_db.get_agent_stage_contributions, agent_id)
+
+
+@app.get("/api/pipeline/metrics/score-distribution", dependencies=[Depends(verify_api_key)])
+async def metrics_score_distribution(pipeline_type: Optional[str] = None):
+    return await asyncio.to_thread(pipeline_db.get_score_distribution, pipeline_type)
+
+
+@app.get("/api/pipeline/metrics/score-by-stage", dependencies=[Depends(verify_api_key)])
+async def metrics_score_by_stage(pipeline_type: str = "leadgen"):
+    return await asyncio.to_thread(pipeline_db.get_score_by_stage, pipeline_type)
+
+
+@app.get("/api/pipeline/metrics/score-by-industry", dependencies=[Depends(verify_api_key)])
+async def metrics_score_by_industry():
+    return await asyncio.to_thread(pipeline_db.get_score_by_industry)
+
+
+@app.get("/api/pipeline/metrics/outreach", dependencies=[Depends(verify_api_key)])
+async def metrics_outreach():
+    return await asyncio.to_thread(pipeline_db.get_outreach_stats)
+
+
+@app.get("/api/pipeline/metrics/lead-quality", dependencies=[Depends(verify_api_key)])
+async def metrics_lead_quality():
+    return await asyncio.to_thread(pipeline_db.get_lead_quality_cohorts)
+
+
+@app.get("/api/pipeline/metrics/industry", dependencies=[Depends(verify_api_key)])
+async def metrics_industry():
+    return await asyncio.to_thread(pipeline_db.get_industry_performance)
+
+
+@app.get("/api/pipeline/metrics/funnel", dependencies=[Depends(verify_api_key)])
+async def metrics_funnel(pipeline_type: str = "leadgen"):
+    return await asyncio.to_thread(pipeline_db.get_funnel_conversion, pipeline_type)
+
+
+@app.get("/api/pipeline/metrics/source-agents", dependencies=[Depends(verify_api_key)])
+async def metrics_source_agents(pipeline_type: Optional[str] = None):
+    return await asyncio.to_thread(pipeline_db.get_source_agent_performance, pipeline_type)
+
+
+@app.get("/api/pipeline/metrics/creation-trend", dependencies=[Depends(verify_api_key)])
+async def metrics_creation_trend(
+    pipeline_type: str = "leadgen",
+    period: str = Query(default="day", pattern="^(day|week)$"),
+    days: int = Query(default=30, ge=1, le=365),
+):
+    return await asyncio.to_thread(pipeline_db.get_creation_trend, pipeline_type, period, days)
+
+
+@app.get("/api/pipeline/metrics/transition-trend", dependencies=[Depends(verify_api_key)])
+async def metrics_transition_trend(
+    pipeline_type: str = "leadgen",
+    days: int = Query(default=30, ge=1, le=365),
+):
+    return await asyncio.to_thread(pipeline_db.get_transition_trend, pipeline_type, days)
+
+
+@app.get("/api/pipeline/metrics/outreach-roi", dependencies=[Depends(verify_api_key)])
+async def metrics_outreach_roi():
+    return await asyncio.to_thread(pipeline_db.get_outreach_roi)
+
+
+@app.get("/api/pipeline/metrics/campaigns", dependencies=[Depends(verify_api_key)])
+async def metrics_campaigns():
+    return await asyncio.to_thread(pipeline_db.get_campaign_stats)
+
+
+@app.get("/api/pipeline/leads/{lead_id}/lifecycle", dependencies=[Depends(verify_api_key)])
+async def lead_lifecycle(lead_id: str):
+    result = await asyncio.to_thread(pipeline_db.get_lead_lifecycle, lead_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Lead not found or has no transitions")
+    return result
 
 
 # ─── Global Exception Handler ───
