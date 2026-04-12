@@ -827,6 +827,11 @@
             color: var(--violet);
             border: 1px solid rgba(139, 92, 246, 0.2);
         }
+        .coming-soon-badge.research {
+            background: rgba(201, 169, 110, 0.1);
+            color: var(--gold);
+            border: 1px solid rgba(201, 169, 110, 0.2);
+        }
         .coming-soon-badge .dot-sm {
             width: 5px;
             height: 5px;
@@ -855,6 +860,42 @@
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
+        }
+
+        .coming-soon-cta {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            border: 1px dashed rgba(201, 169, 110, 0.2);
+            background: rgba(201, 169, 110, 0.02);
+        }
+        .coming-soon-cta:hover {
+            border-color: rgba(201, 169, 110, 0.35);
+            background: rgba(201, 169, 110, 0.05);
+        }
+        .coming-soon-cta .project-link {
+            margin-top: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--gold);
+        }
+        .coming-soon-cta .project-link svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: transform 0.3s var(--ease-out);
+        }
+        .coming-soon-cta:hover .project-link svg {
+            transform: translateX(4px);
         }
 
         /* ── Footer ── */
@@ -1170,7 +1211,7 @@
                 </div>
 
                 <!-- Trading Bot -->
-                <div class="classified-card reveal reveal-delay-4">
+                <div class="classified-card reveal reveal-delay-4" style="margin-bottom: 32px;">
                     <div class="scanline"></div>
                     <div class="classified-icon">
                         <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
@@ -1188,6 +1229,25 @@
                         <span class="stat-label">Outperformed<br>the NASDAQ</span>
                     </div>
                     <div style="margin-bottom: 0;"></div>
+                    <a href="index.html#contact" class="btn-classified">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Contact Me
+                    </a>
+                </div>
+
+                <!-- AI Agent Farm -->
+                <div class="classified-card reveal reveal-delay-3">
+                    <div class="scanline"></div>
+                    <div class="classified-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 22h-4a7 7 0 0 1-6.93-6H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9.5" cy="15.5" r="1"/><circle cx="14.5" cy="15.5" r="1"/></svg>
+                    </div>
+                    <div class="classified-badge">
+                        <span class="dot"></span>
+                        Autonomous AI System
+                    </div>
+                    <h3>AI Agent Farm</h3>
+                    <p class="classified-subtitle">22+ Agents &bull; Multi-Pipeline &bull; Ollama-Powered</p>
+                    <p class="classified-desc">Multi-agent AI system with autonomous task execution, inter-agent communication, and scalable deployment. Content generation, research automation, SEO optimization, and e-commerce operations across coordinated pipelines.</p>
                     <a href="index.html#contact" class="btn-classified">
                         <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         Contact Me
@@ -1226,23 +1286,54 @@
                         </div>
                     </div>
 
-                    <!-- AI Agents -->
+                    <!-- Gold Trading Bot -->
                     <div class="coming-soon-card reveal reveal-delay-4">
                         <div class="coming-soon-badge wip">
                             <span class="dot-sm"></span>
                             In Development
                         </div>
-                        <div class="project-icon violet" style="margin-bottom: 20px;">
-                            <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.07A7 7 0 0 1 14 22h-4a7 7 0 0 1-6.93-6H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/><circle cx="9.5" cy="15.5" r="1"/><circle cx="14.5" cy="15.5" r="1"/></svg>
+                        <div class="project-icon gold" style="margin-bottom: 20px;">
+                            <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
                         </div>
-                        <h3>AI Agent Farm</h3>
-                        <p class="cs-desc">Multi-agent AI system with autonomous task execution, inter-agent communication, and scalable deployment. Designed for content generation, research automation, and e-commerce operations.</p>
+                        <h3>Gold Trading Bot</h3>
+                        <p class="cs-desc">Algorithmic trading system for gold futures (MGC). Automated strategy execution targeting overnight sessions with precision entry, risk management, and real-time performance analytics.</p>
                         <div class="cs-tags">
-                            <span class="tag tag-violet">AI Agents</span>
-                            <span class="tag tag-rose">Automation</span>
-                            <span class="tag tag-muted">Multi-Agent</span>
+                            <span class="tag tag-gold">Gold</span>
+                            <span class="tag tag-emerald">Futures</span>
+                            <span class="tag tag-muted">Algo Trading</span>
                         </div>
                     </div>
+
+                    <!-- Local LLM -->
+                    <div class="coming-soon-card reveal reveal-delay-3">
+                        <div class="coming-soon-badge research">
+                            <span class="dot-sm"></span>
+                            Research
+                        </div>
+                        <div class="project-icon violet" style="margin-bottom: 20px;">
+                            <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                        </div>
+                        <h3>Custom LLM</h3>
+                        <p class="cs-desc">Building my own large language model from scratch. Local inference, custom training pipeline, and fine-tuning for specialized domains. Full ownership of the model weights and architecture.</p>
+                        <div class="cs-tags">
+                            <span class="tag tag-violet">AI / ML</span>
+                            <span class="tag tag-rose">Deep Learning</span>
+                            <span class="tag tag-muted">Research</span>
+                        </div>
+                    </div>
+
+                    <!-- Contact CTA -->
+                    <a href="index.html#contact" class="coming-soon-card coming-soon-cta reveal reveal-delay-4">
+                        <div class="project-icon gold" style="margin-bottom: 20px;">
+                            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </div>
+                        <h3>Need Something Built?</h3>
+                        <p class="cs-desc">Have a project idea, need a custom tool, or want to collaborate? I build full-stack apps, trading systems, dashboards, and AI-powered tools. Let's talk.</p>
+                        <span class="project-link">
+                            Get In Touch
+                            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </span>
+                    </a>
 
                 </div>
             </div>
