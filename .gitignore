@@ -66,3 +66,55 @@ credentials*.json
 
 # Shared memory (contains personal info — never commit)
 shared-memory.json
+
+# MCP config (contains API tokens)
+.mcp.json
+
+# Large personal/export directories
+2nd Brain/
+AI Brain/
+Anthrop Data Export/
+OpenAI Chat Logs/
+
+# Downloaded zip archives
+*.zip
+
+# Misc generated/preview files
+dalle-generations/
+favicon-preview.html
+income-projections.html
+market-entropy.html
+nexus.html
+bruhG.txt
+*.png
+
+# Personal documents
+*.docx
+*.epub
+*.pdf
+~$*
+
+# Claude Code local config
+.claude/hooks/
+.claude/settings.local.json
+.claude/skills/
+.claude/worktrees/
+
+# Unpacked archives
+*_unpacked/
+
+# Build scripts (personal)
+build_resume*.js
+.scripts/
+
+# Gold trading notes
+Gold Trading Strategies.md
+
+# Apify MCP server (external)
+apify-mcp-server/
+
+# Agent Farm credentials
+agent-farm/server/google_credentials.json
+
+# Property Scout lock files
+property-scout/client/package-lock.json

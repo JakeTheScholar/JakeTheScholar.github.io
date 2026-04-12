@@ -1,9 +1,13 @@
-"""Outreach Agent — generates personalized cold emails and DMs for leads.
+"""Outreach Agent — generates personalized cold emails and DMs for leads,
+then actually sends emails via Gmail.
 
 When a pitch-ready lead has a mockup from the Web Dev Agent, this agent
 switches to a dedicated "mockup pitch" flow that references the redesigned
 site in the email body. Mirrors the @cyphyr.ai playbook (492K+ views): show,
 don't tell — send a finished redesign instead of a generic offer.
+
+After drafting, emails are sent through Jake's Gmail (jakemcgaha@gmail.com)
+with a daily send limit for safety.
 """
 
 import sys
@@ -13,6 +17,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
+from gmail_sender import create_draft as gmail_draft, is_gmail_ready
+
+# Safety: max drafts created per day
+DAILY_DRAFT_LIMIT = 20
 
 
 OUTREACH_PROMPT = """You are writing a cold outreach email and DM for a B2B sales campaign.
@@ -72,6 +80,11 @@ class OutreachAgent(BaseAgent):
         if not self.pipeline_db:
             return self.emit("error", "No pipeline database connected")
 
+        # ── PRIORITY 0: send any drafted emails that haven't been sent yet ──
+        send_result = await self._send_pending_emails()
+        if send_result:
+            return send_result
+
         # ── PRIORITY 1: pitch_ready leads with a mockup but no mockup_pitch outreach yet ──
         target, mockup_item = await self._find_mockup_pitch_target()
         if target and mockup_item:
@@ -94,6 +107,65 @@ class OutreachAgent(BaseAgent):
             return self.emit("waiting", "No leads pending outreach")
 
         return await self._draft_standard_outreach(target)
+
+    async def _send_pending_emails(self) -> AgentEvent | None:
+        """Create Gmail drafts for outreach emails. Jake reviews and sends manually."""
+        if not is_gmail_ready():
+            return None  # Gmail not configured, skip silently
+
+        # Check daily limit
+        sent_today = await asyncio.to_thread(self.pipeline_db.count_sent_today)
+        if sent_today >= DAILY_DRAFT_LIMIT:
+            return None  # Hit limit, move on to other work
+
+        # Get unsent email outreach (standard + mockup_email channels)
+        unsent = await asyncio.to_thread(
+            self.pipeline_db.get_unsent_outreach, "email", 1
+        )
+        if not unsent:
+            unsent = await asyncio.to_thread(
+                self.pipeline_db.get_unsent_outreach, "mockup_email", 1
+            )
+        if not unsent:
+            return None
+
+        row = unsent[0]
+        to_email = row.get("contact_email")
+        biz_name = row.get("business_name", "unknown")
+
+        if not to_email:
+            # No email on file — mark as no_email, don't retry
+            await asyncio.to_thread(
+                self.pipeline_db.update_outreach_status, row["id"], "no_email"
+            )
+            return None
+
+        self.current_task = {
+            "type": "drafting_gmail",
+            "description": f"Creating Gmail draft for {biz_name}",
+        }
+        self.emit("sending", f"Creating Gmail draft for {biz_name} ({to_email})")
+
+        result = await asyncio.to_thread(
+            gmail_draft, to_email, row.get("subject", ""), row.get("body", "")
+        )
+
+        if result["ok"]:
+            await asyncio.to_thread(
+                self.pipeline_db.update_outreach_status, row["id"], "sent"
+            )
+            self.tasks_completed += 1
+            self.current_task = None
+            return self.emit(
+                "completed",
+                f"Gmail DRAFT created for {biz_name} ({to_email}) | {sent_today + 1}/{DAILY_DRAFT_LIMIT} today"
+            )
+        else:
+            await asyncio.to_thread(
+                self.pipeline_db.update_outreach_status, row["id"], "failed"
+            )
+            self.current_task = None
+            return self.emit("error", f"Gmail draft failed for {biz_name}: {result['error']}")
 
     async def _find_mockup_pitch_target(self) -> tuple[dict | None, dict | None]:
         """Find a pitch_ready lead with a mockup that hasn't been pitched yet."""

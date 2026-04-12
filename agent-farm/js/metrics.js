@@ -61,8 +61,8 @@ const Metrics = {
   /* ── KPI Row ── */
   _renderKPIs(d) {
     const funnel = d.funnel || [];
-    const firstCount = funnel.length > 0 ? funnel[0].count : 0;
-    const lastCount = funnel.length > 0 ? funnel[funnel.length - 1].count : 0;
+    const firstCount = funnel.length > 0 ? funnel[0].from_count : 0;
+    const lastCount = funnel.length > 0 ? funnel[funnel.length - 1].to_count : 0;
     const convRate = firstCount > 0 ? ((lastCount / firstCount) * 100).toFixed(1) : '0.0';
 
     const avgScore = d.score_distribution ? (d.score_distribution.avg || 0).toFixed(1) : '0.0';
@@ -91,21 +91,28 @@ const Metrics = {
   _renderFunnel(funnel) {
     if (!funnel || funnel.length === 0) return '<div class="metrics-card flex-1">No funnel data</div>';
 
-    const maxCount = Math.max(...funnel.map(f => f.count), 1);
+    // Build stage list from transition pairs
+    const stages = [];
+    funnel.forEach((f, i) => {
+      if (i === 0) stages.push({ stage: f.from_stage, count: f.from_count });
+      stages.push({ stage: f.to_stage, count: f.to_count, conversion_rate: f.conversion_rate });
+    });
+
+    const maxCount = Math.max(...stages.map(s => s.count), 1);
     const ramp = ['#06b6d4', '#3b82f6', '#8b5cf6', '#f59e0b', '#34d399', '#39ff14'];
 
-    const rows = funnel.map((f, i) => {
-      const pct = (f.count / maxCount) * 100;
+    const rows = stages.map((s, i) => {
+      const pct = (s.count / maxCount) * 100;
       const color = ramp[i % ramp.length];
-      const convLabel = f.conversion_rate != null
-        ? `<span style="color:${color};font-size:10px;margin-left:6px;">${(f.conversion_rate * 100).toFixed(0)}%</span>`
+      const convLabel = s.conversion_rate != null
+        ? `<span style="color:${color};font-size:10px;margin-left:6px;">${(s.conversion_rate * 100).toFixed(0)}%</span>`
         : '';
       return `<div class="funnel-row">
-        <div class="funnel-label">${UI.esc(f.stage)}</div>
+        <div class="funnel-label">${UI.esc(s.stage)}</div>
         <div class="funnel-bar-bg">
           <div class="funnel-bar" style="width:${pct}%;background:${color};opacity:0.7;"></div>
         </div>
-        <div class="funnel-count">${f.count}${convLabel}</div>
+        <div class="funnel-count">${s.count}${convLabel}</div>
       </div>`;
     }).join('');
 
@@ -129,7 +136,12 @@ const Metrics = {
         <div><span class="metrics-stat-val">${sd.max || 0}</span><span class="metrics-stat-lbl">Max</span></div>
       </div>`;
 
-    const buckets = sd.buckets || [];
+    // Buckets is a dict like {"0-20": 0, "21-40": 0, ...}
+    const rawBuckets = sd.buckets || {};
+    const buckets = Object.entries(rawBuckets).map(([range, count]) => {
+      const [min, max] = range.split('-').map(Number);
+      return { min_score: min, max_score: max, count };
+    }).sort((a, b) => a.min_score - b.min_score);
     const maxBucket = Math.max(...buckets.map(b => b.count), 1);
     const bars = buckets.map(b => {
       const h = Math.max((b.count / maxBucket) * 80, 2);
@@ -312,19 +324,17 @@ const Metrics = {
     if (!agents || agents.length === 0) return '<div class="metrics-card flex-1">No source agent data</div>';
 
     const rows = agents.map(a => {
-      const advColor = (a.advancement_rate || 0) >= 0.5 ? '#34d399' : '#fbbf24';
       return `<tr>
         <td style="font-size:11px;">${UI.esc(a.source_agent)}</td>
-        <td>${a.count || 0}</td>
+        <td>${a.items_created || 0}</td>
         <td style="font-family:'Share Tech Mono',monospace;">${(a.avg_score || 0).toFixed(1)}</td>
-        <td style="color:${advColor};font-family:'Share Tech Mono',monospace;">${((a.advancement_rate || 0) * 100).toFixed(0)}%</td>
       </tr>`;
     }).join('');
 
     return `<div class="metrics-card flex-1">
       <div class="metrics-card-title" style="color:var(--violet);">Source Agent Performance</div>
       <table class="leads-table">
-        <thead><tr><th>Agent</th><th>Items</th><th>Avg Score</th><th>Advancement</th></tr></thead>
+        <thead><tr><th>Agent</th><th>Items</th><th>Avg Score</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;

@@ -253,6 +253,11 @@ class PipelineDB:
             self._conn.commit()
         return {"id": lead_id, "stage": "scraped", "created_at": now}
 
+    def get_all_lead_names(self) -> set[str]:
+        with self._lock:
+            rows = self._conn.execute("SELECT business_name FROM leads").fetchall()
+        return {r["business_name"].lower().strip() for r in rows}
+
     def get_leads(self, stage: str = None, industry: str = None,
                   limit: int = 20, offset: int = 0) -> list[dict]:
         query = "SELECT * FROM leads"
@@ -333,6 +338,35 @@ class PipelineDB:
                 "SELECT COUNT(*) as cnt FROM outreach_log WHERE lead_id = ?", (lead_id,)
             ).fetchone()
         return row["cnt"] > 0
+
+    def update_outreach_status(self, outreach_id: int, status: str) -> None:
+        now = datetime.now().isoformat()
+        with self._lock:
+            self._conn.execute(
+                "UPDATE outreach_log SET status = ?, sent_at = ? WHERE id = ?",
+                (status, now, outreach_id),
+            )
+            self._conn.commit()
+
+    def get_unsent_outreach(self, channel: str = "email", limit: int = 5) -> list[dict]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT o.*, l.business_name, l.contact_email FROM outreach_log o "
+                "JOIN leads l ON o.lead_id = l.id "
+                "WHERE o.status = 'drafted' AND o.channel = ? "
+                "ORDER BY o.created_at ASC LIMIT ?",
+                (channel, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
+    def count_sent_today(self) -> int:
+        today = datetime.now().strftime("%Y-%m-%d")
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT COUNT(*) as cnt FROM outreach_log WHERE status = 'sent' AND sent_at LIKE ?",
+                (f"{today}%",),
+            ).fetchone()
+        return row["cnt"]
 
     def has_item_for_lead(self, pipeline_type: str, lead_id: str) -> bool:
         with self._lock:

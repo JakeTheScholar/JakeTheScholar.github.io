@@ -10,12 +10,29 @@ from tools.file_tools import save_template
 
 
 LISTING_TYPES = [
-    "trading-journal", "budget-planner", "expense-tracker", "portfolio-tracker",
-    "net-worth-worksheet", "goal-planner", "debt-payoff-tracker", "income-log",
-    "habit-tracker", "monthly-review",
+    # Finance printables
+    {"id": "trading-journal", "niche": "printable"},
+    {"id": "budget-planner", "niche": "printable"},
+    {"id": "expense-tracker", "niche": "printable"},
+    {"id": "portfolio-tracker", "niche": "printable"},
+    {"id": "net-worth-worksheet", "niche": "printable"},
+    {"id": "goal-planner", "niche": "printable"},
+    {"id": "debt-payoff-tracker", "niche": "printable"},
+    {"id": "income-log", "niche": "printable"},
+    {"id": "habit-tracker", "niche": "printable"},
+    {"id": "monthly-review", "niche": "printable"},
+    # Clothing / POD
+    {"id": "finance-hustle-tshirt", "niche": "clothing"},
+    {"id": "trader-lifestyle-tee", "niche": "clothing"},
+    {"id": "crypto-culture-tee", "niche": "clothing"},
+    {"id": "motivational-grind-hoodie", "niche": "clothing"},
+    {"id": "gym-finance-tee", "niche": "clothing"},
+    {"id": "finance-tote-bag", "niche": "clothing"},
+    {"id": "trader-morning-mug", "niche": "clothing"},
+    {"id": "streetwear-finance-hoodie", "niche": "clothing"},
 ]
 
-LISTING_PROMPT = """Create an optimized Etsy listing for a printable "{product}" template.
+PRINTABLE_PROMPT = """Create an optimized Etsy listing for a printable "{product}" template.
 
 Return a JSON object with these fields:
 - "title": Etsy title (max 140 chars, keyword-rich, include "Printable", "PDF", "Digital Download")
@@ -26,6 +43,22 @@ Return a JSON object with these fields:
 
 Target audience: people interested in personal finance, budgeting, trading, and wealth building.
 Tone: professional but approachable.
+
+Return ONLY valid JSON, no explanation."""
+
+CLOTHING_PROMPT = """Create an optimized Etsy listing for a print-on-demand "{product}" design.
+
+Return a JSON object with these fields:
+- "title": Etsy title (max 140 chars, keyword-rich, include garment type and style descriptors)
+- "description": Full Etsy description (500-800 words). Include: design details, available sizes (S-3XL), material info (cotton blend), print quality (DTG/sublimation), care instructions, shipping note (made to order, 3-5 business days). Use line breaks for readability.
+- "tags": Array of 13 Etsy tags (max 20 chars each, long-tail keywords for clothing)
+- "categories": Suggested Etsy category path
+- "price_suggestion": Suggested price in USD (based on POD market — typically $22-35 for tees, $35-55 for hoodies)
+- "sizes": Array of available sizes
+- "colors": Array of 3-5 recommended base garment colors for this design
+
+Target audience: finance bros, traders, crypto enthusiasts, entrepreneurs, hustle culture.
+Tone: streetwear meets Wall Street — confident, bold, aspirational.
 
 Return ONLY valid JSON, no explanation."""
 
@@ -43,7 +76,9 @@ class EtsyListerAgent(BaseAgent):
         self.queue_index = 0
 
     async def tick(self) -> AgentEvent:
-        product = LISTING_TYPES[self.queue_index % len(LISTING_TYPES)]
+        listing = LISTING_TYPES[self.queue_index % len(LISTING_TYPES)]
+        product = listing["id"]
+        niche = listing["niche"]
         display_name = product.replace("-", " ").title()
 
         self.current_task = {
@@ -54,12 +89,20 @@ class EtsyListerAgent(BaseAgent):
         self.emit("generating", f"Writing Etsy listing for {display_name}")
 
         try:
-            prompt = LISTING_PROMPT.format(product=display_name)
-            system = (
-                "You are an Etsy SEO expert specializing in digital printable products. "
-                "You write high-converting listing copy with strong keywords. "
-                "Output only valid JSON."
-            )
+            if niche == "clothing":
+                prompt = CLOTHING_PROMPT.format(product=display_name)
+                system = (
+                    "You are an Etsy SEO expert specializing in print-on-demand clothing and accessories. "
+                    "You write high-converting listing copy for streetwear and lifestyle apparel. "
+                    "Output only valid JSON."
+                )
+            else:
+                prompt = PRINTABLE_PROMPT.format(product=display_name)
+                system = (
+                    "You are an Etsy SEO expert specializing in digital printable products. "
+                    "You write high-converting listing copy with strong keywords. "
+                    "Output only valid JSON."
+                )
 
             result = await self.llm.generate(prompt, system=system, complexity="low")
 

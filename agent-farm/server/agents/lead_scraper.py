@@ -1,38 +1,115 @@
-"""Lead Scraper Agent — generates synthetic leads by industry via LLM."""
+"""Lead Scraper Agent — discovers real business leads via Google Places API."""
 
+import re
 import sys
 import json
 import asyncio
+import os
 import random
+import logging
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import httpx
 from agent_base import BaseAgent, AgentEvent
 
+# Regex for extracting email addresses from web pages
+EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
+# Common junk emails to ignore
+JUNK_EMAILS = {"noreply", "no-reply", "support", "info@example", "email@example", "user@example", "sentry"}
+
+logger = logging.getLogger(__name__)
 
 INDUSTRIES = [
-    {"id": "hvac_plumbing", "name": "HVAC & Plumbing", "keywords": "furnace repair, pipe installation, HVAC maintenance, water heater"},
-    {"id": "dental_ortho", "name": "Dental & Ortho", "keywords": "teeth whitening, braces, dental implants, cosmetic dentistry"},
-    {"id": "real_estate", "name": "Real Estate", "keywords": "property management, home staging, realtor marketing, listings"},
-    {"id": "auto_repair", "name": "Auto Repair", "keywords": "brake service, oil change, collision repair, tire shop"},
-    {"id": "landscaping", "name": "Landscaping", "keywords": "lawn care, tree trimming, hardscaping, irrigation"},
-    {"id": "legal_services", "name": "Legal Services", "keywords": "personal injury, estate planning, family law, bankruptcy"},
-    {"id": "home_services", "name": "Home Services", "keywords": "roofing, painting, electrical, plumbing, cleaning"},
-    {"id": "medical_spa", "name": "Medical Spa", "keywords": "botox, laser treatment, facials, body contouring"},
+    {"id": "hvac_plumbing", "name": "HVAC & Plumbing", "query": "HVAC plumbing contractor"},
+    {"id": "dental_ortho", "name": "Dental & Ortho", "query": "dentist orthodontist"},
+    {"id": "real_estate", "name": "Real Estate", "query": "real estate agency realtor"},
+    {"id": "auto_repair", "name": "Auto Repair", "query": "auto repair mechanic"},
+    {"id": "landscaping", "name": "Landscaping", "query": "landscaping lawn care"},
+    {"id": "legal_services", "name": "Legal Services", "query": "law firm attorney"},
+    {"id": "home_services", "name": "Home Services", "query": "roofing painting electrician"},
+    {"id": "medical_spa", "name": "Medical Spa", "query": "medical spa medspa"},
 ]
 
-SCRAPE_PROMPT = """Generate exactly 3 realistic business leads in the "{industry}" industry ({keywords}).
+LOCATIONS = [
+    # Primary — Big Rapids MI area, expanding outward
+    "Big Rapids, MI",
+    "Reed City, MI",
+    "Mecosta, MI",
+    "Canadian Lakes, MI",
+    "Evart, MI",
+    "Mount Pleasant, MI",
+    "Cadillac, MI",
+    "Ludington, MI",
+    "Manistee, MI",
+    # Secondary — Ann Arbor MI area, expanding outward
+    "Ann Arbor, MI",
+    "Ypsilanti, MI",
+    "Saline, MI",
+    "Dexter, MI",
+    "Chelsea, MI",
+    "Canton, MI",
+    "Plymouth, MI",
+    "Livonia, MI",
+    "Brighton, MI",
+    "Howell, MI",
+]
 
-For each lead, provide:
-- business_name: realistic local business name
-- contact_name: owner/manager first and last name
-- contact_email: professional email (first@businessdomain.com format)
-- contact_phone: US phone format (555-XXX-XXXX)
-- website: realistic domain (www.businessname.com)
-- location: real US city and state
-- needs: JSON array of 2-3 specific pain points they might have (e.g. "no online booking system", "outdated website", "zero Google reviews", "no social media presence")
+GOOGLE_PLACES_TEXT_SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
+GOOGLE_PLACES_DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 
-Return a JSON array of 3 objects. Return ONLY valid JSON, no explanation."""
+# LLM prompt for pain-point analysis (kept short for llama3.2)
+NEEDS_PROMPT = """Analyze this business and list 2-3 pain points as a JSON array of strings.
+
+Business: {name}
+Location: {location}
+Rating: {rating} ({reviews} reviews)
+Has website: {has_website}
+Industry: {industry}
+
+Return ONLY a JSON array like ["pain point 1","pain point 2"]. No explanation."""
+
+# Fallback synthetic prompt (used when Google API is unavailable)
+FALLBACK_PROMPT = """Generate 3 {industry} businesses near {location}. JSON array, no explanation.
+
+Each object: {{"business_name":"...","contact_name":"...","contact_email":"first@domain.com","contact_phone":"555-XXX-XXXX","website":"www.name.com","location":"{location}","needs":["pain point 1","pain point 2"]}}
+
+Return ONLY the JSON array."""
+
+
+def _score_lead(place: dict) -> int:
+    """Score a lead 0-100 based on signals. Higher = more likely to need services."""
+    score = 50  # baseline
+
+    rating = place.get("rating", 0)
+    review_count = place.get("user_ratings_total", 0)
+    website = place.get("website")
+
+    # No website — strong signal they need digital help
+    if not website:
+        score += 20
+
+    # Low or missing rating
+    if rating == 0:
+        score += 10
+    elif rating < 3.5:
+        score += 15
+    elif rating < 4.0:
+        score += 8
+
+    # Few reviews — low visibility
+    if review_count == 0:
+        score += 10
+    elif review_count < 10:
+        score += 8
+    elif review_count < 25:
+        score += 4
+
+    # High rating with many reviews — established, less need
+    if rating >= 4.5 and review_count > 100:
+        score -= 15
+
+    return max(10, min(100, score))
 
 
 class LeadScraperAgent(BaseAgent):
@@ -40,72 +117,277 @@ class LeadScraperAgent(BaseAgent):
         super().__init__(
             agent_id="lead-scraper-001",
             name="Lead Scraper",
-            description="Discovers & qualifies leads",
+            description="Discovers & qualifies leads via Google Places",
             color="#06b6d4",
         )
         self.tick_interval = 45
         self.pipeline_db = None  # Injected by orchestrator
         self.index = 0
+        self.location_index = 0
+        self._api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "")
+
+    # ── Google Places API helpers ──────────────────────────────────
+
+    async def _text_search(self, query: str, location: str) -> list[dict]:
+        """Google Places Text Search — returns up to 5 results."""
+        if not self._api_key:
+            raise ValueError("GOOGLE_MAPS_API_KEY not set")
+
+        params = {
+            "query": f"{query} in {location}",
+            "key": self._api_key,
+        }
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(GOOGLE_PLACES_TEXT_SEARCH_URL, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        status = data.get("status")
+        if status not in ("OK", "ZERO_RESULTS"):
+            raise RuntimeError(f"Google Places API error: {status} — {data.get('error_message', '')}")
+
+        return data.get("results", [])[:5]
+
+    async def _place_details(self, place_id: str) -> dict:
+        """Fetch phone number and website from Place Details API."""
+        params = {
+            "place_id": place_id,
+            "fields": "formatted_phone_number,website,url",
+            "key": self._api_key,
+        }
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(GOOGLE_PLACES_DETAILS_URL, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+
+        if data.get("status") != "OK":
+            return {}
+        return data.get("result", {})
+
+    # ── Email extraction from business website ───────────────────
+
+    async def _scrape_email(self, website: str) -> str | None:
+        """Scrape business website homepage + contact page for an email address."""
+        if not website:
+            return None
+        try:
+            async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
+                # Try homepage first
+                resp = await client.get(website, headers={"User-Agent": "Mozilla/5.0"})
+                if resp.status_code != 200:
+                    return None
+                text = resp.text[:50000]
+
+                # Also try /contact page — most business emails live there
+                base = website.rstrip("/")
+                for slug in ("/contact", "/contact-us", "/about", "/about-us"):
+                    try:
+                        r2 = await client.get(base + slug, headers={"User-Agent": "Mozilla/5.0"})
+                        if r2.status_code == 200:
+                            text += r2.text[:30000]
+                    except Exception:
+                        pass
+
+            emails = EMAIL_RE.findall(text)
+            # Filter out junk / asset filenames / webmaster
+            good = []
+            for e in emails:
+                e_lower = e.lower()
+                if any(j in e_lower for j in JUNK_EMAILS):
+                    continue
+                if e_lower.endswith((".png", ".jpg", ".gif", ".css", ".js")):
+                    continue
+                if "webmaster" in e_lower or "admin@" in e_lower:
+                    continue
+                good.append(e)
+
+            return good[0] if good else None
+        except Exception:
+            return None
+
+    # ── LLM needs analysis ─────────────────────────────────────────
+
+    async def _analyze_needs(self, place: dict, industry_name: str) -> str:
+        """Use LLM to generate pain points from Google Places data. Returns JSON string."""
+        prompt = NEEDS_PROMPT.format(
+            name=place.get("name", "Unknown"),
+            location=place.get("formatted_address", "Unknown"),
+            rating=place.get("rating", "N/A"),
+            reviews=place.get("user_ratings_total", 0),
+            has_website="yes" if place.get("website") else "no",
+            industry=industry_name,
+        )
+        try:
+            result = await self.llm.generate(prompt, system="Output only a JSON array of strings.", complexity="low")
+            # Clean markdown wrapping
+            if "```json" in result:
+                result = result.split("```json")[1].split("```")[0].strip()
+            elif "```" in result:
+                result = result.split("```")[1].split("```")[0].strip()
+            # Validate it parses
+            needs = json.loads(result)
+            if isinstance(needs, list):
+                return json.dumps(needs[:3])
+        except Exception:
+            pass
+
+        # Deterministic fallback if LLM fails
+        fallback = []
+        if not place.get("website"):
+            fallback.append("No website found — missing online presence")
+        rating = place.get("rating", 0)
+        if rating and rating < 4.0:
+            fallback.append(f"Below-average Google rating ({rating})")
+        reviews = place.get("user_ratings_total", 0)
+        if reviews < 15:
+            fallback.append("Very few Google reviews — low visibility")
+        if not fallback:
+            fallback.append("Potential for improved digital marketing")
+        return json.dumps(fallback)
+
+    # ── Fallback: LLM synthetic leads ──────────────────────────────
+
+    async def _fallback_synthetic(self, industry: dict, location: str) -> int:
+        """Generate synthetic leads via LLM when Google API is unavailable."""
+        prompt = FALLBACK_PROMPT.format(industry=industry["name"], location=location)
+        system = (
+            "You are a B2B lead researcher. Generate realistic synthetic business leads "
+            "for sales prospecting. Output only valid JSON arrays."
+        )
+        result = await self.llm.generate(prompt, system=system, complexity="low")
+
+        if "```json" in result:
+            result = result.split("```json")[1].split("```")[0].strip()
+        elif "```" in result:
+            result = result.split("```")[1].split("```")[0].strip()
+
+        leads = json.loads(result)
+        if not isinstance(leads, list):
+            leads = [leads]
+
+        added = 0
+        for lead in leads[:3]:
+            lead["industry"] = industry["id"]
+            lead["score"] = random.randint(40, 85)
+            if isinstance(lead.get("needs"), list):
+                lead["needs"] = json.dumps(lead["needs"])
+            await asyncio.to_thread(self.pipeline_db.add_lead, lead, "synthetic")
+            added += 1
+        return added
+
+    # ── Main tick ──────────────────────────────────────────────────
 
     async def tick(self) -> AgentEvent:
         if not self.pipeline_db:
             return self.emit("error", "No pipeline database connected")
 
         industry = INDUSTRIES[self.index % len(INDUSTRIES)]
+        location = LOCATIONS[self.location_index % len(LOCATIONS)]
 
         self.current_task = {
             "type": "lead-scrape",
-            "description": f"Scraping leads in {industry['name']}",
+            "description": f"Scraping {industry['name']} leads near {location}",
         }
-
-        self.emit("scraping", f"Finding leads in {industry['name']}")
+        self.emit("scraping", f"Finding {industry['name']} leads near {location}")
 
         try:
-            prompt = SCRAPE_PROMPT.format(industry=industry["name"], keywords=industry["keywords"])
-            system = (
-                "You are a B2B lead researcher. Generate realistic synthetic business leads "
-                "for sales prospecting. Output only valid JSON arrays."
-            )
+            # ── Try Google Places API first ───────────────────────
+            places = await self._text_search(industry["query"], location)
 
-            result = await self.llm.generate(prompt, system=system, complexity="low")
-
-            # Clean markdown wrapping
-            if "```json" in result:
-                result = result.split("```json")[1].split("```")[0].strip()
-            elif "```" in result:
-                result = result.split("```")[1].split("```")[0].strip()
-
-            try:
-                leads = json.loads(result)
-            except json.JSONDecodeError:
+            if not places:
+                self._advance_indices()
                 self.current_task = None
-                return self.emit("skipped", f"Invalid JSON from LLM for {industry['name']}")
-
-            if not isinstance(leads, list):
-                leads = [leads]
+                return self.emit("skipped", f"No Google Places results for {industry['name']} in {location}")
 
             added = 0
-            for lead in leads[:3]:
-                lead["industry"] = industry["id"]
-                lead["score"] = random.randint(40, 85)
-                # Ensure needs is a JSON string
-                if isinstance(lead.get("needs"), list):
-                    lead["needs"] = json.dumps(lead["needs"])
-                await asyncio.to_thread(self.pipeline_db.add_lead, lead, "synthetic")
+            # Limit to 3 places per tick; fetch details for at most 2 (rate limit budget)
+            details_budget = 2
+            # Get existing business names to avoid duplicates
+            existing_leads = await asyncio.to_thread(self.pipeline_db.get_all_lead_names)
+
+            for place in places[:3]:
+                name = place.get("name", "Unknown Business")
+
+                # Skip duplicates
+                if name.lower().strip() in existing_leads:
+                    continue
+                address = place.get("formatted_address", location)
+                rating = place.get("rating")
+                reviews = place.get("user_ratings_total", 0)
+                place_id = place.get("place_id")
+
+                phone = None
+                website = None
+
+                # Fetch details if we have budget and place_id
+                if place_id and details_budget > 0:
+                    try:
+                        details = await self._place_details(place_id)
+                        phone = details.get("formatted_phone_number")
+                        website = details.get("website")
+                        details_budget -= 1
+                    except Exception as e:
+                        logger.warning("Place details fetch failed for %s: %s", name, e)
+
+                # Merge details back for scoring/needs analysis
+                place["website"] = website
+                place["formatted_phone_number"] = phone
+
+                # Try to extract email from their website
+                contact_email = await self._scrape_email(website)
+
+                # LLM pain-point analysis
+                needs_json = await self._analyze_needs(place, industry["name"])
+                score = _score_lead(place)
+
+                lead_data = {
+                    "business_name": name,
+                    "industry": industry["id"],
+                    "contact_name": None,
+                    "contact_email": contact_email,
+                    "contact_phone": phone,
+                    "website": website,
+                    "location": address,
+                    "needs": needs_json,
+                    "score": score,
+                }
+
+                await asyncio.to_thread(self.pipeline_db.add_lead, lead_data, "google_places")
                 added += 1
 
             self.tasks_completed += added
-            self.index += 1
+            self._advance_indices()
             self.current_task = None
-
             return self.emit(
                 "completed",
-                f"Scraped {added} leads in {industry['name']}"
+                f"Scraped {added} {industry['name']} leads near {location} (Google Places)",
             )
+
+        except (ValueError, RuntimeError, httpx.HTTPError) as api_err:
+            # Google API failed — fall back to synthetic generation
+            logger.warning("Google Places API failed, falling back to synthetic: %s", api_err)
+            try:
+                added = await self._fallback_synthetic(industry, location)
+                self.tasks_completed += added
+                self._advance_indices()
+                self.current_task = None
+                return self.emit(
+                    "completed",
+                    f"Scraped {added} {industry['name']} leads near {location} (synthetic fallback)",
+                )
+            except Exception as fallback_err:
+                self.current_task = None
+                return self.emit("error", f"Both Google API and fallback failed for {industry['name']}: {fallback_err}")
 
         except Exception as e:
             self.current_task = None
             return self.emit("error", f"Scrape failed for {industry['name']}: {e}")
+
+    def _advance_indices(self):
+        """Move to next industry; rotate location after cycling all industries."""
+        self.index += 1
+        if self.index % len(INDUSTRIES) == 0:
+            self.location_index += 1
 
     def get_tools(self) -> list[dict]:
         return []

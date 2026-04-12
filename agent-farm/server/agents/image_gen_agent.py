@@ -1,16 +1,21 @@
-"""Image Gen Agent — generates SD/ComfyUI prompts and calls local image API."""
+"""Image Gen Agent — generates SD/ComfyUI prompts and calls local image API + DALL-E 3."""
 
 import sys
 import os
 import json
 import asyncio
+import logging
 import random
 from pathlib import Path
+
+import httpx
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
 from tools.file_tools import ensure_output_dir
+
+log = logging.getLogger(__name__)
 
 
 # Product types that need visuals
@@ -75,6 +80,115 @@ VISUAL_PRODUCTS = [
         "prompt_hint": "investment portfolio tracker cover, stock ticker elements, green accents, sleek",
         "style": "digital product mockup",
     },
+    # ─── Clothing / POD Designs (print-ready, isolated on solid backgrounds) ───
+    {
+        "id": "tshirt-finance-hustle",
+        "title": "Finance Hustle T-Shirt",
+        "prompt_hint": "bold graphic design for a t-shirt print: a golden bull charging through stock chart candlesticks, dramatic lighting, isolated on solid black background, print-ready artwork, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "tshirt-trader-lifestyle",
+        "title": "Trader Lifestyle Tee",
+        "prompt_hint": "t-shirt print design: an EKG heartbeat line that transforms into a stock chart going up, ending with a dollar sign, white line art on solid black background, minimal clean design, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "tshirt-crypto-art",
+        "title": "Crypto Culture Tee",
+        "prompt_hint": "t-shirt graphic: a bitcoin coin with an astronaut helmet reflection in it, floating in space with stars, retro vaporwave purple and cyan colors, isolated on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "hoodie-streetwear-finance",
+        "title": "Streetwear Finance Hoodie",
+        "prompt_hint": "large back-print hoodie design: a roaring bear and charging bull facing each other with a stock chart between them, japanese wave art style, gold and white ink on solid black background, no text",
+        "style": "hoodie graphic design",
+    },
+    {
+        "id": "tshirt-motivational",
+        "title": "Motivational Grind Tee",
+        "prompt_hint": "t-shirt design: a vintage distressed circular badge emblem with a lion wearing a crown, laurel wreath border, old money luxury aesthetic, gold on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "tote-bag-finance",
+        "title": "Finance Aesthetic Tote",
+        "prompt_hint": "tote bag print design: elegant single continuous line drawing of a money tree growing from an open book, minimalist black line art on solid white background, sophisticated and clean",
+        "style": "tote bag design",
+    },
+    {
+        "id": "mug-trader-morning",
+        "title": "Trader Morning Mug",
+        "prompt_hint": "coffee mug wrap-around design: a panoramic stock trading chart that looks like a city skyline at sunrise, green candlesticks as buildings, warm orange sky gradient, clean vector illustration style",
+        "style": "mug design",
+    },
+    {
+        "id": "tshirt-gym-finance",
+        "title": "Gym x Finance Crossover Tee",
+        "prompt_hint": "t-shirt graphic: a muscular arm flexing while gripping a handful of cash and gold coins, comic book pop art style with halftone dots, bold black outlines, isolated on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "mug-coffee-trading",
+        "title": "Coffee & Trading Mug",
+        "prompt_hint": "mug design: a steaming coffee cup where the steam forms the shape of rising stock chart candlesticks, cozy morning trading aesthetic, warm colors, clean illustration on solid white background",
+        "style": "mug design",
+    },
+    {
+        "id": "tshirt-diamond-hands",
+        "title": "Diamond Hands Tee",
+        "prompt_hint": "t-shirt print: a pair of crystal diamond hands holding a glowing stock chart arrow pointing up, sparkling gem facets, luxury purple and blue tones, isolated on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "tshirt-wolf-wallstreet",
+        "title": "Wall Street Wolf Tee",
+        "prompt_hint": "t-shirt design: a stylized wolf in a business suit with city skyline silhouette behind, geometric low-poly art style, gold and navy blue, isolated on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "hoodie-neon-bull",
+        "title": "Neon Bull Hoodie",
+        "prompt_hint": "hoodie print: a neon wireframe bull made of glowing cyan and magenta light trails, cyberpunk style, isolated on solid black background, futuristic trading aesthetic, no text",
+        "style": "hoodie graphic design",
+    },
+    {
+        "id": "mug-market-open",
+        "title": "Market Open Mug",
+        "prompt_hint": "mug design: the New York Stock Exchange building facade with a dramatic sunrise behind it, golden hour lighting, architectural illustration, clean design on solid navy background",
+        "style": "mug design",
+    },
+    {
+        "id": "tshirt-candlestick-art",
+        "title": "Candlestick Art Tee",
+        "prompt_hint": "t-shirt graphic: abstract art made entirely of green and red stock candlestick patterns forming the shape of a mountain range, minimal geometric design, isolated on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "tote-bag-hustle",
+        "title": "Hustle Tote Bag",
+        "prompt_hint": "tote bag design: a vintage woodcut style illustration of a beehive with bees and honey, representing hustle and productivity, detailed crosshatching, black ink on solid cream white background, no text",
+        "style": "tote bag design",
+    },
+    {
+        "id": "tshirt-money-tree",
+        "title": "Money Tree Tee",
+        "prompt_hint": "t-shirt design: a beautiful bonsai tree with dollar bills as leaves and gold coins scattered at its base, detailed botanical illustration style, rich greens and golds, isolated on solid black background, no text",
+        "style": "t-shirt graphic design",
+    },
+    {
+        "id": "hoodie-retro-trader",
+        "title": "Retro Trader Hoodie",
+        "prompt_hint": "hoodie back print: a retro 80s style trading floor scene with old CRT monitors and ticker tape, synthwave sunset colors pink purple and orange, pixel art meets vaporwave, isolated on solid black background, no text",
+        "style": "hoodie graphic design",
+    },
+    {
+        "id": "mug-portfolio-pie",
+        "title": "Portfolio Pie Chart Mug",
+        "prompt_hint": "mug design: a colorful pie chart made to look like a delicious actual pie with different flavor slices representing asset classes, playful foodie illustration style, clean on solid white background",
+        "style": "mug design",
+    },
 ]
 
 SD_STYLES = {
@@ -102,13 +216,15 @@ class ImageGenAgent(BaseAgent):
         super().__init__(
             agent_id="image-gen-001",
             name="Image Generator",
-            description="Generates product images via Stable Diffusion prompts & local ComfyUI",
+            description="Generates product images via Stable Diffusion prompts, DALL-E 3 & local ComfyUI",
             color="#e879f9",
         )
         self.tick_interval = 90
         self.pipeline_db = None
         self.index = 0
         self.comfyui_url = os.getenv("COMFYUI_URL", "http://127.0.0.1:8188")
+        self._openai_api_key = os.getenv("OPENAI_API_KEY", "")
+        self._dalle_enabled = os.getenv("DALLE_ENABLED", "true").lower() in ("true", "1", "yes")
 
     async def tick(self) -> AgentEvent:
         product = VISUAL_PRODUCTS[self.index % len(VISUAL_PRODUCTS)]
@@ -123,53 +239,73 @@ class ImageGenAgent(BaseAgent):
         self.emit("generating", f"Creating image prompt: {product['title']} ({style_key})")
 
         try:
-            prompt = (
-                f"Create a Stable Diffusion XL prompt for: {product['prompt_hint']}\n"
-                f"Style: {product['style']} — {style_suffix}\n"
-                f"This is for an Etsy digital product listing."
+            # Build prompt directly from product hints (skip flaky LLM JSON step)
+            dalle_prompt = (
+                f"A sleek {product['style']} of {product['prompt_hint']}, "
+                f"rendered in {style_suffix}, suitable for an Etsy digital product listing. "
+                f"High quality, professional, clean composition."
             )
-
-            result = await self.llm.generate(prompt, system=PROMPT_SYSTEM, complexity="low")
-
-            # Parse the JSON
-            if "```json" in result:
-                result = result.split("```json")[1].split("```")[0].strip()
-            elif "```" in result:
-                result = result.split("```")[1].split("```")[0].strip()
-
-            try:
-                prompt_data = json.loads(result)
-            except json.JSONDecodeError:
-                self.current_task = None
-                return self.emit("skipped", f"Invalid JSON from LLM for {product['title']}")
+            prompt_data = {
+                "prompt": dalle_prompt,
+                "negative_prompt": "low quality, blurry, text, watermark, amateur",
+                "width": 1024,
+                "height": 1024,
+                "steps": 30,
+                "cfg_scale": 7,
+                "product_id": product["id"],
+                "product_title": product["title"],
+                "style": style_key,
+            }
 
             # Save prompt file
             out_dir = ensure_output_dir("image-prompts")
             filename = f"{product['id']}-{style_key}-{self.tasks_completed:04d}.json"
             filepath = out_dir / filename
-            prompt_data["product_id"] = product["id"]
-            prompt_data["product_title"] = product["title"]
-            prompt_data["style"] = style_key
             filepath.write_text(json.dumps(prompt_data, indent=2), encoding="utf-8")
 
-            # Try to generate via local ComfyUI if available
+            # Try DALL-E 3 generation (1 image per tick for rate limiting)
+            dalle_image_path = None
             generated_image = False
+            generation_method = None
             try:
-                generated_image = await self._try_comfyui(prompt_data, product["id"], style_key)
-            except Exception:
-                pass  # ComfyUI not available, that's fine — prompt saved
+                dalle_image_path = await self._try_dalle(
+                    prompt_data, product["id"], style_key,
+                )
+                if dalle_image_path:
+                    generated_image = True
+                    generation_method = "dalle-3"
+            except Exception as exc:
+                log.warning("DALL-E 3 generation failed for %s: %s", product["id"], exc)
+
+            # Try to generate via local ComfyUI if DALL-E didn't produce an image
+            if not generated_image:
+                try:
+                    comfy_ok = await self._try_comfyui(prompt_data, product["id"], style_key)
+                    if comfy_ok:
+                        generated_image = True
+                        generation_method = "comfyui"
+                except Exception:
+                    pass  # ComfyUI not available, that's fine — prompt saved
 
             # Track in pipeline
             if self.pipeline_db:
                 try:
                     stage = "designed" if generated_image else "drafted"
+                    meta = {
+                        "prompt_file": filename,
+                        "generated": generated_image,
+                        "generation_method": generation_method,
+                        "style": style_key,
+                        "product_id": product["id"],
+                    }
+                    if dalle_image_path:
+                        meta["dalle_image"] = str(dalle_image_path)
                     await asyncio.to_thread(
                         self.pipeline_db.add_item,
                         "etsy", f"{product['title']} ({style_key})",
                         subtitle="image",
                         stage=stage, score=random.randint(60, 90),
-                        metadata={"prompt_file": filename, "generated": generated_image,
-                                  "style": style_key, "product_id": product["id"]},
+                        metadata=meta,
                         source_agent=self.agent_id,
                     )
                 except Exception:
@@ -179,7 +315,10 @@ class ImageGenAgent(BaseAgent):
             self.index += 1
             self.current_task = None
 
-            status = "image generated" if generated_image else "prompt saved (ComfyUI offline)"
+            if generated_image:
+                status = f"image generated via {generation_method}"
+            else:
+                status = "prompt saved (no image backend available)"
             return self.emit(
                 "completed",
                 f"{product['title']} ({style_key}) — {status} → {filename}"
@@ -188,6 +327,63 @@ class ImageGenAgent(BaseAgent):
         except Exception as e:
             self.current_task = None
             return self.emit("error", f"Failed: {product['title']}: {e}")
+
+    async def _try_dalle(
+        self,
+        prompt_data: dict,
+        product_id: str,
+        style: str,
+    ) -> Path | None:
+        """Generate an image via OpenAI DALL-E 3 API and save it as PNG.
+
+        Returns the saved file path on success, or None if skipped / failed.
+        """
+        if not self._dalle_enabled:
+            return None
+        if not self._openai_api_key:
+            log.info("DALL-E skipped: OPENAI_API_KEY not set")
+            return None
+
+        dalle_prompt = prompt_data.get("prompt", "")
+        if not dalle_prompt:
+            return None
+
+        self.emit("generating", f"Calling DALL-E 3 for {product_id} ({style})...")
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/images/generations",
+                headers={
+                    "Authorization": f"Bearer {self._openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "dall-e-3",
+                    "prompt": dalle_prompt,
+                    "n": 1,
+                    "size": "1024x1024",
+                    "quality": "standard",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        image_url = data["data"][0]["url"]
+
+        # Download the generated image
+        async with httpx.AsyncClient(timeout=60) as client:
+            img_resp = await client.get(image_url)
+            img_resp.raise_for_status()
+            image_bytes = img_resp.content
+
+        # Save to output/images/
+        img_dir = ensure_output_dir("images")
+        img_filename = f"{product_id}-{style}-{self.tasks_completed:04d}.png"
+        img_path = img_dir / img_filename
+        img_path.write_bytes(image_bytes)
+
+        log.info("DALL-E 3 image saved: %s (%d bytes)", img_path, len(image_bytes))
+        return img_path
 
     async def _try_comfyui(self, prompt_data: dict, product_id: str, style: str) -> bool:
         """Attempt to generate an image via local ComfyUI API."""

@@ -9,6 +9,7 @@ from tools.file_tools import save_template
 
 
 SEO_TASKS = [
+    # Finance printables
     {"niche": "trading journal printable", "platform": "etsy"},
     {"niche": "budget planner template", "platform": "etsy"},
     {"niche": "expense tracker spreadsheet", "platform": "etsy"},
@@ -17,6 +18,14 @@ SEO_TASKS = [
     {"niche": "debt payoff planner", "platform": "etsy"},
     {"niche": "personal finance template", "platform": "google"},
     {"niche": "money management printable", "platform": "pinterest"},
+    # Clothing / POD
+    {"niche": "finance bro t-shirt", "platform": "etsy"},
+    {"niche": "trader lifestyle clothing", "platform": "etsy"},
+    {"niche": "crypto streetwear hoodie", "platform": "etsy"},
+    {"niche": "motivational hustle tee", "platform": "etsy"},
+    {"niche": "stock market graphic tee", "platform": "etsy"},
+    {"niche": "entrepreneur apparel print on demand", "platform": "google"},
+    {"niche": "finance gym crossover shirt", "platform": "etsy"},
 ]
 
 SEO_PROMPT = """Perform keyword research for the niche "{niche}" on {platform}.

@@ -1,0 +1,101 @@
+{
+  "totalResults": 12,
+  "vulnerabilities": [
+    {
+      "id": "CVE-2024-3094",
+      "description": "Malicious code was discovered in the upstream tarballs of xz, starting with version 5.6.0. Through a series of complex obfuscations, the liblzma build process extracts a prebuilt object file that modifies specific functions in the code.",
+      "score": 10.0,
+      "severity": "CRITICAL",
+      "published": "2024-03-29T17:15:00.000",
+      "lastModified": "2024-04-12T08:00:00.000"
+    },
+    {
+      "id": "CVE-2024-21762",
+      "description": "A out-of-bounds write vulnerability in Fortinet FortiOS versions 7.4.0 through 7.4.2, 7.2.0 through 7.2.6 allows attacker to execute unauthorized code via specially crafted requests.",
+      "score": 9.8,
+      "severity": "CRITICAL",
+      "published": "2024-02-09T09:15:00.000",
+      "lastModified": "2024-03-20T12:00:00.000"
+    },
+    {
+      "id": "CVE-2024-1709",
+      "description": "ConnectWise ScreenConnect 23.9.7 and prior are affected by an authentication bypass using an alternate path or channel vulnerability, which may allow direct access to confidential information or critical systems.",
+      "score": 10.0,
+      "severity": "CRITICAL",
+      "published": "2024-02-21T16:15:00.000",
+      "lastModified": "2024-03-15T10:00:00.000"
+    },
+    {
+      "id": "CVE-2024-27198",
+      "description": "In JetBrains TeamCity before 2023.11.4, authentication bypass allowing to perform admin actions was possible.",
+      "score": 9.8,
+      "severity": "CRITICAL",
+      "published": "2024-03-04T18:15:00.000",
+      "lastModified": "2024-03-28T14:00:00.000"
+    },
+    {
+      "id": "CVE-2024-23897",
+      "description": "Jenkins 2.441 and earlier, LTS 2.426.2 and earlier does not disable a feature of its CLI command parser that replaces an '@' character followed by a file path in an argument with the file's contents.",
+      "score": 9.8,
+      "severity": "CRITICAL",
+      "published": "2024-01-24T18:15:00.000",
+      "lastModified": "2024-02-20T09:00:00.000"
+    },
+    {
+      "id": "CVE-2024-21413",
+      "description": "Microsoft Outlook Remote Code Execution Vulnerability allowing attackers to bypass Office Protected View and open in editing mode rather than protected mode.",
+      "score": 9.8,
+      "severity": "CRITICAL",
+      "published": "2024-02-13T18:15:00.000",
+      "lastModified": "2024-03-10T08:00:00.000"
+    },
+    {
+      "id": "CVE-2024-0519",
+      "description": "Out of bounds memory access in V8 in Google Chrome prior to 120.0.6099.224 allowed a remote attacker to potentially exploit heap corruption via a crafted HTML page.",
+      "score": 8.8,
+      "severity": "HIGH",
+      "published": "2024-01-16T22:15:00.000",
+      "lastModified": "2024-02-05T12:00:00.000"
+    },
+    {
+      "id": "CVE-2024-20353",
+      "description": "A vulnerability in the management and VPN web servers for Cisco Adaptive Security Appliance Software and Cisco Firepower Threat Defense Software could allow an unauthenticated, remote attacker to cause the device to reload unexpectedly.",
+      "score": 8.6,
+      "severity": "HIGH",
+      "published": "2024-04-24T19:15:00.000",
+      "lastModified": "2024-05-01T10:00:00.000"
+    },
+    {
+      "id": "CVE-2024-21887",
+      "description": "A command injection vulnerability in web components of Ivanti Connect Secure and Ivanti Policy Secure allows an authenticated administrator to send specially crafted requests and execute arbitrary commands.",
+      "score": 8.4,
+      "severity": "HIGH",
+      "published": "2024-01-12T14:15:00.000",
+      "lastModified": "2024-02-02T08:00:00.000"
+    },
+    {
+      "id": "CVE-2024-22024",
+      "description": "An XML external entity or XXE vulnerability in the SAML component of Ivanti Connect Secure, Ivanti Policy Secure and ZTA gateways allows an unauthenticated attacker to access certain restricted resources.",
+      "score": 6.5,
+      "severity": "MEDIUM",
+      "published": "2024-02-13T06:15:00.000",
+      "lastModified": "2024-03-01T14:00:00.000"
+    },
+    {
+      "id": "CVE-2024-1086",
+      "description": "A use-after-free vulnerability in the Linux kernel's netfilter: nf_tables component can be exploited to achieve local privilege escalation.",
+      "score": 7.8,
+      "severity": "HIGH",
+      "published": "2024-01-31T13:15:00.000",
+      "lastModified": "2024-02-20T16:00:00.000"
+    },
+    {
+      "id": "CVE-2024-2961",
+      "description": "The iconv() function in glibc when converting strings to the ISO-2022-CN-EXT character set may overflow an output buffer by up to 4 bytes when processing crafted input.",
+      "score": 4.0,
+      "severity": "LOW",
+      "published": "2024-04-17T18:15:00.000",
+      "lastModified": "2024-04-25T09:00:00.000"
+    }
+  ]
+}

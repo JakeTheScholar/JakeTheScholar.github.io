@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data:; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="theme-color" content="#07060b">
+    <meta name="description" content="Prop Firm Tracker — Multi-user trading account management. Track evaluations, funded accounts, payouts, and rule compliance.">
+    <title>Sign In — Prop Firm Tracker</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin>
+
+    <style>
+        :root {
+            --void: #07060b; --deep: #0e0d15; --surface: #16141f; --surface-raised: #1e1b2a;
+            --gold: #c9a96e; --gold-bright: #e4c87e; --gold-dim: #8a7a52;
+            --violet: #8b5cf6; --text-primary: #ede8e0; --text-secondary: #9a94a8; --text-muted: #5a5468;
+            --glass-bg: rgba(255,255,255,0.025); --glass-border: rgba(255,255,255,0.06);
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', system-ui, sans-serif; background: var(--void); color: var(--text-primary); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: -1; background: radial-gradient(ellipse at center, transparent 55%, rgba(7,6,11,0.5) 100%); }
+
+        .auth-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; margin: 20px; }
+        .auth-title { font-family: 'Cinzel', Georgia, serif; font-size: 1.4rem; text-align: center; margin-bottom: 6px; }
+        .auth-subtitle { font-size: 0.82rem; color: var(--text-muted); text-align: center; margin-bottom: 28px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 6px; }
+        .form-input { width: 100%; background: var(--deep); border: 1.5px solid var(--glass-border); border-radius: 8px; padding: 12px 16px; font-family: 'Outfit', system-ui, sans-serif; font-size: 0.88rem; color: var(--text-primary); transition: border-color 0.2s; }
+        .form-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,169,110,0.15); }
+
+        .btn-primary { width: 100%; padding: 14px; border: none; border-radius: 8px; font-family: 'Outfit', system-ui, sans-serif; font-size: 0.88rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--void); background: linear-gradient(135deg, var(--gold), var(--gold-bright)); cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(201,169,110,0.3); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .toggle-link { display: block; text-align: center; margin-top: 20px; font-size: 0.82rem; color: var(--text-secondary); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+        .toggle-link:hover { color: var(--gold); }
+
+        .error-msg { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #f87171; margin-bottom: 16px; display: none; }
+        .success-msg { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; color: #34d399; margin-bottom: 16px; display: none; }
+
+        .back-link { display: block; text-align: center; margin-top: 16px; font-size: 0.75rem; color: var(--text-muted); text-decoration: none; }
+        .back-link:hover { color: var(--gold); }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h1 class="auth-title">Prop Firm Tracker</h1>
+        <p class="auth-subtitle">Track evaluations, funded accounts & payouts</p>
+
+        <div id="error-msg" class="error-msg"></div>
+        <div id="success-msg" class="success-msg"></div>
+
+        <form id="auth-form" autocomplete="on">
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input class="form-input" type="email" id="email" required autocomplete="email" maxlength="200">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input class="form-input" type="password" id="password" required autocomplete="current-password" minlength="8" maxlength="200">
+            </div>
+            <button class="btn-primary" type="submit" id="submit-btn">Sign In</button>
+        </form>
+
+        <span class="toggle-link" id="toggle-mode">Don't have an account? Sign up</span>
+        <a href="../projects.html" class="back-link">&larr; All Projects</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+    (function() {
+        let isSignUp = false;
+        const form = document.getElementById('auth-form');
+        const btn = document.getElementById('submit-btn');
+        const toggle = document.getElementById('toggle-mode');
+        const errorEl = document.getElementById('error-msg');
+        const successEl = document.getElementById('success-msg');
+
+        toggle.addEventListener('click', () => {
+            isSignUp = !isSignUp;
+            btn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
+            toggle.textContent = isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up";
+            document.getElementById('password').autocomplete = isSignUp ? 'new-password' : 'current-password';
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) { showError('Please fill in all fields.'); return; }
+            if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
+
+            btn.disabled = true;
+            btn.textContent = isSignUp ? 'Creating account...' : 'Signing in...';
+
+            try {
+                await Auth.init();
+                if (isSignUp) {
+                    await Auth.signUp(email, password);
+                    successEl.textContent = 'Check your email to confirm your account, then sign in.';
+                    successEl.style.display = 'block';
+                    btn.textContent = 'Sign Up';
+                } else {
+                    await Auth.signIn(email, password);
+                    window.location.href = '/';
+                    return;
+                }
+            } catch (err) {
+                showError(err.message || 'Authentication failed.');
+            }
+            btn.disabled = false;
+            if (!isSignUp) btn.textContent = 'Sign In';
+        });
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        }
+
+        // If already logged in, redirect to app
+        Auth.init().then(() => {
+            if (Auth.isLoggedIn()) window.location.href = '/';
+        });
+    })();
+    </script>
+</body>
+</html>
