@@ -51,6 +51,18 @@ jobs:
           cp trading-command-center/index.html _site/trading-command-center/
           cp -r trading-command-center/js/*.js _site/trading-command-center/js/ 2>/dev/null || true
 
+          # Economic Indicator Engine — frontend only
+          mkdir -p _site/economic-indicators/js _site/economic-indicators/data
+          cp economic-indicators/index.html _site/economic-indicators/
+          cp economic-indicators/js/*.js _site/economic-indicators/js/
+          cp economic-indicators/data/*.json _site/economic-indicators/data/
+
+          # Threat Intelligence Dashboard — frontend only (proxy deploys separately)
+          mkdir -p _site/threat-intel-dashboard/js _site/threat-intel-dashboard/data
+          cp threat-intel-dashboard/index.html _site/threat-intel-dashboard/
+          cp threat-intel-dashboard/js/*.js _site/threat-intel-dashboard/js/
+          cp threat-intel-dashboard/data/*.json _site/threat-intel-dashboard/data/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

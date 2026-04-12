@@ -28,7 +28,8 @@ const Pipeline = {
   init() {},
 
   async fetchData() {
-    const token = Store.get('api_key');
+    const cfg = Store.getConfig();
+    const token = cfg.apiKey;
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
 

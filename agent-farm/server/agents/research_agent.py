@@ -9,6 +9,7 @@ from tools.file_tools import save_template
 
 
 RESEARCH_TOPICS = [
+    # Finance printables
     {"topic": "Etsy printable trends Q2 2026", "focus": "trending categories, price points, top sellers"},
     {"topic": "Budget planner market analysis", "focus": "competitors, pricing strategy, unique selling points"},
     {"topic": "Trading journal demand analysis", "focus": "target audience, search volume indicators, gaps in market"},
@@ -17,6 +18,12 @@ RESEARCH_TOPICS = [
     {"topic": "Fiverr financial template competition", "focus": "top sellers, pricing tiers, service differentiation"},
     {"topic": "Print-on-demand vs digital download", "focus": "margin comparison, fulfillment overhead, scalability"},
     {"topic": "SEO keywords for financial printables", "focus": "long-tail keywords, search intent, competition level"},
+    # Clothing / POD
+    {"topic": "Finance bro streetwear Etsy market", "focus": "top sellers, price points, design styles, audience demographics"},
+    {"topic": "Print-on-demand t-shirt profitability 2026", "focus": "Printful vs Printify margins, best-selling niches, pricing sweet spots"},
+    {"topic": "Crypto and trading apparel trends", "focus": "viral designs, meme culture crossover, seasonal demand spikes"},
+    {"topic": "Hustle culture merchandise demand", "focus": "motivational quote tees, entrepreneur lifestyle branding, target demographics"},
+    {"topic": "POD fulfillment provider comparison", "focus": "Printful, Printify, Gooten — quality, shipping speed, Etsy integration, margins"},
 ]
 
 RESEARCH_PROMPT = """Conduct a market research analysis on: "{topic}"

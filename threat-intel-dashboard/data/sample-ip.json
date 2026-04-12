@@ -1,0 +1,16 @@
+{
+  "ipAddress": "185.220.101.34",
+  "isPublic": true,
+  "ipVersion": 4,
+  "isWhitelisted": false,
+  "abuseConfidenceScore": 100,
+  "countryCode": "DE",
+  "countryName": "Germany",
+  "usageType": "Data Center/Web Hosting/Transit",
+  "isp": "Hetzner Online GmbH",
+  "domain": "hetzner.com",
+  "hostnames": ["tor-exit-relay.hetzner.com"],
+  "totalReports": 2847,
+  "numDistinctUsers": 312,
+  "lastReportedAt": "2024-04-10T14:23:00+00:00"
+}

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#07060b">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' https://services.nvd.nist.gov; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none';">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="description" content="Real-time threat intelligence dashboard — CVE feed, IP reputation, security header analysis. Built by Jake McGaha.">
+
+    <title>Threat Intelligence Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307060b'/%3E%3Cpath d='M32 12 L32 20 M32 44 L32 52 M12 32 L20 32 M44 32 L52 32 M18 18 L24 24 M40 40 L46 46 M46 18 L40 24 M24 40 L18 46' stroke='%23ec6d8c' stroke-width='2.5' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='8' stroke='%23ec6d8c' stroke-width='2.5' fill='none'/%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" crossorigin>
+
+    <style>
+        :root {
+            --void: #07060b;
+            --deep: #0e0d15;
+            --surface: #16141f;
+            --surface-raised: #1e1b2a;
+            --gold: #c9a96e;
+            --gold-bright: #e4c87e;
+            --gold-dim: #8a7a52;
+            --violet: #8b5cf6;
+            --violet-dim: #6d3fd4;
+            --rose: #ec6d8c;
+            --emerald: #10b981;
+            --red: #ef4444;
+            --amber: #f59e0b;
+            --cyan: #22d3ee;
+            --text-primary: #ede8e0;
+            --text-secondary: #9a94a8;
+            --text-muted: #5a5468;
+            --glass-bg: rgba(255,255,255,0.025);
+            --glass-border: rgba(255,255,255,0.06);
+            --glass-hover: rgba(255,255,255,0.05);
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body { font-family: 'Outfit', system-ui, sans-serif; background: var(--void); color: var(--text-primary); overflow-x: hidden; min-height: 100vh; }
+
+        body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 8999; background: radial-gradient(ellipse at center, transparent 55%, rgba(7,6,11,0.5) 100%); }
+        body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9000; opacity: 0.03; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+        /* ═══ Header ═══ */
+        .header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; background: rgba(7,6,11,0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--glass-border); }
+        .header-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text-primary); }
+        .header-icon { width: 32px; height: 32px; color: var(--rose); }
+        .header-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 1.15rem; font-weight: 400; }
+        .header-subtitle { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); margin-top: 1px; }
+        .demo-badge { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--amber); background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); padding: 3px 10px; border-radius: 100px; display: none; }
+
+        /* ═══ Navigation ═══ */
+        .nav { display: flex; gap: 4px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 100px; padding: 4px; }
+        .nav-tab { padding: 8px 20px; border-radius: 100px; font-size: 0.78rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); cursor: pointer; border: none; background: none; transition: all 0.3s var(--ease-out); white-space: nowrap; }
+        .nav-tab:hover { color: var(--text-primary); background: var(--glass-hover); }
+        .nav-tab.active { color: var(--void); background: var(--rose); font-weight: 600; }
+        .back-link { font-size: 0.78rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.06em; transition: color 0.2s; }
+        .back-link:hover { color: var(--rose); }
+
+        /* ═══ Layout ═══ */
+        main { padding-top: 90px; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px 32px 80px; }
+        .view { display: none; }
+        .view.active { display: block; }
+
+        .section-header { margin-bottom: 28px; }
+        .section-title { font-family: 'DM Serif Display', Georgia, serif; font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 400; color: var(--text-primary); margin-bottom: 6px; }
+        .section-desc { font-size: 0.88rem; color: var(--text-secondary); font-weight: 300; line-height: 1.5; }
+
+        /* ═══ Stats Grid ═══ */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; }
+        .stat-card .accent { position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 16px 16px 0 0; }
+        .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-weight: 500; margin-bottom: 10px; }
+        .stat-value { font-size: 1.8rem; font-weight: 600; line-height: 1; }
+
+        /* ═══ Severity Colors ═══ */
+        .sev-critical { color: var(--red); }
+        .sev-high { color: var(--rose); }
+        .sev-medium { color: var(--amber); }
+        .sev-low { color: var(--emerald); }
+        .sev-none { color: var(--text-muted); }
+
+        .accent-critical { background: var(--red); }
+        .accent-high { background: var(--rose); }
+        .accent-medium { background: var(--amber); }
+        .accent-low { background: var(--emerald); }
+
+        /* ═══ SVG Charts ══�� */
+        .chart-row { display: grid; grid-template-columns: 280px 1fr; gap: 24px; margin-bottom: 32px; align-items: start; }
+        .donut-container { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; text-align: center; }
+        .donut-container h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 1rem; font-weight: 400; margin-bottom: 16px; color: var(--text-secondary); }
+        .donut-legend { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; text-align: left; }
+        .donut-legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); }
+        .donut-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+        .donut-legend-count { margin-left: auto; font-weight: 600; color: var(--text-primary); font-family: 'Share Tech Mono', monospace; }
+
+        .bar-container { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; }
+        .bar-container h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 1rem; font-weight: 400; margin-bottom: 16px; color: var(--text-secondary); }
+
+        /* ═══ CVE Feed ═══ */
+        .feed-controls { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+        .search-input { background: var(--deep); border: 1.5px solid var(--glass-border); border-radius: 8px; padding: 10px 16px; font-family: 'Outfit', system-ui, sans-serif; font-size: 0.85rem; color: var(--text-primary); flex: 1; min-width: 200px; transition: border-color 0.2s; }
+        .search-input:focus { outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(236,109,140,0.15); }
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .filter-pills { display: flex; gap: 4px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 100px; padding: 3px; }
+        .filter-pill { padding: 6px 12px; border-radius: 100px; font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer; border: none; background: none; transition: all 0.2s; }
+        .filter-pill:hover { background: var(--glass-hover); }
+        .filter-pill.active { font-weight: 600; }
+        .filter-pill.active[data-sev="all"] { color: var(--void); background: var(--text-secondary); }
+        .filter-pill.active[data-sev="CRITICAL"] { color: #fff; background: var(--red); }
+        .filter-pill.active[data-sev="HIGH"] { color: #fff; background: var(--rose); }
+        .filter-pill.active[data-sev="MEDIUM"] { color: var(--void); background: var(--amber); }
+        .filter-pill.active[data-sev="LOW"] { color: #fff; background: var(--emerald); }
+
+        .cve-list { display: flex; flex-direction: column; gap: 12px; }
+        .cve-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 18px 20px; transition: all 0.3s var(--ease-out); border-left: 3px solid transparent; }
+        .cve-card:hover { background: var(--glass-hover); transform: translateX(4px); }
+        .cve-card.critical { border-left-color: var(--red); }
+        .cve-card.high { border-left-color: var(--rose); }
+        .cve-card.medium { border-left-color: var(--amber); }
+        .cve-card.low { border-left-color: var(--emerald); }
+
+        .cve-header { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+        .cve-id { font-family: 'Share Tech Mono', monospace; font-size: 0.88rem; color: var(--rose); font-weight: 500; }
+        .cve-score { font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .cve-score.critical { background: rgba(239,68,68,0.15); color: var(--red); }
+        .cve-score.high { background: rgba(236,109,140,0.15); color: var(--rose); }
+        .cve-score.medium { background: rgba(245,158,11,0.15); color: var(--amber); }
+        .cve-score.low { background: rgba(16,185,129,0.15); color: var(--emerald); }
+        .cve-date { font-size: 0.7rem; color: var(--text-muted); margin-left: auto; }
+        .cve-desc { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 24px; }
+        .page-btn { padding: 8px 16px; border-radius: 8px; font-size: 0.78rem; font-weight: 500; color: var(--text-secondary); background: var(--glass-bg); border: 1px solid var(--glass-border); cursor: pointer; transition: all 0.2s; }
+        .page-btn:hover { color: var(--text-primary); background: var(--glass-hover); }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-info { font-size: 0.78rem; color: var(--text-muted); }
+
+        /* ═══ IP Lookup ═══ */
+        .lookup-form { display: flex; gap: 12px; margin-bottom: 24px; }
+        .lookup-input { background: var(--deep); border: 1.5px solid var(--glass-border); border-radius: 8px; padding: 12px 18px; font-family: 'Share Tech Mono', monospace; font-size: 0.95rem; color: var(--text-primary); flex: 1; max-width: 400px; transition: border-color 0.2s; }
+        .lookup-input:focus { outline: none; border-color: var(--rose); box-shadow: 0 0 0 3px rgba(236,109,140,0.15); }
+        .lookup-input::placeholder { color: var(--text-muted); font-family: 'Outfit', system-ui, sans-serif; }
+        .lookup-btn { padding: 12px 28px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--void); background: var(--rose); border: none; cursor: pointer; transition: all 0.2s; }
+        .lookup-btn:hover { background: #f08da5; transform: translateY(-1px); }
+        .lookup-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .ip-result { display: none; }
+        .ip-result.visible { display: block; }
+
+        .ip-grid { display: grid; grid-template-columns: 200px 1fr; gap: 24px; align-items: start; }
+        .gauge-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; text-align: center; }
+        .gauge-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 12px; }
+        .gauge-value { font-size: 2.2rem; font-weight: 700; margin: 8px 0; }
+        .gauge-desc { font-size: 0.75rem; color: var(--text-secondary); }
+
+        .ip-details { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; }
+        .ip-detail-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--glass-border); font-size: 0.85rem; }
+        .ip-detail-row:last-child { border-bottom: none; }
+        .ip-detail-label { color: var(--text-muted); text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.08em; }
+        .ip-detail-value { color: var(--text-primary); font-weight: 500; font-family: 'Share Tech Mono', monospace; }
+
+        /* ═══ Headers Scan ═══ */
+        .scan-form { display: flex; gap: 12px; margin-bottom: 24px; }
+        .scan-result { display: none; }
+        .scan-result.visible { display: block; }
+
+        .grade-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px 32px; text-align: center; display: inline-block; margin-bottom: 24px; }
+        .grade-letter { font-size: 3rem; font-weight: 700; font-family: 'DM Serif Display', Georgia, serif; }
+        .grade-letter.grade-a { color: var(--emerald); }
+        .grade-letter.grade-b { color: #84cc16; }
+        .grade-letter.grade-c { color: var(--amber); }
+        .grade-letter.grade-d { color: #f97316; }
+        .grade-letter.grade-f { color: var(--red); }
+        .grade-desc { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+
+        .headers-list { display: flex; flex-direction: column; gap: 10px; }
+        .header-item { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+        .header-status { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+        .header-status.present { background: rgba(16,185,129,0.15); color: var(--emerald); }
+        .header-status.missing { background: rgba(239,68,68,0.15); color: var(--red); }
+        .header-name { font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text-primary); }
+        .header-desc { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; max-width: 400px; text-align: right; }
+
+        /* ═══ Loading ══�� */
+        .loading-overlay { display: flex; align-items: center; justify-content: center; min-height: 200px; color: var(--text-muted); font-size: 0.88rem; }
+        .loading-spinner { width: 24px; height: 24px; border: 2px solid var(--glass-border); border-top-color: var(--rose); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-banner { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px; padding: 14px 20px; color: var(--rose); font-size: 0.85rem; margin-bottom: 20px; display: none; }
+        .last-updated { font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 12px; }
+        .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface-raised) 50%, var(--surface) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        /* ═══ Responsive ═══ */
+        @media (max-width: 768px) {
+            .header { padding: 12px 16px; flex-direction: column; gap: 10px; }
+            .nav { overflow-x: auto; width: 100%; justify-content: flex-start; }
+            .nav-tab { padding: 7px 14px; font-size: 0.7rem; }
+            .container { padding: 20px 16px 60px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .chart-row { grid-template-columns: 1fr; }
+            .ip-grid { grid-template-columns: 1fr; }
+            .feed-controls { flex-direction: column; }
+            .search-input { min-width: 100%; }
+            .lookup-form, .scan-form { flex-direction: column; }
+            .lookup-input { max-width: 100%; }
+            .back-link, .header-subtitle { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="../" class="header-brand">
+            <svg class="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <div>
+                <div class="header-title">Threat Intelligence Dashboard</div>
+                <div class="header-subtitle">OSINT &amp; Vulnerability Monitoring</div>
+            </div>
+        </a>
+
+        <nav class="nav" aria-label="Main navigation">
+            <button class="nav-tab active" data-view="overview">Overview</button>
+            <button class="nav-tab" data-view="cve-feed">CVE Feed</button>
+            <button class="nav-tab" data-view="ip-lookup">IP Lookup</button>
+            <button class="nav-tab" data-view="headers-scan">Headers Scan</button>
+        </nav>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span id="demo-badge" class="demo-badge">Demo Mode</span>
+            <a href="../projects.html" class="back-link">&larr; All Projects</a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div id="error-banner" class="error-banner"></div>
+
+            <!-- Overview -->
+            <div id="view-overview" class="view active">
+                <div class="section-header">
+                    <h1 class="section-title">Threat Landscape</h1>
+                    <p class="section-desc">Aggregated vulnerability intelligence from the National Vulnerability Database.</p>
+                </div>
+                <div id="overview-stats" class="stats-grid"></div>
+                <div class="chart-row">
+                    <div class="donut-container">
+                        <h3>Severity Distribution</h3>
+                        <div id="severity-donut"></div>
+                        <div id="severity-legend" class="donut-legend"></div>
+                    </div>
+                    <div class="bar-container">
+                        <h3>CVEs Published (Last 7 Days)</h3>
+                        <div id="timeline-bar"></div>
+                    </div>
+                </div>
+                <div class="section-header"><h2 class="section-title" style="font-size:1.2rem;">Trending Critical Vulnerabilities</h2></div>
+                <div id="trending-cves" class="cve-list"></div>
+                <div id="overview-updated" class="last-updated"></div>
+            </div>
+
+            <!-- CVE Feed -->
+            <div id="view-cve-feed" class="view">
+                <div class="section-header">
+                    <h1 class="section-title">CVE Feed</h1>
+                    <p class="section-desc">Live vulnerability feed from NVD. Search, filter, and explore recent CVEs.</p>
+                </div>
+                <div class="feed-controls">
+                    <input id="cve-search" class="search-input" type="text" placeholder="Search CVEs by keyword..." maxlength="100" autocomplete="off">
+                    <div class="filter-pills" id="sev-filter">
+                        <button class="filter-pill active" data-sev="all">All</button>
+                        <button class="filter-pill sev-critical" data-sev="CRITICAL">Critical</button>
+                        <button class="filter-pill sev-high" data-sev="HIGH">High</button>
+                        <button class="filter-pill sev-medium" data-sev="MEDIUM">Medium</button>
+                        <button class="filter-pill sev-low" data-sev="LOW">Low</button>
+                    </div>
+                </div>
+                <div id="cve-list" class="cve-list"></div>
+                <div id="cve-pagination" class="pagination"></div>
+                <div id="feed-updated" class="last-updated"></div>
+            </div>
+
+            <!-- IP Lookup -->
+            <div id="view-ip-lookup" class="view">
+                <div class="section-header">
+                    <h1 class="section-title">IP Reputation Lookup</h1>
+                    <p class="section-desc">Check the abuse confidence score and reputation of any IP address via AbuseIPDB.</p>
+                </div>
+                <div class="lookup-form">
+                    <input id="ip-input" class="lookup-input" type="text" placeholder="Enter IP address (e.g. 8.8.8.8)" maxlength="45" autocomplete="off">
+                    <button id="ip-btn" class="lookup-btn">Check IP</button>
+                </div>
+                <div id="ip-result" class="ip-result">
+                    <div class="ip-grid">
+                        <div class="gauge-card">
+                            <div class="gauge-label">Abuse Confidence</div>
+                            <svg id="ip-gauge" width="160" height="100" viewBox="0 0 160 100"></svg>
+                            <div id="ip-score" class="gauge-value">--</div>
+                            <div id="ip-score-desc" class="gauge-desc"></div>
+                        </div>
+                        <div class="ip-details" id="ip-details"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Headers Scan -->
+            <div id="view-headers-scan" class="view">
+                <div class="section-header">
+                    <h1 class="section-title">Security Headers Scanner</h1>
+                    <p class="section-desc">Analyze a website's HTTP security headers and get a security grade.</p>
+                </div>
+                <div class="scan-form">
+                    <input id="url-input" class="lookup-input" type="text" placeholder="Enter URL (e.g. https://example.com)" maxlength="500" autocomplete="off" style="max-width:500px;">
+                    <button id="scan-btn" class="lookup-btn">Scan Headers</button>
+                </div>
+                <div id="scan-result" class="scan-result">
+                    <div id="scan-grade" class="grade-card"></div>
+                    <div id="headers-list" class="headers-list"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/ui.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/overview.js"></script>
+    <script src="js/cve-feed.js"></script>
+    <script src="js/ip-lookup.js"></script>
+    <script src="js/headers-scan.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

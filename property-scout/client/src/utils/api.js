@@ -1,42 +1,24 @@
 const API_HOST = 'zillw-real-estate-api.p.rapidapi.com';
-const API_KEY_STORAGE = 'property-scout-api-key';
 
-// API key management — stored in localStorage
-export function getApiKey() {
-  return localStorage.getItem(API_KEY_STORAGE) || '';
+// Detect server proxy — use it when available, fall back to demo mode
+function getServerBase() {
+  // In dev: Vite proxy or direct server at :3001
+  // In prod: same-origin (served by Express)
+  const loc = window.location;
+  if (loc.port === '5173') return 'http://localhost:3001';
+  return loc.origin;
 }
 
-export function setApiKey(key) {
-  // Basic validation: RapidAPI keys are alphanumeric
-  const sanitized = key.replace(/[^a-zA-Z0-9]/g, '');
-  localStorage.setItem(API_KEY_STORAGE, sanitized);
-}
-
-export function hasApiKey() {
-  return !!getApiKey();
-}
-
-// Direct RapidAPI calls from browser
-async function apiFetch(endpoint, params) {
-  const key = getApiKey();
-  if (!key) {
-    throw new Error('No API key configured. Add your RapidAPI key in Settings.');
-  }
-  const url = `https://${API_HOST}${endpoint}?${new URLSearchParams(params)}`;
-  const res = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      'X-RapidAPI-Key': key,
-      'X-RapidAPI-Host': API_HOST,
-    },
-  });
+async function proxyFetch(endpoint, params) {
+  const base = getServerBase();
+  const url = `${base}${endpoint}?${new URLSearchParams(params)}`;
+  const res = await fetch(url);
   if (!res.ok) {
-    if (res.status === 401 || res.status === 403) {
-      throw new Error('Invalid API key. Check your key in Settings.');
-    } else if (res.status === 429) {
+    if (res.status === 429) {
       throw new Error('Rate limit exceeded. Try again later.');
     }
-    throw new Error('Search failed. Please try again.');
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Request failed. Please try again.');
   }
   return res.json();
 }
@@ -53,39 +35,23 @@ export async function searchProperties(query) {
     return { results: [], error: 'Please enter a valid location.' };
   }
 
-  const key = getApiKey();
-  if (!key) {
-    return { results: generateDemoProperties(location), demo: true };
-  }
-
   try {
-    const data = await apiFetch('/properties/by-location', {
+    const data = await proxyFetch('/api/search', {
       location,
-      listType: 'for-sale',
-      page: '1',
+      minPrice: query.minPrice || '',
+      maxPrice: query.maxPrice || '',
+      minBeds: query.minBeds || '',
     });
 
-    // Normalize response — API may return different shapes
-    let listings = [];
-    if (Array.isArray(data)) {
-      listings = data;
-    } else if (data.props) {
-      listings = data.props;
-    } else if (data.results) {
-      listings = data.results;
-    } else if (data.searchResults) {
-      listings = data.searchResults;
-    } else if (data.data && Array.isArray(data.data)) {
-      listings = data.data;
+    if (data.demo) {
+      return { results: data.results, demo: true, error: data.error };
     }
 
-    const results = listings.map(normalizeProperty).filter(p => p.price > 0);
-
-    // Client-side filtering
+    // Client-side filtering (server already filters, but double-check)
     const minPrice = parseFloat(query.minPrice) || 0;
     const maxPrice = parseFloat(query.maxPrice) || Infinity;
     const minBeds = parseInt(query.minBeds) || 0;
-    const filtered = results.filter(p =>
+    const filtered = (data.results || []).filter(p =>
       p.price >= minPrice && p.price <= maxPrice && p.bedrooms >= minBeds
     );
 
@@ -144,7 +110,6 @@ function generateDemoProperties(location) {
     { price: 198000, beds: 4, baths: 2, sqft: 2000, suffix: 'Ash Ave' },
   ];
 
-  // Realistic placeholder house images (royalty-free from picsum, seeded for consistency)
   const demoImages = [
     'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&h=400&fit=crop',
