@@ -2,7 +2,7 @@
 
 const API = {
   // Free FRED API key — register your own at https://fred.stlouisfed.org/docs/api/api_key.html
-  FRED_KEY: 'f1c578e81c4146f0b8bd92fdbe41e5c9',
+  FRED_KEY: 'a53372ac8a600c7ccf48ccb1606c2712',
   FRED_BASE: 'https://api.stlouisfed.org/fred',
 
   _pending: {},
