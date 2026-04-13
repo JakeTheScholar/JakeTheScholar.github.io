@@ -25,7 +25,7 @@ jobs:
           mkdir -p _site
 
           # Root static files
-          cp -f index.html projects.html jake.html favicon.svg headshot.jpg CNAME robots.txt _site/ 2>/dev/null || true
+          cp -f index.html projects.html services.html jake.html favicon.svg headshot.jpg CNAME robots.txt _site/ 2>/dev/null || true
 
           # Agent Farm — frontend only (no server/)
           mkdir -p _site/agent-farm/js
