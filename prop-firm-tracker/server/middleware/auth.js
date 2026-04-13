@@ -10,7 +10,7 @@ async function requireAuth(req, res, next) {
   }
 
   const token = header.slice(7);
-  if (!token || token.length < 10) {
+  if (!token) {
     return res.status(401).json({ error: 'Invalid token' });
   }
 

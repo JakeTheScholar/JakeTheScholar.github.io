@@ -47,6 +47,7 @@ from agents.faceless_content_agent import FacelessContentAgent
 from agents.freelance_scraper_agent import FreelanceScraperAgent
 from agents.gumroad_agent import GumroadAgent
 from agents.video_producer_agent import VideoProducerAgent
+from agents.manager_agent import ManagerAgent
 from pipeline_db import PipelineDB, PIPELINE_CONFIGS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -56,7 +57,7 @@ log = logging.getLogger("agent-farm")
 # Generate a key on first run, or use from env
 API_KEY = os.getenv("AGENT_FARM_API_KEY") or secrets.token_urlsafe(32)
 if not os.getenv("AGENT_FARM_API_KEY"):
-    log.info(f"Generated API key (add to .env to persist): {API_KEY}")
+    log.info(f"Generated API key (add to .env to persist): {API_KEY[:8]}...")
 
 ALLOWED_OLLAMA_HOSTS = ["http://localhost:11434", "http://127.0.0.1:11434"]
 ALLOWED_MODELS = re.compile(r"^[a-zA-Z0-9._:-]{1,64}$")
@@ -101,6 +102,11 @@ orchestrator.register_agent(FreelanceScraperAgent())
 orchestrator.register_agent(GumroadAgent())
 orchestrator.register_agent(VideoProducerAgent())
 
+# Register Operations agents (1)
+_manager = ManagerAgent()
+orchestrator.register_agent(_manager)
+_manager.orchestrator = orchestrator  # Give manager access to orchestrator
+
 VALID_AGENT_IDS = set(orchestrator.agents.keys())
 
 
@@ -127,7 +133,7 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:8000,http://127
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_origin_regex=r"https://.*\.(ngrok-free\.(app|dev)|trycloudflare\.com)",
+    allow_origin_regex=r"https://[a-z0-9-]+\.(ngrok-free\.(app|dev)|trycloudflare\.com)",
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )

@@ -57,8 +57,11 @@ const UI = {
     if (/^(\d{1,3}\.){3}\d{1,3}$/.test(s)) {
       return s.split('.').every(n => { const v = parseInt(n, 10); return v >= 0 && v <= 255; });
     }
-    // IPv6 (simplified check)
-    if (/^[0-9a-fA-F:]{2,45}$/.test(s) && s.includes(':')) return true;
+    // IPv6
+    if (/^[0-9a-fA-F:]{2,45}$/.test(s) && s.includes(':') && !/:::/.test(s)) {
+      const parts = s.split(':');
+      if (parts.length >= 2 && parts.length <= 8) return true;
+    }
     return false;
   },
 
