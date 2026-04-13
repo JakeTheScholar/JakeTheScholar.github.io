@@ -135,7 +135,13 @@ app.get('/api/property-by-url', rateLimit, async (req, res) => {
       return res.status(400).json({ error: 'No API key configured' });
     }
     const url = req.query.url;
-    if (!url || !/^https?:\/\/(www\.)?zillow\.com\//i.test(url)) {
+    let validZillow = false;
+    try {
+      const parsed = new URL(url);
+      validZillow = (parsed.protocol === 'https:' || parsed.protocol === 'http:')
+        && (parsed.hostname === 'zillow.com' || parsed.hostname === 'www.zillow.com');
+    } catch {}
+    if (!validZillow) {
       return res.status(400).json({ error: 'Invalid URL — must be a Zillow property link' });
     }
     const data = await apiFetch('/properties/detail', { url });

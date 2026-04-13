@@ -23,7 +23,7 @@ const ALLOWED_ORIGINS = [
 ];
 app.use(cors({
   origin(origin, cb) {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error('CORS blocked'));
   },
   methods: ['GET'],
@@ -47,7 +47,14 @@ function isValidIPv4(str) {
 }
 
 function isValidIPv6(str) {
-  return /^[0-9a-fA-F:]{2,45}$/.test(str) && str.includes(':');
+  if (!str || typeof str !== 'string') return false;
+  // Must contain at least one colon, only hex digits and colons, no more than 8 groups
+  if (!/^[0-9a-fA-F:]{2,45}$/.test(str) || !str.includes(':')) return false;
+  // Reject obviously invalid patterns
+  if (/:::/.test(str)) return false;
+  const parts = str.split(':');
+  if (parts.length < 2 || parts.length > 8) return false;
+  return true;
 }
 
 function isValidIP(str) {
@@ -86,8 +93,18 @@ function isPublicURL(str) {
       if (a === 0) return false;                            // 0.0.0.0/8
     }
 
+    // Block private/link-local IPv6 ranges
+    if (host.startsWith('[')) {
+      const ipv6 = host.slice(1, -1).toLowerCase();
+      if (ipv6 === '::1') return false;                    // loopback
+      if (ipv6.startsWith('fe80')) return false;           // link-local
+      if (ipv6.startsWith('fc') || ipv6.startsWith('fd')) return false; // unique local (fc00::/7)
+      if (ipv6.startsWith('ff')) return false;             // multicast
+      if (ipv6 === '::') return false;                     // unspecified
+    }
+
     // Block internal TLDs / no-dot hostnames (e.g. http://metadata/)
-    if (!host.includes('.')) return false;
+    if (!host.includes('.') && !host.startsWith('[')) return false;
     if (host.endsWith('.internal') || host.endsWith('.local')) return false;
 
     return true;

@@ -6,6 +6,8 @@ const { validateAccount } = require('../middleware/validation');
 
 const router = Router();
 
+function isValidId(v) { return typeof v === 'string' && v.length <= 100 && /^[\w-]+$/.test(v); }
+
 // GET /api/accounts — list user's accounts
 router.get('/', async (req, res) => {
   const { data, error } = await supabase
@@ -77,6 +79,8 @@ router.put('/:id', async (req, res) => {
 
 // DELETE /api/accounts/:id — delete account (cascades journal + payouts via FK)
 router.delete('/:id', async (req, res) => {
+  if (!isValidId(req.params.id)) return res.status(400).json({ error: 'Invalid ID format' });
+
   const { error } = await supabase
     .from('accounts')
     .delete()

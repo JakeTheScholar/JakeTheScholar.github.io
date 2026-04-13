@@ -52,7 +52,7 @@ router.post('/payouts', async (req, res) => {
     .from('payouts')
     .insert({
       user_id: req.userId,
-      account_id: p.accountId,
+      account_id: account.id,
       date: p.date,
       amount: p.amount,
       note: p.note || null,
