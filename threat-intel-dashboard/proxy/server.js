@@ -16,6 +16,7 @@ app.use(express.json({ limit: '1kb' }));
 const ALLOWED_ORIGINS = [
   'https://jakemcgaha.com',
   'https://www.jakemcgaha.com',
+  'https://jakethescholar.github.io',
   'http://localhost:8080',
   'http://localhost:3000',
   'http://127.0.0.1:8080',
