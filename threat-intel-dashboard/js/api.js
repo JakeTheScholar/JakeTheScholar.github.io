@@ -2,7 +2,7 @@
 
 const API = {
   NVD_BASE: 'https://services.nvd.nist.gov/rest/json/cves/2.0',
-  PROXY_URL: '', // Set to your Railway proxy URL, e.g. 'https://tid-proxy.up.railway.app'
+  PROXY_URL: 'https://tid-proxy-production.up.railway.app',
 
   _proxyAvailable: null,
   _fallbackData: null,
