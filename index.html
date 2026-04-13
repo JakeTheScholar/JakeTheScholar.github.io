@@ -1081,7 +1081,8 @@
                 flex-direction: column;
                 text-align: center;
             }
-            .linkedin-content p { max-width: 100%; }
+            .linkedin-content h3 { text-align: center; }
+            .linkedin-content p { max-width: 100%; text-align: center; }
             .linkedin-buttons {
                 justify-content: center;
                 gap: 10px;
@@ -1090,6 +1091,12 @@
                 flex-basis: 100%;
                 display: flex;
                 justify-content: center;
+            }
+            .linkedin-buttons > a:not(:first-child) {
+                display: flex;
+                flex: 1;
+                justify-content: center;
+                max-width: 48%;
             }
 
             .contact-grid {
