@@ -368,16 +368,17 @@
         }
 
         .hero-actions {
-            display: flex;
-            align-items: center;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 14px;
+            max-width: 380px;
         }
 
         .btn-linkedin {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 12px 28px;
+            gap: 12px;
+            padding: 12px 24px 12px 16px;
             background: linear-gradient(135deg, var(--gold), var(--gold-bright));
             color: var(--void);
             font-family: var(--font-body);
@@ -393,7 +394,7 @@
             box-shadow: 0 0 32px rgba(201, 169, 110, 0.35);
             transform: translateY(-2px);
         }
-        .btn-linkedin svg { width: 18px; height: 18px; fill: currentColor; }
+        .btn-linkedin svg { width: 26px; height: 26px; fill: currentColor; flex-shrink: 0; }
 
         .btn-ghost {
             display: inline-flex;
@@ -1082,8 +1083,8 @@
             .hero-content { text-align: center; }
             .hero-tagline { margin-left: auto; margin-right: auto; }
             .hero-actions {
-                justify-content: center;
-                flex-wrap: wrap;
+                max-width: 320px;
+                margin: 0 auto;
             }
             .hero-photo-wrap { display: flex; justify-content: center; order: -1; }
             .hero-photo-frame { width: 240px; }
@@ -1131,6 +1132,7 @@
     <nav aria-label="Primary">
         <a href="#about">About</a>
         <a href="#skills">Skills</a>
+        <a href="services.html">Services</a>
         <a href="projects.html">Projects</a>
         <a href="#experience">Experience</a>
         <a href="#contact">Contact</a>
@@ -1159,6 +1161,7 @@
                             </svg>
                             Connect on LinkedIn
                         </a>
+                        <a href="services.html" class="btn-ghost">View Services</a>
                         <a href="projects.html" class="btn-ghost">View Projects</a>
                         <a href="#contact" class="btn-ghost">Get in Touch</a>
                     </div>
@@ -1297,9 +1300,9 @@
                             <div class="exp-meta">
                                 <span class="exp-role">President</span>
                                 <span class="exp-org">Student Government &mdash; Ferris State</span>
-                                <span class="exp-date">Sep 2024 &mdash; May 2026</span>
+                                <span class="exp-date">Apr 2025 &mdash; May 2026</span>
                             </div>
-                            <p class="exp-desc">Ran a team of 11 cabinet and chair members. Brought five new initiatives to the table. Sat across from university leadership regularly to negotiate better services and resources for students.</p>
+                            <p class="exp-desc">Chief executive of SGA, directing a 12-member cabinet representing 9,000+ students and overseeing a $100K student activity budget. Provided oversight to 220+ registered student organizations and implemented 15 new strategic initiatives. Led high-level negotiations with senior university leadership, securing improved services and resources for the entire student body.</p>
                             <div class="exp-tags">
                                 <span class="tag tag-gold">Leadership</span>
                                 <span class="tag tag-muted">Negotiation</span>
@@ -1320,7 +1323,7 @@
                                 <span class="exp-org">AF Group</span>
                                 <span class="exp-date">May 2024 &mdash; May 2026</span>
                             </div>
-                            <p class="exp-desc">Built a vendor comparison tool for stacking 20+ vendors side by side. Redesigned SharePoint pages and mapped out a visual ecosystem of team connections across 300+ people. Led an intern event for the nonprofit Care Free Medical.</p>
+                            <p class="exp-desc">Built a vendor comparison matrix evaluating 100+ external vendors, accelerating team review cycles and standardizing value-prop analysis. Designed a SharePoint webpage and visual relationship ecosystem mapping 20+ team connections, increasing visibility across a 5,000+ person organization. Led an intern community project for Carefree Medical, improving donor engagement and business continuity.</p>
                             <div class="exp-tags">
                                 <span class="tag tag-violet">Vendor Analysis</span>
                                 <span class="tag tag-muted">SharePoint</span>
@@ -1339,9 +1342,9 @@
                             <div class="exp-meta">
                                 <span class="exp-role">Vice President</span>
                                 <span class="exp-org">Z Wiser Technology</span>
-                                <span class="exp-date">Nov 2022 &mdash; Present</span>
+                                <span class="exp-date">Nov 2022 &mdash; Aug 2025</span>
                             </div>
-                            <p class="exp-desc">Helped negotiate IT service deals worth over $100K, upgrading tech infrastructure for 100+ companies. Manage training, development, and client communications. The bridge between clients and operations.</p>
+                            <p class="exp-desc">Negotiated managed IT service contracts totaling $100K+, upgrading infrastructure for over 100 small and mid-size businesses. Oversee team training, client onboarding, and cross-functional communications between technical operations and business stakeholders.</p>
                             <div class="exp-tags">
                                 <span class="tag tag-violet">IT Services</span>
                                 <span class="tag tag-muted">Negotiation</span>
@@ -1361,7 +1364,7 @@
                                 <span class="exp-org">RMA &amp; ACG Competitions</span>
                                 <span class="exp-date">2025 &mdash; 2026</span>
                             </div>
-                            <p class="exp-desc">Led teams through structuring loan solutions and pitching investment strategies backed by real financial analysis. Commercial lending, real estate collateral, rates &mdash; the full picture.</p>
+                            <p class="exp-desc">Captained teams in national-level finance competitions, structuring commercial loan proposals and presenting investment strategies to panels of industry professionals. Covered credit analysis, real estate collateral valuation, and interest rate modeling.</p>
                             <div class="exp-tags">
                                 <span class="tag tag-gold">Financial Analysis</span>
                                 <span class="tag tag-gold">Investment Banking</span>
@@ -1395,6 +1398,12 @@
                                     <circle cx="4" cy="4" r="2"/>
                                 </svg>
                                 View my LinkedIn
+                            </a>
+                            <a href="services.html" class="btn-ghost" style="width: fit-content;">
+                                <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;" aria-hidden="true">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                                </svg>
+                                View My Services
                             </a>
                             <a href="projects.html" class="btn-ghost" style="width: fit-content;">
                                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;" aria-hidden="true">
@@ -1517,6 +1526,10 @@
     </footer>
 
     <script>
+    // Scroll to top on refresh
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
     (function() {
         'use strict';
 
