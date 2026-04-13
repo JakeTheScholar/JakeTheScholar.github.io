@@ -799,6 +799,14 @@
             margin-bottom: 24px;
         }
 
+        .linkedin-buttons {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .linkedin-buttons > a { width: fit-content; }
+
         /* ── Contact ── */
         .contact-heading {
             font-family: var(--font-display);
@@ -1074,6 +1082,15 @@
                 text-align: center;
             }
             .linkedin-content p { max-width: 100%; }
+            .linkedin-buttons {
+                justify-content: center;
+                gap: 10px;
+            }
+            .linkedin-buttons > a:first-child {
+                flex-basis: 100%;
+                display: flex;
+                justify-content: center;
+            }
 
             .contact-grid {
                 grid-template-columns: 1fr;
@@ -1410,21 +1427,21 @@
                     <div class="linkedin-content">
                         <h3>Let&rsquo;s connect on LinkedIn</h3>
                         <p>Follow along for insights on economics, security, and what I&rsquo;m building next &mdash; or reach out directly if you&rsquo;re hiring, collaborating, or just want to talk shop.</p>
-                        <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-                            <a href="https://www.linkedin.com/in/jakemcgaha/" class="btn-linkedin" target="_blank" rel="noopener noreferrer" style="width: fit-content;">
+                        <div class="linkedin-buttons">
+                            <a href="https://www.linkedin.com/in/jakemcgaha/" class="btn-linkedin" target="_blank" rel="noopener noreferrer">
                                 <svg viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/>
                                     <circle cx="4" cy="4" r="2"/>
                                 </svg>
                                 View my LinkedIn
                             </a>
-                            <a href="services.html" class="btn-ghost" style="width: fit-content;">
+                            <a href="services.html" class="btn-ghost">
                                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;" aria-hidden="true">
                                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
                                 </svg>
                                 View My Services
                             </a>
-                            <a href="projects.html" class="btn-ghost" style="width: fit-content;">
+                            <a href="projects.html" class="btn-ghost">
                                 <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;" aria-hidden="true">
                                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                                 </svg>
@@ -1468,6 +1485,17 @@
                                 <div class="contact-item-label">LinkedIn</div>
                                 <div class="contact-item-value">
                                     <a href="https://www.linkedin.com/in/jakemcgaha/" target="_blank" rel="noopener noreferrer">linkedin.com/in/jakemcgaha</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-item-icon">
+                                <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                            </div>
+                            <div>
+                                <div class="contact-item-label">Instagram</div>
+                                <div class="contact-item-value">
+                                    <a href="https://www.instagram.com/jake_thescholar" target="_blank" rel="noopener noreferrer">@jake_thescholar</a>
                                 </div>
                             </div>
                         </div>
