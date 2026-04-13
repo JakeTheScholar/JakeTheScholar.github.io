@@ -1032,8 +1032,18 @@
         }
 
         @media (max-width: 768px) {
-            nav { gap: 20px; padding: 12px 24px; top: 16px; }
-            nav a { font-size: 11px; letter-spacing: 0.06em; }
+            nav {
+                gap: 14px;
+                padding: 10px 18px;
+                top: 12px;
+                max-width: calc(100vw - 24px);
+                overflow-x: auto;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                -webkit-overflow-scrolling: touch;
+            }
+            nav::-webkit-scrollbar { display: none; }
+            nav a { font-size: 10px; letter-spacing: 0.04em; white-space: nowrap; }
             .section-inner { padding: 100px 20px; }
 
             .about-grid {
@@ -1458,6 +1468,17 @@
                                 <div class="contact-item-label">LinkedIn</div>
                                 <div class="contact-item-value">
                                     <a href="https://www.linkedin.com/in/jakemcgaha/" target="_blank" rel="noopener noreferrer">linkedin.com/in/jakemcgaha</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="contact-item">
+                            <div class="contact-item-icon">
+                                <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><circle cx="8" cy="15" r="1.5"/></svg>
+                            </div>
+                            <div>
+                                <div class="contact-item-label">Business Card</div>
+                                <div class="contact-item-value">
+                                    <a href="https://dot.cards/jakethescholar" target="_blank" rel="noopener noreferrer">dot.cards/jakethescholar</a>
                                 </div>
                             </div>
                         </div>
