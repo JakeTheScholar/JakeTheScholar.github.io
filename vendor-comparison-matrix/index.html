@@ -372,12 +372,21 @@ const Store = {
   },
 
   // Seed default admin if no users exist
-  seedUsers() {
+  async seedUsers() {
     if (this.getUsers().length === 0) {
-      this.saveUser({ username: 'admin', displayName: 'Administrator', role: 'admin', password: 'admin123' });
+      const hash = await hashPassword('VendorMatrix2026!');
+      this.saveUser({ username: 'admin', displayName: 'Administrator', role: 'admin', password: hash });
     }
   }
 };
+
+// ── Password Hashing (SHA-256, client-side) ──────────────────────────
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 // ── User Roles & Permissions ──────────────────────────────────────────
 const ROLES = {
@@ -395,17 +404,18 @@ const Auth = {
   canManageCampaigns(){ return this.hasRole('admin'); },
   canScore()          { return this.hasRole('evaluator'); },
   canDecide()         { return this.hasRole('evaluator'); },
-  login(username, password) {
+  async login(username, password) {
     const user = Store.getUserByUsername(username);
     if (!user) return { ok: false, error: 'User not found' };
-    if (user.password !== password) return { ok: false, error: 'Invalid password' };
+    const hash = await hashPassword(password);
+    if (user.password !== hash) return { ok: false, error: 'Invalid password' };
     Store.setSession(user.id);
     return { ok: true };
   },
   logout() { Store.clearSession(); location.hash = '#/'; render(); }
 };
 
-Store.seedUsers();
+Store.seedUsers(); // async — resolves before DOMContentLoaded fires render()
 
 // ── AI Auto-Score (generates intelligent defaults for new vendors) ────
 function generateAIScores(vendor) {
@@ -3074,8 +3084,8 @@ function renderLogin(root) {
   const form = { username: '', password: '' };
   const errEl = el('div', { className: 'text-red-500 text-sm mb-3 hidden' });
 
-  function doLogin() {
-    const result = Auth.login(form.username.trim(), form.password);
+  async function doLogin() {
+    const result = await Auth.login(form.username.trim(), form.password);
     if (result.ok) { location.hash = '#/'; render(); }
     else { errEl.textContent = result.error; errEl.className = 'text-red-500 text-sm mb-3'; }
   }
@@ -3117,7 +3127,7 @@ function renderLogin(root) {
         }, 'Sign In')
       )
     ),
-    el('p', { className: 'text-center text-xs text-slate-400 mt-4' }, 'Default credentials: admin / admin123')
+    el('p', { className: 'text-center text-xs text-slate-400 mt-4' }, 'Default credentials: admin / VendorMatrix2026!')
   );
   root.appendChild(loginCard);
 }
@@ -3180,7 +3190,7 @@ function renderUsers(root) {
     el('div', { className: 'mt-4 flex items-center gap-3' },
       el('button', {
         className: 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl hover:from-indigo-600 hover:to-indigo-700 font-semibold text-sm shadow-sm shadow-indigo-200 hover:shadow-md transition-all duration-200',
-        onclick: () => {
+        onclick: async () => {
           const username = cleanStr(addForm.username);
           const displayName = cleanStr(addForm.displayName);
           const password = addForm.password;
@@ -3188,7 +3198,8 @@ function renderUsers(root) {
           if (!displayName) { errEl.textContent = 'Display name required'; errEl.className = 'text-red-600 text-sm mt-3'; return; }
           if (!password) { errEl.textContent = 'Password required'; errEl.className = 'text-red-600 text-sm mt-3'; return; }
           if (Store.getUserByUsername(username)) { errEl.textContent = 'Username already taken'; errEl.className = 'text-red-600 text-sm mt-3'; return; }
-          Store.saveUser({ username, displayName, role: addForm.role, password });
+          const hashedPw = await hashPassword(password);
+          Store.saveUser({ username, displayName, role: addForm.role, password: hashedPw });
           render();
         }
       }, '+ Add User'),
@@ -3249,9 +3260,9 @@ function renderUsers(root) {
             })(),
             el('button', {
               className: 'text-xs text-indigo-600 hover:text-indigo-800',
-              onclick: () => {
+              onclick: async () => {
                 const pw = prompt('Set new password for ' + u.displayName + ':');
-                if (pw && pw.trim()) { Store.saveUser({ ...u, password: pw.trim() }); alert('Password updated.'); }
+                if (pw && pw.trim()) { const hashed = await hashPassword(pw.trim()); Store.saveUser({ ...u, password: hashed }); alert('Password updated.'); }
               }
             }, 'Reset PW'),
             !isSelf ? el('button', {

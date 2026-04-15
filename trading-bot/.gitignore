@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+logs/*.log
+logs/*.csv
+.venv/
+
+# TradingView Pine scripts (contain live PickMyTrade tokens + account IDs)
+*.pine
+tradingview/

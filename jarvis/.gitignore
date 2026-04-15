@@ -1,0 +1,30 @@
+# Secrets
+.env
+google_credentials.json
+google_token.json
+outlook_token.json
+*.pem
+security.log
+
+# State files (personal data)
+jarvis_memory.json
+jarvis_notes.json
+jarvis_contacts.json
+jarvis_last_briefing.json
+jarvis_monitor_state.json
+jarvis_job_tracker.json
+jarvis_job_profile.json
+jarvis_job_sheet_id.txt
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Uploads
+uploads/
+
+# Generated
+Cover_Letter_*.txt
+AUTO_LOGIN_URL.txt

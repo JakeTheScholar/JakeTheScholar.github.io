@@ -15,6 +15,16 @@ server/data/
 .vscode/
 .idea/
 
+# Credentials & tokens
+server/google_credentials.json
+server/data/gmail_token.json
+server/start.sh
+server/stop.sh
+server/.server.pid
+
+# Exports (may contain PII from scraped leads)
+exports/
+
 # OS
 .DS_Store
 Thumbs.db
