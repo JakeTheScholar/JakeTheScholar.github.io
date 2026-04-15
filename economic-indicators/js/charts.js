@@ -134,13 +134,10 @@ const Charts = {
     // Build gradient fill
     let bgColor = 'transparent';
     if (fillGradient) {
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.parentElement.offsetHeight || 400);
-      gradient.addColorStop(0, color.replace(')', ',0.2)').replace('rgb', 'rgba').replace('#', ''));
-      // Use simple rgba for hex colors
       const r = parseInt(color.slice(1, 3), 16) || 201;
       const g = parseInt(color.slice(3, 5), 16) || 169;
       const b = parseInt(color.slice(5, 7), 16) || 110;
-      const gradientFill = ctx.createLinearGradient(0, 0, 0, 400);
+      const gradientFill = ctx.createLinearGradient(0, 0, 0, canvas.parentElement.offsetHeight || 400);
       gradientFill.addColorStop(0, `rgba(${r},${g},${b},0.2)`);
       gradientFill.addColorStop(1, `rgba(${r},${g},${b},0.0)`);
       bgColor = gradientFill;
