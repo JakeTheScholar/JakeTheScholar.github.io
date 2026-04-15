@@ -48,8 +48,9 @@ const Dashboard = {
       ]);
 
       this.renderCards(latestMap, sparkMap);
+      const src = API._useFallback ? 'Cached data' : 'Live FRED data';
       document.getElementById('dashboard-updated').textContent =
-        'Last updated: ' + new Date().toLocaleTimeString();
+        src + ' \u2022 ' + new Date().toLocaleTimeString();
     } catch (err) {
       console.error('Dashboard load error:', err);
       document.getElementById('error-banner').style.display = 'block';

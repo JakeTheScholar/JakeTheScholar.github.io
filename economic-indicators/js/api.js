@@ -39,6 +39,13 @@ const API = {
   async fetchFRED(seriesId, opts = {}) {
     if (!this._isValidSeries(seriesId)) throw new Error('Invalid series ID');
 
+    // If we already know FRED is unreachable (CORS blocked), go straight to cache
+    if (this._useFallback) {
+      const fallback = this._getFallback(seriesId);
+      if (fallback) return fallback;
+      throw new Error('No cached data for ' + seriesId);
+    }
+
     const {
       startDate,
       endDate,
@@ -88,13 +95,10 @@ const API = {
         Store.set(cacheKey, observations, ttl);
         return observations;
       } catch (err) {
-        console.error(`API.fetchFRED(${seriesId}):`, err);
-        // Fall back to cached data
+        // Switch to fallback mode on first failure (CORS block, network error, etc.)
+        this._useFallback = true;
         const fallback = this._getFallback(seriesId);
-        if (fallback) {
-          this._useFallback = true;
-          return fallback;
-        }
+        if (fallback) return fallback;
         throw err;
       } finally {
         delete this._pending[cacheKey];
@@ -106,6 +110,14 @@ const API = {
 
   async fetchLatest(seriesId, count = 2) {
     if (!this._isValidSeries(seriesId)) throw new Error('Invalid series ID');
+
+    // Use fallback cache directly if FRED is unreachable
+    if (this._useFallback) {
+      const fallback = this._getFallback(seriesId);
+      if (fallback && fallback.length > 0) return fallback.slice(-count);
+      throw new Error('No cached data for ' + seriesId);
+    }
+
     const cacheKey = `latest_${seriesId}`;
     const cached = Store.get(cacheKey);
     if (cached) return cached;
@@ -136,12 +148,9 @@ const API = {
       Store.set(cacheKey, observations, 60 * 60 * 1000);
       return observations;
     } catch (err) {
-      console.error(`API.fetchLatest(${seriesId}):`, err);
+      this._useFallback = true;
       const fallback = this._getFallback(seriesId);
-      if (fallback && fallback.length > 0) {
-        this._useFallback = true;
-        return fallback.slice(-count);
-      }
+      if (fallback && fallback.length > 0) return fallback.slice(-count);
       throw err;
     }
   },
