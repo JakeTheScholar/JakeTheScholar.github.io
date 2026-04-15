@@ -18,10 +18,10 @@ const STAGE_RAMPS = {
 };
 
 const Pipeline = {
-  pipelineTypes: null,  // from /api/pipeline/types
-  allStats: null,       // from /api/pipeline/all-stats
-  items: null,          // from /api/pipeline/items
-  leadgenLeads: null,   // from /api/pipeline/leads (legacy)
+  pipelineTypes: null,
+  allStats: null,
+  items: null,
+  leadgenLeads: null,
   activeType: 'leadgen',
   refreshTimer: null,
 
@@ -41,15 +41,14 @@ const Pipeline = {
       if (typesRes.ok) this.pipelineTypes = await typesRes.json();
       if (allStatsRes.ok) this.allStats = await allStatsRes.json();
 
-      // Fetch type-specific data
       if (this.activeType === 'leadgen') {
-        const [leadsRes, stagesRes] = await Promise.all([
+        const [leadsRes] = await Promise.all([
           fetch('/api/pipeline/leads?limit=20', { headers }),
           fetch('/api/pipeline/stages', { headers }),
         ]);
         if (leadsRes.ok) this.leadgenLeads = await leadsRes.json();
       } else {
-        const [itemsRes, stagesRes] = await Promise.all([
+        const [itemsRes] = await Promise.all([
           fetch(`/api/pipeline/items?pipeline_type=${this.activeType}&limit=20`, { headers }),
           fetch(`/api/pipeline/items/stages?pipeline_type=${this.activeType}`, { headers }),
         ]);
@@ -66,17 +65,39 @@ const Pipeline = {
     if (!container) return;
 
     if (!this.allStats || !this.pipelineTypes) {
-      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:12px;">Connecting to pipeline...</div>`;
+      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text-muted);font-family:'Rajdhani',sans-serif;font-size:14px;letter-spacing:1px;">Connecting to pipeline...</div>`;
       return;
     }
 
+    // Calculate totals for summary bar
+    let grandTotal = 0;
+    let activeCount = 0;
+    Object.entries(this.allStats).forEach(([key, stats]) => {
+      const total = key === 'leadgen' ? (stats.total_leads || 0) : (stats.total || 0);
+      grandTotal += total;
+      if (total > 0) activeCount++;
+    });
+
     container.innerHTML = `
+      <div class="pipeline-summary-bar">
+        <div class="pipeline-summary-item">
+          <span class="pipeline-summary-num">${grandTotal}</span>
+          <span class="pipeline-summary-lbl">Total Items</span>
+        </div>
+        <div class="pipeline-summary-item">
+          <span class="pipeline-summary-num">${activeCount}</span>
+          <span class="pipeline-summary-lbl">Active Pipelines</span>
+        </div>
+        <div class="pipeline-summary-item">
+          <span class="pipeline-summary-num">${Object.keys(this.pipelineTypes).length}</span>
+          <span class="pipeline-summary-lbl">Pipeline Types</span>
+        </div>
+      </div>
       ${this._renderTypeTabs()}
       ${this._renderOverviewCards()}
       ${this._renderActivePipeline()}
     `;
 
-    // Wire tab clicks
     container.querySelector('.pipeline-type-tabs').addEventListener('click', (e) => {
       const tab = e.target.closest('.pipeline-type-tab');
       if (tab && tab.dataset.type !== this.activeType) {
@@ -103,20 +124,18 @@ const Pipeline = {
   },
 
   _renderOverviewCards() {
-    // Summary across all pipelines
-    let totalAll = 0;
     const cards = Object.entries(this.allStats).map(([key, stats]) => {
       const cfg = this.pipelineTypes[key];
       if (!cfg) return '';
       const total = key === 'leadgen' ? (stats.total_leads || 0) : (stats.total || 0);
-      totalAll += total;
       const sc = stats.stage_counts || {};
       const lastStage = cfg.stages[cfg.stages.length - 1];
       const completed = sc[lastStage] || 0;
-      return `<div class="stat-card" style="border-top:2px solid ${cfg.color};">
+      const completionRate = total > 0 ? ((completed / total) * 100).toFixed(0) : '0';
+      return `<div class="stat-card" style="--card-accent:${cfg.color};">
         <div class="stat-value" style="color:${cfg.color};">${total}</div>
         <div class="stat-label">${UI.esc(cfg.label)}</div>
-        <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:4px;">${completed} ${UI.esc(cfg.stage_labels[lastStage] || lastStage)}</div>
+        <div class="stat-sub">${completed} ${UI.esc(cfg.stage_labels[lastStage] || lastStage)} · ${completionRate}%</div>
       </div>`;
     }).join('');
 
@@ -142,19 +161,21 @@ const Pipeline = {
   _renderFunnel(cfg, sc, type) {
     const ramp = STAGE_RAMPS[type] || STAGE_RAMPS.leadgen;
     const maxCount = Math.max(...cfg.stages.map(s => sc[s] || 0), 1);
+    const total = cfg.stages.reduce((sum, s) => sum + (sc[s] || 0), 0);
 
     const rows = cfg.stages.map((stage, i) => {
       const count = sc[stage] || 0;
       const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+      const shareOfTotal = total > 0 ? ((count / total) * 100).toFixed(0) : '0';
       const color = ramp[i % ramp.length];
       const label = cfg.stage_labels[stage] || stage;
 
       return `<div class="funnel-row">
         <div class="funnel-label">${UI.esc(label)}</div>
         <div class="funnel-bar-bg">
-          <div class="funnel-bar" style="width:${pct}%;background:${color};opacity:0.7;"></div>
+          <div class="funnel-bar" style="width:${pct}%;background:${color};"></div>
         </div>
-        <div class="funnel-count">${count}</div>
+        <div class="funnel-count">${count}<span style="opacity:0.4;font-size:10px;margin-left:4px;">${shareOfTotal}%</span></div>
       </div>`;
     }).join('');
 
@@ -166,8 +187,8 @@ const Pipeline = {
     if (!leads || leads.length === 0) {
       return `<div class="leads-section">
         <div class="leads-title">Recent Leads</div>
-        <div style="text-align:center;padding:20px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:11px;">
-          No leads yet — start the Lead Scraper agent to begin
+        <div style="text-align:center;padding:30px;color:var(--text-muted);font-family:'Rajdhani',sans-serif;font-size:13px;">
+          No leads yet — start the Lead Scraper agent
         </div></div>`;
     }
 
@@ -180,12 +201,12 @@ const Pipeline = {
       const score = lead.score || 0;
       const scoreColor = score >= 70 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
       return `<tr>
-        <td>${UI.esc(lead.business_name || '—')}</td>
+        <td style="font-weight:600;color:var(--text);">${UI.esc(lead.business_name || '—')}</td>
         <td>${UI.esc(industry)}</td>
-        <td><span class="stage-pill" style="background:${color}20;color:${color};border:1px solid ${color}40;">${UI.esc(lead.stage)}</span></td>
-        <td style="color:${scoreColor};font-family:'Share Tech Mono',monospace;font-size:12px;">${score}</td>
-        <td style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);">${UI.esc(lead.contact_name || '—')}</td>
-        <td style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);">${UI.esc(lead.location || '—')}</td>
+        <td><span class="stage-pill" style="background:${color}15;color:${color};border:1px solid ${color}30;">${UI.esc(lead.stage)}</span></td>
+        <td><span class="num" style="color:${scoreColor};font-size:14px;font-weight:600;">${score}</span></td>
+        <td style="font-size:12px;color:var(--text-muted);">${UI.esc(lead.contact_name || '—')}</td>
+        <td style="font-size:12px;color:var(--text-muted);">${UI.esc(lead.location || '—')}</td>
       </tr>`;
     }).join('');
 
@@ -202,8 +223,8 @@ const Pipeline = {
     if (!items || items.length === 0) {
       return `<div class="leads-section">
         <div class="leads-title">Recent ${UI.esc(cfg.label)} Items</div>
-        <div style="text-align:center;padding:20px;color:var(--text-muted);font-family:'Share Tech Mono',monospace;font-size:11px;">
-          No items yet — start the relevant agents to begin tracking
+        <div style="text-align:center;padding:30px;color:var(--text-muted);font-family:'Rajdhani',sans-serif;font-size:13px;">
+          No items yet — start the relevant agents
         </div></div>`;
     }
 
@@ -217,11 +238,11 @@ const Pipeline = {
       const scoreColor = score >= 70 ? '#34d399' : score >= 50 ? '#fbbf24' : '#f87171';
       const label = cfg.stage_labels[item.stage] || item.stage;
       return `<tr>
-        <td>${UI.esc(item.title || '—')}</td>
+        <td style="font-weight:600;color:var(--text);">${UI.esc(item.title || '—')}</td>
         <td style="font-size:12px;color:var(--text-muted);">${UI.esc(item.subtitle || '—')}</td>
-        <td><span class="stage-pill" style="background:${color}20;color:${color};border:1px solid ${color}40;">${UI.esc(label)}</span></td>
-        <td style="color:${scoreColor};font-family:'Share Tech Mono',monospace;font-size:12px;">${score}</td>
-        <td style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-muted);">${UI.esc(item.source_agent || '—')}</td>
+        <td><span class="stage-pill" style="background:${color}15;color:${color};border:1px solid ${color}30;">${UI.esc(label)}</span></td>
+        <td><span class="num" style="color:${scoreColor};font-size:14px;font-weight:600;">${score}</span></td>
+        <td style="font-size:12px;color:var(--text-muted);">${UI.esc(item.source_agent || '—')}</td>
       </tr>`;
     }).join('');
 

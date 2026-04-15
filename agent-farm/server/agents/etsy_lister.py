@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 LISTING_TYPES = [
@@ -112,7 +112,7 @@ class EtsyListerAgent(BaseAgent):
             elif "```" in result:
                 result = result.split("```")[1].split("```")[0].strip()
 
-            save_result = save_template(result, f"etsy-listing-{product}", fmt="json")
+            save_result = save_output(result, "etsy-listings", f"etsy-listing-{product}", fmt="json")
 
             # Track in Etsy pipeline
             if self.pipeline_db:

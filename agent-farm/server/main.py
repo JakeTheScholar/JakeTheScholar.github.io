@@ -9,6 +9,7 @@ import asyncio
 from pathlib import Path
 from collections import defaultdict
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -48,6 +49,12 @@ from agents.freelance_scraper_agent import FreelanceScraperAgent
 from agents.gumroad_agent import GumroadAgent
 from agents.video_producer_agent import VideoProducerAgent
 from agents.manager_agent import ManagerAgent
+from agents.ceo_agent import CEOAgent
+from agents.cfo_agent import CFOAgent
+from agents.coo_agent import COOAgent
+from agents.cmo_agent import CMOAgent
+from agents.cto_agent import CTOAgent
+from agents.cco_agent import CCOAgent
 from pipeline_db import PipelineDB, PIPELINE_CONFIGS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
@@ -107,6 +114,30 @@ _manager = ManagerAgent()
 orchestrator.register_agent(_manager)
 _manager.orchestrator = orchestrator  # Give manager access to orchestrator
 
+# Register Executive agents (6)
+_ceo = CEOAgent()
+orchestrator.register_agent(_ceo)
+_ceo.orchestrator = orchestrator
+
+_cfo = CFOAgent()
+orchestrator.register_agent(_cfo)
+
+_coo = COOAgent()
+orchestrator.register_agent(_coo)
+_coo.orchestrator = orchestrator
+
+_cmo = CMOAgent()
+orchestrator.register_agent(_cmo)
+_cmo.orchestrator = orchestrator
+
+_cto = CTOAgent()
+orchestrator.register_agent(_cto)
+_cto.orchestrator = orchestrator
+
+_cco = CCOAgent()
+orchestrator.register_agent(_cco)
+_cco.orchestrator = orchestrator
+
 VALID_AGENT_IDS = set(orchestrator.agents.keys())
 
 
@@ -151,17 +182,34 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-# ─── Rate Limiting (simple in-memory) ───
+# ─── Rate Limiting (simple in-memory with cleanup) ───
 _rate_limits: dict[str, list[float]] = defaultdict(list)
+_rate_limit_calls = 0
+_RATE_LIMIT_MAX_IPS = 10000
 
 
 def _check_rate_limit(client_ip: str, max_per_minute: int = 60) -> bool:
+    global _rate_limit_calls
     now = time.time()
     window = [t for t in _rate_limits[client_ip] if now - t < 60]
     _rate_limits[client_ip] = window
     if len(window) >= max_per_minute:
         return False
     _rate_limits[client_ip].append(now)
+
+    # Periodic cleanup: every 200 requests, purge stale IPs
+    _rate_limit_calls += 1
+    if _rate_limit_calls >= 200:
+        _rate_limit_calls = 0
+        stale = [ip for ip, ts in _rate_limits.items() if not ts or now - ts[-1] > 120]
+        for ip in stale:
+            del _rate_limits[ip]
+        # Hard cap: if still too many IPs, drop the oldest half
+        if len(_rate_limits) > _RATE_LIMIT_MAX_IPS:
+            sorted_ips = sorted(_rate_limits, key=lambda ip: _rate_limits[ip][-1] if _rate_limits[ip] else 0)
+            for ip in sorted_ips[:len(sorted_ips) // 2]:
+                del _rate_limits[ip]
+
     return True
 
 
@@ -484,6 +532,152 @@ async def lead_lifecycle(lead_id: str):
     if not result:
         raise HTTPException(status_code=404, detail="Lead not found or has no transitions")
     return result
+
+
+# ─── Orders API ───
+
+VALID_ORDER_TYPES = {
+    "thumbnail", "ad_copy", "template", "social_content",
+    "seo_report", "fiverr_gig", "music", "website_mockup",
+}
+
+# Maps order types to the agent that should handle them
+ORDER_AGENT_MAP = {
+    "thumbnail": "image-gen-001",
+    "ad_copy": "ad-copy-001",
+    "template": "printables-001",
+    "social_content": "social-001",
+    "seo_report": "seo-001",
+    "fiverr_gig": "fiverr-001",
+    "music": "music-001",
+    "website_mockup": "web-dev-001",
+}
+
+
+class NewOrder(BaseModel):
+    order_type: str
+    client_brief: str
+    client_name: Optional[str] = None
+    platform: str = "fiverr"
+    package: str = "basic"
+    price: float = 0
+    notes: Optional[str] = None
+
+    @field_validator("order_type")
+    @classmethod
+    def valid_type(cls, v):
+        if v not in VALID_ORDER_TYPES:
+            raise ValueError(f"order_type must be one of: {', '.join(sorted(VALID_ORDER_TYPES))}")
+        return v
+
+    @field_validator("client_brief")
+    @classmethod
+    def brief_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError("client_brief cannot be empty")
+        return v.strip()
+
+
+@app.get("/api/orders", dependencies=[Depends(verify_api_key)])
+async def list_orders(status: Optional[str] = None, limit: int = 50):
+    orders = await asyncio.to_thread(pipeline_db.get_orders, status, min(limit, 100))
+    return orders
+
+
+@app.get("/api/orders/stats", dependencies=[Depends(verify_api_key)])
+async def order_stats():
+    return await asyncio.to_thread(pipeline_db.get_order_stats)
+
+
+@app.get("/api/orders/{order_id}", dependencies=[Depends(verify_api_key)])
+async def get_order(order_id: str):
+    order = await asyncio.to_thread(pipeline_db.get_order, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@app.post("/api/orders", dependencies=[Depends(verify_api_key)])
+async def create_order(order: NewOrder):
+    result = await asyncio.to_thread(
+        pipeline_db.add_order,
+        order_type=order.order_type,
+        client_brief=order.client_brief,
+        client_name=order.client_name,
+        platform=order.platform,
+        package=order.package,
+        price=order.price,
+        notes=order.notes,
+    )
+    # Auto-assign to the right agent
+    agent_id = ORDER_AGENT_MAP.get(order.order_type)
+    if agent_id:
+        await asyncio.to_thread(
+            pipeline_db.update_order, result["id"],
+            assigned_agent=agent_id, status="assigned",
+        )
+        result["assigned_agent"] = agent_id
+        result["status"] = "assigned"
+    return result
+
+
+@app.post("/api/orders/{order_id}/status", dependencies=[Depends(verify_api_key)])
+async def update_order_status(order_id: str, status: str = Query(...)):
+    valid = {"pending", "assigned", "in_progress", "review", "completed", "delivered", "cancelled"}
+    if status not in valid:
+        raise HTTPException(400, f"status must be one of: {', '.join(sorted(valid))}")
+    kwargs = {"status": status}
+    if status == "delivered":
+        kwargs["delivered_at"] = datetime.now().isoformat()
+    ok = await asyncio.to_thread(pipeline_db.update_order, order_id, **kwargs)
+    if not ok:
+        raise HTTPException(404, "Order not found")
+    return {"ok": True, "status": status}
+
+
+@app.get("/api/orders/types", dependencies=[Depends(verify_api_key)])
+async def order_types():
+    return {
+        "types": {
+            "thumbnail": {"label": "YouTube Thumbnail", "agent": "image-gen-001", "price_range": "$10-30"},
+            "ad_copy": {"label": "Ad Copy Package", "agent": "ad-copy-001", "price_range": "$25-50"},
+            "template": {"label": "Financial Template", "agent": "printables-001", "price_range": "$15-40"},
+            "social_content": {"label": "Social Media Pack", "agent": "social-001", "price_range": "$30-75"},
+            "seo_report": {"label": "SEO Keyword Report", "agent": "seo-001", "price_range": "$20-50"},
+            "fiverr_gig": {"label": "Fiverr Gig Listing", "agent": "fiverr-001", "price_range": "$10-25"},
+            "music": {"label": "Audio/Music Pack", "agent": "music-001", "price_range": "$15-50"},
+            "website_mockup": {"label": "Website Mockup", "agent": "web-dev-001", "price_range": "$25-75"},
+        }
+    }
+
+
+# ─── Exports API ───
+
+@app.get("/api/exports/outputs", dependencies=[Depends(verify_api_key)])
+async def list_all_outputs():
+    """List all generated output files across all subdirectories."""
+    from tools.file_tools import OUTPUT_DIR
+    result = {}
+    if OUTPUT_DIR.exists():
+        for subdir in sorted(OUTPUT_DIR.iterdir()):
+            if subdir.is_dir():
+                files = []
+                for f in sorted(subdir.iterdir(), key=lambda x: x.stat().st_mtime, reverse=True):
+                    if f.is_file() and not f.name.startswith("."):
+                        files.append({
+                            "filename": f.name,
+                            "size_bytes": f.stat().st_size,
+                            "modified": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
+                        })
+                if files:
+                    result[subdir.name] = {"count": len(files), "files": files[:20]}
+    return result
+
+
+@app.get("/api/exports/outputs/{subdir}", dependencies=[Depends(verify_api_key)])
+async def list_subdir_outputs(subdir: str, limit: int = 50):
+    from tools.file_tools import list_outputs
+    return await asyncio.to_thread(list_outputs, subdir)
 
 
 # ─── Global Exception Handler ───

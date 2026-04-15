@@ -18,196 +18,153 @@ from tools.file_tools import ensure_output_dir
 log = logging.getLogger(__name__)
 
 
-# Product types that need visuals
+# ─── YouTube Thumbnails & Visual Content ───
 VISUAL_PRODUCTS = [
+    # ─── YouTube Thumbnails (16:9, high-impact, scroll-stopping) ───
     {
-        "id": "trading-journal-cover",
-        "title": "Trading Journal Cover Art",
-        "prompt_hint": "professional trading journal cover, financial charts, dark theme, gold accents",
-        "style": "digital product mockup",
+        "id": "yt-thumb-trading-profits",
+        "title": "YT Thumb: Trading Profits Reveal",
+        "prompt_hint": "YouTube thumbnail, bold green profit numbers overlaid on dark trading screen, shocked face silhouette, bright green glow effect, dramatic composition, 16:9 aspect ratio",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "budget-planner-cover",
-        "title": "Budget Planner Cover",
-        "prompt_hint": "elegant budget planner cover, minimalist, pastel colors, clean typography space",
-        "style": "digital product mockup",
+        "id": "yt-thumb-market-crash",
+        "title": "YT Thumb: Market Crash Alert",
+        "prompt_hint": "YouTube thumbnail, red stock chart crashing downward, emergency warning aesthetic, dark background, red glow, bold dramatic layout, 16:9 aspect ratio",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "wall-art-finance-motivation",
-        "title": "Finance Motivation Wall Art",
-        "prompt_hint": "motivational finance quote wall art, luxury aesthetic, marble and gold",
-        "style": "printable wall art",
+        "id": "yt-thumb-side-hustle",
+        "title": "YT Thumb: Side Hustle Money",
+        "prompt_hint": "YouTube thumbnail, cash fanning out from laptop screen, neon green money glow, dark room with monitor light, hustle aesthetic, clean composition, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "wall-art-trading-desk",
-        "title": "Trading Desk Setup Art",
-        "prompt_hint": "multiple monitor trading desk setup, neon glow, cyberpunk aesthetic, dark room",
-        "style": "printable wall art",
+        "id": "yt-thumb-crypto-analysis",
+        "title": "YT Thumb: Crypto Deep Dive",
+        "prompt_hint": "YouTube thumbnail, bitcoin and ethereum coins floating over futuristic chart, holographic blue-purple glow, dark tech aesthetic, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "wall-art-bull-market",
-        "title": "Bull Market Abstract Art",
-        "prompt_hint": "abstract bull silhouette, stock chart overlay, green and gold, modern art",
-        "style": "printable wall art",
+        "id": "yt-thumb-passive-income",
+        "title": "YT Thumb: Passive Income Secrets",
+        "prompt_hint": "YouTube thumbnail, money tree growing from a laptop with golden coins raining, warm sunset glow, clean dark background, aspirational wealth aesthetic, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "wall-art-crypto-futuristic",
-        "title": "Crypto Futuristic Art",
-        "prompt_hint": "futuristic cryptocurrency visualization, blockchain nodes, holographic, dark bg",
-        "style": "printable wall art",
+        "id": "yt-thumb-day-trading-setup",
+        "title": "YT Thumb: Day Trading Setup",
+        "prompt_hint": "YouTube thumbnail, multi-monitor trading desk setup with green candlestick charts, moody dark room, blue and green ambient lighting, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "planner-monthly-spread",
-        "title": "Monthly Spread Background",
-        "prompt_hint": "clean watercolor wash background, subtle texture, light neutral tones",
-        "style": "planner background",
+        "id": "yt-thumb-budget-hack",
+        "title": "YT Thumb: Budget Hack That Works",
+        "prompt_hint": "YouTube thumbnail, calculator and stacked coins with upward arrow, clean minimal background with pop of green, financial planning aesthetic, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "etsy-listing-mockup",
-        "title": "Etsy Listing Product Mockup",
-        "prompt_hint": "iPad on marble desk displaying digital planner, flatlay, aesthetic workspace",
-        "style": "product mockup photo",
+        "id": "yt-thumb-investing-beginner",
+        "title": "YT Thumb: Investing for Beginners",
+        "prompt_hint": "YouTube thumbnail, stock market chart going up with step-by-step staircase visual, welcoming blue and green tones, clean and approachable, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "social-media-banner",
-        "title": "Shop Banner Graphic",
-        "prompt_hint": "Etsy shop banner, finance templates, professional, dark blue and gold",
-        "style": "banner graphic",
+        "id": "yt-thumb-etsy-income",
+        "title": "YT Thumb: Etsy Income Report",
+        "prompt_hint": "YouTube thumbnail, Etsy-style shop aesthetic with revenue dashboard overlay, orange and white brand colors, product mockups floating, clean, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "portfolio-tracker-cover",
-        "title": "Portfolio Tracker Cover",
-        "prompt_hint": "investment portfolio tracker cover, stock ticker elements, green accents, sleek",
-        "style": "digital product mockup",
-    },
-    # ─── Clothing / POD Designs (print-ready, isolated on solid backgrounds) ───
-    {
-        "id": "tshirt-finance-hustle",
-        "title": "Finance Hustle T-Shirt",
-        "prompt_hint": "bold graphic design for a t-shirt print: a golden bull charging through stock chart candlesticks, dramatic lighting, isolated on solid black background, print-ready artwork, no text",
-        "style": "t-shirt graphic design",
+        "id": "yt-thumb-ai-money",
+        "title": "YT Thumb: Making Money with AI",
+        "prompt_hint": "YouTube thumbnail, robotic hand holding cash, futuristic AI brain visualization in background, electric blue and gold, dark tech aesthetic, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "tshirt-trader-lifestyle",
-        "title": "Trader Lifestyle Tee",
-        "prompt_hint": "t-shirt print design: an EKG heartbeat line that transforms into a stock chart going up, ending with a dollar sign, white line art on solid black background, minimal clean design, no text",
-        "style": "t-shirt graphic design",
+        "id": "yt-thumb-forex-strategy",
+        "title": "YT Thumb: Forex Strategy Breakdown",
+        "prompt_hint": "YouTube thumbnail, forex currency pairs chart with drawn-on strategy arrows, trading annotation aesthetic, dark background with cyan accents, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "tshirt-crypto-art",
-        "title": "Crypto Culture Tee",
-        "prompt_hint": "t-shirt graphic: a bitcoin coin with an astronaut helmet reflection in it, floating in space with stars, retro vaporwave purple and cyan colors, isolated on solid black background, no text",
-        "style": "t-shirt graphic design",
+        "id": "yt-thumb-financial-freedom",
+        "title": "YT Thumb: Road to Financial Freedom",
+        "prompt_hint": "YouTube thumbnail, road leading to sunrise horizon with dollar signs as mile markers, aspirational journey visual, warm golden tones on dark, 16:9",
+        "style": "youtube thumbnail",
+    },
+    # ─── Social Media & Content Thumbnails ───
+    {
+        "id": "ig-reel-cover-finance",
+        "title": "IG Reel Cover: Finance Tip",
+        "prompt_hint": "Instagram reel cover, bold typography space on dark gradient background, money and chart iconography, vertical 9:16, clean minimal design",
+        "style": "social media cover",
     },
     {
-        "id": "hoodie-streetwear-finance",
-        "title": "Streetwear Finance Hoodie",
-        "prompt_hint": "large back-print hoodie design: a roaring bear and charging bull facing each other with a stock chart between them, japanese wave art style, gold and white ink on solid black background, no text",
-        "style": "hoodie graphic design",
+        "id": "tiktok-cover-trading",
+        "title": "TikTok Cover: Trading Content",
+        "prompt_hint": "TikTok video cover, trading chart aesthetic, green candlesticks, dark moody background, bold space for overlay text, vertical 9:16",
+        "style": "social media cover",
     },
     {
-        "id": "tshirt-motivational",
-        "title": "Motivational Grind Tee",
-        "prompt_hint": "t-shirt design: a vintage distressed circular badge emblem with a lion wearing a crown, laurel wreath border, old money luxury aesthetic, gold on solid black background, no text",
-        "style": "t-shirt graphic design",
+        "id": "podcast-cover-finance",
+        "title": "Podcast Cover: Finance Talk",
+        "prompt_hint": "podcast cover art, professional microphone with financial chart waveform, dark background, gold and blue accents, square 1:1, clean design",
+        "style": "podcast cover",
     },
     {
-        "id": "tote-bag-finance",
-        "title": "Finance Aesthetic Tote",
-        "prompt_hint": "tote bag print design: elegant single continuous line drawing of a money tree growing from an open book, minimalist black line art on solid white background, sophisticated and clean",
-        "style": "tote bag design",
+        "id": "blog-header-investing",
+        "title": "Blog Header: Investing Guide",
+        "prompt_hint": "blog header image, clean financial planning workspace flatlay, notebook with charts, coffee cup, minimal aesthetic, natural lighting, 16:9",
+        "style": "blog header",
     },
     {
-        "id": "mug-trader-morning",
-        "title": "Trader Morning Mug",
-        "prompt_hint": "coffee mug wrap-around design: a panoramic stock trading chart that looks like a city skyline at sunrise, green candlesticks as buildings, warm orange sky gradient, clean vector illustration style",
-        "style": "mug design",
+        "id": "yt-thumb-stock-picks",
+        "title": "YT Thumb: Top Stock Picks",
+        "prompt_hint": "YouTube thumbnail, stock ticker symbols floating in 3D space, green arrows pointing up, dark background with spotlight effect, bold and clean, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "tshirt-gym-finance",
-        "title": "Gym x Finance Crossover Tee",
-        "prompt_hint": "t-shirt graphic: a muscular arm flexing while gripping a handful of cash and gold coins, comic book pop art style with halftone dots, bold black outlines, isolated on solid black background, no text",
-        "style": "t-shirt graphic design",
+        "id": "yt-thumb-options-trading",
+        "title": "YT Thumb: Options Trading 101",
+        "prompt_hint": "YouTube thumbnail, options chain visualization with call/put arrows, educational vibe, dark background with green and red accents, clean typography space, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "mug-coffee-trading",
-        "title": "Coffee & Trading Mug",
-        "prompt_hint": "mug design: a steaming coffee cup where the steam forms the shape of rising stock chart candlesticks, cozy morning trading aesthetic, warm colors, clean illustration on solid white background",
-        "style": "mug design",
+        "id": "yt-thumb-real-estate",
+        "title": "YT Thumb: Real Estate Investing",
+        "prompt_hint": "YouTube thumbnail, luxury house with golden key and rising property value chart, warm golden hour lighting, aspirational wealth aesthetic, 16:9",
+        "style": "youtube thumbnail",
     },
     {
-        "id": "tshirt-diamond-hands",
-        "title": "Diamond Hands Tee",
-        "prompt_hint": "t-shirt print: a pair of crystal diamond hands holding a glowing stock chart arrow pointing up, sparkling gem facets, luxury purple and blue tones, isolated on solid black background, no text",
-        "style": "t-shirt graphic design",
-    },
-    {
-        "id": "tshirt-wolf-wallstreet",
-        "title": "Wall Street Wolf Tee",
-        "prompt_hint": "t-shirt design: a stylized wolf in a business suit with city skyline silhouette behind, geometric low-poly art style, gold and navy blue, isolated on solid black background, no text",
-        "style": "t-shirt graphic design",
-    },
-    {
-        "id": "hoodie-neon-bull",
-        "title": "Neon Bull Hoodie",
-        "prompt_hint": "hoodie print: a neon wireframe bull made of glowing cyan and magenta light trails, cyberpunk style, isolated on solid black background, futuristic trading aesthetic, no text",
-        "style": "hoodie graphic design",
-    },
-    {
-        "id": "mug-market-open",
-        "title": "Market Open Mug",
-        "prompt_hint": "mug design: the New York Stock Exchange building facade with a dramatic sunrise behind it, golden hour lighting, architectural illustration, clean design on solid navy background",
-        "style": "mug design",
-    },
-    {
-        "id": "tshirt-candlestick-art",
-        "title": "Candlestick Art Tee",
-        "prompt_hint": "t-shirt graphic: abstract art made entirely of green and red stock candlestick patterns forming the shape of a mountain range, minimal geometric design, isolated on solid black background, no text",
-        "style": "t-shirt graphic design",
-    },
-    {
-        "id": "tote-bag-hustle",
-        "title": "Hustle Tote Bag",
-        "prompt_hint": "tote bag design: a vintage woodcut style illustration of a beehive with bees and honey, representing hustle and productivity, detailed crosshatching, black ink on solid cream white background, no text",
-        "style": "tote bag design",
-    },
-    {
-        "id": "tshirt-money-tree",
-        "title": "Money Tree Tee",
-        "prompt_hint": "t-shirt design: a beautiful bonsai tree with dollar bills as leaves and gold coins scattered at its base, detailed botanical illustration style, rich greens and golds, isolated on solid black background, no text",
-        "style": "t-shirt graphic design",
-    },
-    {
-        "id": "hoodie-retro-trader",
-        "title": "Retro Trader Hoodie",
-        "prompt_hint": "hoodie back print: a retro 80s style trading floor scene with old CRT monitors and ticker tape, synthwave sunset colors pink purple and orange, pixel art meets vaporwave, isolated on solid black background, no text",
-        "style": "hoodie graphic design",
-    },
-    {
-        "id": "mug-portfolio-pie",
-        "title": "Portfolio Pie Chart Mug",
-        "prompt_hint": "mug design: a colorful pie chart made to look like a delicious actual pie with different flavor slices representing asset classes, playful foodie illustration style, clean on solid white background",
-        "style": "mug design",
+        "id": "yt-thumb-debt-free",
+        "title": "YT Thumb: Debt Free Journey",
+        "prompt_hint": "YouTube thumbnail, broken chain links with money flying free, transformation before-after aesthetic, dark to bright gradient, powerful visual, 16:9",
+        "style": "youtube thumbnail",
     },
 ]
 
 SD_STYLES = {
-    "photorealistic": "photorealistic, 8k, high detail, professional photography",
-    "digital_art": "digital art, trending on artstation, vibrant, detailed illustration",
-    "minimalist": "minimalist design, clean lines, flat design, vector style",
-    "watercolor": "watercolor painting, soft edges, muted tones, artistic",
+    "flat_vector": "flat 2d vector artwork, clean lines, simple shapes, solid colors, professional graphic design",
+    "retro_vintage": "retro vintage screen print style, distressed texture, muted color palette, 1970s aesthetic",
+    "minimalist": "minimalist design, clean lines, flat design, vector style, Scandinavian aesthetic",
+    "hand_drawn": "hand-drawn illustration style, organic imperfect lines, sketch quality, ink on paper feel",
 }
 
-PROMPT_SYSTEM = """You are an expert AI image prompt engineer for Stable Diffusion XL.
-Generate a detailed, high-quality image generation prompt.
+PROMPT_SYSTEM = """You are an expert thumbnail and visual content prompt engineer. Your goal is
+to create prompts that produce SCROLL-STOPPING thumbnails and covers — bold, high contrast,
+clean composition. These are for YouTube, social media, and content platforms.
 
 Rules:
 - Output ONLY a JSON object with these fields: "prompt", "negative_prompt", "width", "height", "steps", "cfg_scale"
-- The prompt should be detailed and specific (50-100 words)
-- Include style descriptors, lighting, composition, color palette
-- negative_prompt should list things to avoid (low quality, blurry, text, watermark, etc.)
-- width/height should be appropriate for the product type (1024x1024 for square, 1024x1536 for portrait, 1536x1024 for landscape)
-- steps: 25-35, cfg_scale: 5-8
+- The prompt should be 50-100 words, focused on bold, eye-catching composition
+- Thumbnails need HIGH CONTRAST — bright subjects on dark backgrounds, or vice versa
+- Leave CLEAR SPACE for text overlay (titles, numbers, etc.)
+- Use dramatic but intentional lighting — spotlights, glows, rim lighting
+- NEVER use these AI-slop terms: "trending on artstation", "8k", "hyper realistic", "octane render", "masterpiece", "best quality", "highly detailed", "ray tracing", "volumetric lighting"
+- negative_prompt MUST include: "glossy, plastic look, oversaturated, cluttered, text, words, letters, watermark, low quality, blurry"
+- width/height: 1536x1024 for YouTube thumbnails (16:9), 1024x1536 for vertical (9:16), 1024x1024 for square
+- steps: 25-35, cfg_scale: 5-7
 - NO explanation, ONLY the JSON object"""
 
 
@@ -216,7 +173,7 @@ class ImageGenAgent(BaseAgent):
         super().__init__(
             agent_id="image-gen-001",
             name="Image Generator",
-            description="Generates product images via Stable Diffusion prompts, DALL-E 3 & local ComfyUI",
+            description="Generates YouTube thumbnails & visual content via DALL-E 3 & local ComfyUI",
             color="#e879f9",
         )
         self.tick_interval = 90
@@ -239,17 +196,29 @@ class ImageGenAgent(BaseAgent):
         self.emit("generating", f"Creating image prompt: {product['title']} ({style_key})")
 
         try:
-            # Build prompt directly from product hints (skip flaky LLM JSON step)
+            # Build prompt with anti-AI-slop directives
             dalle_prompt = (
-                f"A sleek {product['style']} of {product['prompt_hint']}, "
-                f"rendered in {style_suffix}, suitable for an Etsy digital product listing. "
-                f"High quality, professional, clean composition."
+                f"{product['prompt_hint']}, "
+                f"{style_suffix}, "
+                f"commercial product design, clean edges, intentional color palette. "
+                f"This should look like a professional human graphic designer made it, "
+                f"not AI-generated. Avoid glossy or plastic look. Muted, natural colors."
             )
+            # Pick dimensions based on style
+            is_vertical = "9:16" in product.get("prompt_hint", "")
+            is_square = "1:1" in product.get("prompt_hint", "")
+            if is_vertical:
+                w, h = 1024, 1536
+            elif is_square:
+                w, h = 1024, 1024
+            else:
+                w, h = 1536, 1024  # 16:9 default for thumbnails
+
             prompt_data = {
                 "prompt": dalle_prompt,
-                "negative_prompt": "low quality, blurry, text, watermark, amateur",
-                "width": 1024,
-                "height": 1024,
+                "negative_prompt": "glossy, plastic look, oversaturated, cluttered, text, words, letters, watermark, low quality, blurry",
+                "width": w,
+                "height": h,
                 "steps": 30,
                 "cfg_scale": 7,
                 "product_id": product["id"],
@@ -361,8 +330,9 @@ class ImageGenAgent(BaseAgent):
                     "model": "dall-e-3",
                     "prompt": dalle_prompt,
                     "n": 1,
-                    "size": "1024x1024",
+                    "size": "1792x1024" if prompt_data.get("width", 1024) > prompt_data.get("height", 1024) else ("1024x1792" if prompt_data.get("height", 1024) > prompt_data.get("width", 1024) else "1024x1024"),
                     "quality": "standard",
+                    "style": "vivid",  # Vivid works better for bold thumbnails
                 },
             )
             resp.raise_for_status()

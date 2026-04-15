@@ -227,6 +227,25 @@ class PipelineDB:
                     detail          TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_pt_item ON pipeline_transitions(item_id);
+
+                CREATE TABLE IF NOT EXISTS orders (
+                    id              TEXT PRIMARY KEY,
+                    order_type      TEXT NOT NULL,
+                    client_name     TEXT,
+                    client_brief    TEXT NOT NULL,
+                    platform        TEXT DEFAULT 'fiverr',
+                    package         TEXT DEFAULT 'basic',
+                    status          TEXT DEFAULT 'pending',
+                    assigned_agent  TEXT,
+                    output_files    TEXT,
+                    notes           TEXT,
+                    price           REAL DEFAULT 0,
+                    created_at      TEXT NOT NULL,
+                    updated_at      TEXT NOT NULL,
+                    delivered_at    TEXT
+                );
+                CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+                CREATE INDEX IF NOT EXISTS idx_orders_type ON orders(order_type);
             """)
             self._conn.commit()
 
@@ -1145,6 +1164,95 @@ class PipelineDB:
             "outreach_roi": self.get_outreach_roi(),
             "campaigns": self.get_campaign_stats(),
         }
+
+    # ─── Orders ───
+
+    def add_order(self, order_type: str, client_brief: str, client_name: str = None,
+                  platform: str = "fiverr", package: str = "basic",
+                  price: float = 0, notes: str = None) -> dict:
+        order_id = f"order-{uuid.uuid4().hex[:8]}"
+        now = datetime.now().isoformat()
+        with self._lock:
+            self._conn.execute(
+                """INSERT INTO orders
+                   (id, order_type, client_name, client_brief, platform, package,
+                    status, price, notes, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
+                (order_id, order_type, client_name, client_brief, platform,
+                 package, price, notes, now, now),
+            )
+            self._conn.commit()
+        return {"id": order_id, "status": "pending", "created_at": now}
+
+    def get_orders(self, status: str = None, limit: int = 50) -> list[dict]:
+        query = "SELECT * FROM orders"
+        params = []
+        if status:
+            query += " WHERE status = ?"
+            params.append(status)
+        query += " ORDER BY created_at DESC LIMIT ?"
+        params.append(limit)
+        with self._lock:
+            rows = self._conn.execute(query, params).fetchall()
+        result = []
+        for r in rows:
+            d = dict(r)
+            if d.get("output_files"):
+                try:
+                    d["output_files"] = json.loads(d["output_files"])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            result.append(d)
+        return result
+
+    def get_order(self, order_id: str) -> dict | None:
+        with self._lock:
+            row = self._conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        if d.get("output_files"):
+            try:
+                d["output_files"] = json.loads(d["output_files"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return d
+
+    def update_order(self, order_id: str, **kwargs) -> bool:
+        allowed = {"status", "assigned_agent", "output_files", "notes", "delivered_at"}
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+        if not updates:
+            return False
+        now = datetime.now().isoformat()
+        updates["updated_at"] = now
+        if "output_files" in updates and isinstance(updates["output_files"], (list, dict)):
+            updates["output_files"] = json.dumps(updates["output_files"])
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        values = list(updates.values()) + [order_id]
+        with self._lock:
+            self._conn.execute(f"UPDATE orders SET {set_clause} WHERE id = ?", values)
+            self._conn.commit()
+        return True
+
+    def get_order_stats(self) -> dict:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT status, COUNT(*) as count FROM orders GROUP BY status"
+            ).fetchall()
+        stats = {r["status"]: r["count"] for r in rows}
+        stats["total"] = sum(stats.values())
+        return stats
+
+    def get_next_pending_order(self, order_type: str = None) -> dict | None:
+        query = "SELECT * FROM orders WHERE status = 'pending'"
+        params = []
+        if order_type:
+            query += " AND order_type = ?"
+            params.append(order_type)
+        query += " ORDER BY created_at ASC LIMIT 1"
+        with self._lock:
+            row = self._conn.execute(query, params).fetchone()
+        return dict(row) if row else None
 
     def close(self):
         self._conn.close()

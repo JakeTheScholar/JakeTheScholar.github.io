@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
+from tools.file_tools import save_output
 
 
 FOLLOW_UP_STAGES = [
@@ -113,7 +114,7 @@ class FollowUpAgent(BaseAgent):
                 business_name=biz,
                 industry=target.get("industry", "unknown"),
                 location=target.get("location", "unknown"),
-                contact_name=target.get("contact_name", "there"),
+                contact_name=target.get("contact_name") or "there",
                 needs=needs_str,
             )
             system = (
@@ -135,12 +136,15 @@ class FollowUpAgent(BaseAgent):
                 return self.emit("skipped", f"Invalid JSON for {biz} follow-up")
 
             # Save as outreach
+            fu_subject = followup.get("subject", f"Follow-up #{stage['touch']}").capitalize()
+            fu_body = followup.get("body", "")
             await asyncio.to_thread(
                 self.pipeline_db.add_outreach,
-                target["id"], "email",
-                followup.get("subject", f"Follow-up #{stage['touch']}"),
-                followup.get("body", ""),
+                target["id"], "email", fu_subject, fu_body,
             )
+
+            slug = biz.lower().replace(" ", "-")[:25]
+            save_output(json.dumps(followup, indent=2), "follow-ups", f"followup-{stage['touch']}-{slug}")
 
             self.tasks_completed += 1
             self.current_task = None

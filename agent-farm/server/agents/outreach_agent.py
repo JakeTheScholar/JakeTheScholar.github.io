@@ -1,68 +1,161 @@
-"""Outreach Agent — generates personalized cold emails and DMs for leads,
-then actually sends emails via Gmail.
+"""Outreach Agent - generates personalized cold emails and DMs for leads,
+then creates Gmail drafts for review.
 
-When a pitch-ready lead has a mockup from the Web Dev Agent, this agent
-switches to a dedicated "mockup pitch" flow that references the redesigned
-site in the email body. Mirrors the @cyphyr.ai playbook (492K+ views): show,
-don't tell — send a finished redesign instead of a generic offer.
-
-After drafting, emails are sent through Jake's Gmail (jakemcgaha@gmail.com)
-with a daily send limit for safety.
+Uses PAS framework (Problem-Agitate-Solve) with a tiny LLM call (~30 tokens)
+for the personalized observation line. Research-backed: 50-80 word emails,
+interest-based CTAs, 2-6 word subjects, minimal signature.
 """
 
 import sys
 import json
 import asyncio
+import random
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
 from gmail_sender import create_draft as gmail_draft, is_gmail_ready
+from tools.file_tools import save_output
+
+def _capitalize_subject(s):
+    """Capitalize first letter only — avoids .title() mangling apostrophes."""
+    return s[0].upper() + s[1:] if s else s
 
 # Safety: max drafts created per day
 DAILY_DRAFT_LIMIT = 20
 
+# ── LLM prompt: one specific opportunity for their online presence ──
+PERSONALIZE_PROMPT = """Write ONE specific thing that would help this business get more customers online. Under 15 words. Frame it as an opportunity, not a criticism. Be concrete. Sound like a friend giving advice.
 
-OUTREACH_PROMPT = """You are writing a cold outreach email and DM for a B2B sales campaign.
+Example: "a faster mobile site could really help you capture more leads"
+Example: "a few tweaks to your Google listing would get you way more calls"
+Example: "some simple SEO changes could put you above the competition locally"
+Example: "an online booking system would make it so much easier for customers to find you"
 
-Target business:
-- Name: {business_name}
-- Industry: {industry}
-- Location: {location}
-- Contact: {contact_name}
-- Pain points: {needs}
+Business: {business_name}
+Industry: {industry}
+Location: {location}
+Pain points: {needs}
 
-Generate personalized outreach as JSON:
-- "email_subject": Compelling email subject line (under 60 chars)
-- "email_body": Professional cold email (150-250 words). Reference their specific pain points. Offer a free consultation/audit. Include a clear CTA.
-- "dm_message": Short DM version for LinkedIn/Instagram (under 100 words). Casual but professional.
-- "value_prop": One-sentence value proposition specific to this business.
+Reply with ONLY the suggestion, no quotes."""
 
-Tone: Helpful, not pushy. Show you've done your research.
-Return ONLY valid JSON."""
+# ── Subject lines: short, varied, 2-6 words ──
+# Templates using {contact_name} — only used when we have a real name
+SUBJECT_LINES_NAMED = [
+    "{contact_name} - quick question",
+    "{contact_name} - thought of you",
+    "{contact_name} - 30 sec read",
+    "for {contact_name} at {business_name}",
+]
+# Templates using only {business_name} — safe for all leads
+SUBJECT_LINES_GENERIC = [
+    "idea for {business_name}",
+    "re: {business_name}",
+    "{business_name}'s online presence",
+    "something for {business_name}",
+    "quick idea for {business_name}",
+]
 
+# ── Email template (~60 words, opportunity-framed) ──
+EMAIL_TEMPLATE = """Hi {contact_name},
 
-MOCKUP_PITCH_PROMPT = """You are writing a high-conversion cold outreach email for a B2B sales pitch.
-This campaign uses the "show, don't tell" playbook — we've already built the prospect a
-full redesign of their website and are sending it with the first message.
+I was looking at {business_name} online and think {observation}.
 
-Target business:
-- Name: {business_name}
-- Industry: {industry}
-- Location: {location}
-- Contact: {contact_name}
-- Pain points: {needs}
+You've clearly built something great - I think a stronger online presence could help even more people find you.
 
-We have built them a fresh mockup called: {mockup_filename}
-(Their current site is stuck in the early 2000s — ours is modern, mobile-first, and fast.)
+Want me to put together a quick mockup of what that could look like? Totally free, no strings.
 
-Generate the mockup-pitch outreach as JSON:
-- "email_subject": Bold subject (under 60 chars). Hint that you redesigned their site. Curiosity-driven.
-- "email_body": 180-260 word email. Opening line must reference their CURRENT site's actual problems (outdated look, slow, not mobile). Then drop the twist: "So I built you a new one — here it is: {{mockup_link_placeholder}}". Close with a single CTA asking if they want the source files for free. NO hard sell. Confident but generous tone.
-- "dm_message": 80-word Instagram DM version. Hook → twist → link → CTA.
-- "value_prop": One-sentence pitch framed around the finished deliverable.
+Jake McGaha
+Web Design & Local SEO
+jakemcgaha.com"""
 
-Return ONLY valid JSON. Use the literal string {{mockup_link_placeholder}} where the URL should appear — we will substitute it."""
+# ── DM template ──
+DM_TEMPLATE = """Hey {contact_name} - I was checking out {business_name} and think {observation}. I do web design and local SEO - want me to show you what I'd do?"""
+
+# ── Mockup pitch templates ──
+MOCKUP_SUBJECT_LINES = [
+    "I redesigned {business_name}'s website",
+    "{contact_name} - built you something",
+    "{business_name}'s new website",
+]
+
+MOCKUP_EMAIL_TEMPLATE = """Hi {contact_name},
+
+I think {observation} - so instead of just talking about it, I went ahead and built you something: {mockup_link}
+
+Modern, mobile-first, and fast. No catch - I just wanted to show you what's possible.
+
+If you like it, the source files are yours for free.
+
+Jake McGaha
+Web Design & Local SEO
+jakemcgaha.com"""
+
+MOCKUP_DM_TEMPLATE = """Hey {contact_name} - I noticed {business_name}'s site could use a refresh so I actually built you a new one: {mockup_link}
+
+It's free - want the source files?"""
+
+# ── Industry labels ──
+INDUSTRY_LABELS = {
+    "hvac_plumbing": "HVAC & plumbing",
+    "dental_ortho": "dental",
+    "home_services": "home service",
+    "landscaping": "landscaping",
+    "legal_services": "legal",
+    "medical_spa": "med spa",
+    "real_estate": "real estate",
+    "auto_repair": "auto repair",
+}
+
+# ── Fallback observations by industry (opportunity-framed) ──
+FALLBACK_OBSERVATIONS = {
+    "hvac_plumbing": [
+        "a few SEO tweaks could get you ranking above other HVAC shops nearby",
+        "an online booking system would make it way easier for customers to schedule service",
+        "some fresh photos on your Google listing could really help you stand out",
+    ],
+    "dental_ortho": [
+        "online scheduling could help you fill more appointment slots",
+        "a faster mobile site could help you capture patients searching on their phones",
+        "a few updates to your Google listing could bring in more new patients",
+    ],
+    "home_services": [
+        "a mobile-friendly site refresh could help you win more local jobs",
+        "some updated photos on your Google listing would really help you stand out",
+        "an easy quote request form could turn more visitors into customers",
+    ],
+    "landscaping": [
+        "a portfolio page showing off your work could really set you apart locally",
+        "a few local SEO tweaks could help you show up for more searches nearby",
+        "adding seasonal services to your Google listing could bring in more calls",
+    ],
+    "legal_services": [
+        "a cleaner intake process on your site could help convert more visitors to clients",
+        "a faster mobile site could help you capture more people searching for attorneys",
+        "a few more client reviews on Google could really boost your credibility",
+    ],
+    "medical_spa": [
+        "online booking would make it so much easier for new clients to schedule",
+        "a mobile refresh could help showcase your services to people searching on their phones",
+        "some treatment photos on your Google listing would really catch people's eye",
+    ],
+    "real_estate": [
+        "a better mobile experience could help you capture more leads on the go",
+        "some local SEO work could get your listings in front of more buyers",
+        "a cleaner property search on your site could keep visitors browsing longer",
+    ],
+    "auto_repair": [
+        "online scheduling could make it way easier for customers to book appointments",
+        "a faster mobile site could help you win over people searching for shops nearby",
+        "some updated service photos on Google could really help you stand out",
+    ],
+}
+
+DEFAULT_FALLBACKS = [
+    "a stronger online presence could help a lot more people find you",
+    "a mobile-friendly site refresh could bring in way more customers",
+    "a few small changes online could really set you apart from the competition",
+]
 
 
 class OutreachAgent(BaseAgent):
@@ -73,24 +166,19 @@ class OutreachAgent(BaseAgent):
             description="Personalized outreach messages (+ mockup pitch flow)",
             color="#f59e0b",
         )
-        self.tick_interval = 90
-        self.pipeline_db = None  # Injected by orchestrator
+        self.tick_interval = 60
+        self.pipeline_db = None
 
     async def tick(self) -> AgentEvent:
         if not self.pipeline_db:
             return self.emit("error", "No pipeline database connected")
 
-        # ── PRIORITY 0: send any drafted emails that haven't been sent yet ──
-        send_result = await self._send_pending_emails()
-        if send_result:
-            return send_result
+        # Sending is now handled by ManagerAgent (QA + auto-send)
 
-        # ── PRIORITY 1: pitch_ready leads with a mockup but no mockup_pitch outreach yet ──
         target, mockup_item = await self._find_mockup_pitch_target()
         if target and mockup_item:
             return await self._draft_mockup_pitch(target, mockup_item)
 
-        # ── PRIORITY 2: standard cold outreach for new leads ──
         leads = await asyncio.to_thread(self.pipeline_db.get_leads_by_stage, "scraped", 5)
         if not leads:
             leads = await asyncio.to_thread(self.pipeline_db.get_leads_by_stage, "researched", 5)
@@ -109,16 +197,13 @@ class OutreachAgent(BaseAgent):
         return await self._draft_standard_outreach(target)
 
     async def _send_pending_emails(self) -> AgentEvent | None:
-        """Create Gmail drafts for outreach emails. Jake reviews and sends manually."""
         if not is_gmail_ready():
-            return None  # Gmail not configured, skip silently
+            return None
 
-        # Check daily limit
         sent_today = await asyncio.to_thread(self.pipeline_db.count_sent_today)
         if sent_today >= DAILY_DRAFT_LIMIT:
-            return None  # Hit limit, move on to other work
+            return None
 
-        # Get unsent email outreach (standard + mockup_email channels)
         unsent = await asyncio.to_thread(
             self.pipeline_db.get_unsent_outreach, "email", 1
         )
@@ -134,7 +219,6 @@ class OutreachAgent(BaseAgent):
         biz_name = row.get("business_name", "unknown")
 
         if not to_email:
-            # No email on file — mark as no_email, don't retry
             await asyncio.to_thread(
                 self.pipeline_db.update_outreach_status, row["id"], "no_email"
             )
@@ -167,8 +251,38 @@ class OutreachAgent(BaseAgent):
             self.current_task = None
             return self.emit("error", f"Gmail draft failed for {biz_name}: {result['error']}")
 
+    async def _get_observation(self, target: dict) -> str:
+        """Ask LLM for a specific observation about their site. Falls back to industry-specific."""
+        needs = self._parse_needs(target.get("needs", "[]"))
+        biz = target["business_name"]
+        industry = target.get("industry", "unknown")
+        location = target.get("location", "unknown")
+
+        fallbacks = FALLBACK_OBSERVATIONS.get(industry, DEFAULT_FALLBACKS)
+        fallback = random.choice(fallbacks)
+
+        try:
+            prompt = PERSONALIZE_PROMPT.format(
+                business_name=biz,
+                industry=industry,
+                location=location,
+                needs=needs,
+            )
+            result = await self.llm.generate(prompt, system="Reply with only one short observation.", complexity="low")
+            result = result.strip().strip('"').strip("'").lower().rstrip(".")
+            # Remove leading "i noticed" type prefixes if LLM adds them
+            for prefix in ["i noticed ", "i noticed that ", "i saw that ", "i saw "]:
+                if result.startswith(prefix):
+                    result = result[len(prefix):]
+            # Sanity check
+            if result and 5 < len(result) < 150 and "[LLM Error]" not in result.lower():
+                return result
+        except Exception:
+            pass
+
+        return fallback
+
     async def _find_mockup_pitch_target(self) -> tuple[dict | None, dict | None]:
-        """Find a pitch_ready lead with a mockup that hasn't been pitched yet."""
         leads = await asyncio.to_thread(
             self.pipeline_db.get_leads_by_stage, "pitch_ready", 10
         )
@@ -178,7 +292,6 @@ class OutreachAgent(BaseAgent):
             )
             if not mockup:
                 continue
-            # Check whether a mockup-pitch email already exists
             existing = await asyncio.to_thread(
                 self.pipeline_db.get_outreach_for_lead, lead["id"]
             )
@@ -196,56 +309,43 @@ class OutreachAgent(BaseAgent):
             "type": "mockup-pitch",
             "description": f"Drafting mockup pitch for {biz}",
         }
-        self.emit("generating", f"Writing mockup pitch for {biz} (cyphyr playbook)")
+        self.emit("generating", f"Writing mockup pitch for {biz}")
 
         try:
-            needs = self._parse_needs(target.get("needs", "[]"))
             metadata = mockup_item.get("metadata") or {}
             mockup_filename = metadata.get("filename", "mockup.html")
-
-            prompt = MOCKUP_PITCH_PROMPT.format(
-                business_name=biz,
-                industry=target.get("industry", "unknown"),
-                location=target.get("location", "unknown"),
-                contact_name=target.get("contact_name", "Business Owner"),
-                needs=needs,
-                mockup_filename=mockup_filename,
-            )
-            system = (
-                "You are a B2B sales copywriter specializing in the 'show don't tell' "
-                "agency playbook. Your emails convert because they include a finished "
-                "deliverable, not an offer. Output only valid JSON."
-            )
-
-            result = await self.llm.generate(prompt, system=system, complexity="low")
-            outreach = self._parse_json(result)
-            if not outreach:
-                self.current_task = None
-                return self.emit("skipped", f"Invalid mockup-pitch JSON for {biz}")
-
-            # Substitute the mockup link into the body
             mockup_link = f"[mockup: output/printables/{mockup_filename}]"
-            email_body = (outreach.get("email_body") or "").replace(
-                "{mockup_link_placeholder}", mockup_link
+            contact = target.get("contact_name") or "there"
+
+            observation = await self._get_observation(target)
+
+            subject = _capitalize_subject(random.choice(MOCKUP_SUBJECT_LINES).format(
+                business_name=biz, contact_name=contact
+            ))
+            email_body = MOCKUP_EMAIL_TEMPLATE.format(
+                contact_name=contact,
+                business_name=biz,
+                observation=observation,
+                mockup_link=mockup_link,
             )
-            dm_body = (outreach.get("dm_message") or "").replace(
-                "{mockup_link_placeholder}", mockup_link
+            dm_body = MOCKUP_DM_TEMPLATE.format(
+                contact_name=contact,
+                business_name=biz,
+                mockup_link=mockup_link,
             )
 
-            # Save mockup-pitch email (dedicated channel to avoid re-pitching)
             await asyncio.to_thread(
                 self.pipeline_db.add_outreach,
-                target["id"], "mockup_email",
-                outreach.get("email_subject", ""),
-                email_body,
+                target["id"], "mockup_email", subject, email_body,
             )
-            if dm_body:
-                await asyncio.to_thread(
-                    self.pipeline_db.add_outreach,
-                    target["id"], "mockup_dm", None, dm_body,
-                )
+            await asyncio.to_thread(
+                self.pipeline_db.add_outreach,
+                target["id"], "mockup_dm", None, dm_body,
+            )
 
-            # Advance the mockup's pipeline item to "delivered"
+            slug = biz.lower().replace(" ", "-")[:25]
+            save_output(json.dumps({"subject": subject, "email": email_body, "dm": dm_body, "business": biz, "type": "mockup_pitch"}, indent=2), "outreach", f"mockup-pitch-{slug}")
+
             mockup_id = mockup_item.get("id")
             if mockup_id:
                 await asyncio.to_thread(
@@ -253,7 +353,6 @@ class OutreachAgent(BaseAgent):
                     mockup_id, "polished", self.agent_id, "Pitch drafted"
                 )
 
-            # Advance lead to contacted
             await asyncio.to_thread(
                 self.pipeline_db.update_lead_stage,
                 target["id"], "contacted", self.agent_id, "Mockup pitch drafted"
@@ -272,6 +371,9 @@ class OutreachAgent(BaseAgent):
 
     async def _draft_standard_outreach(self, target: dict) -> AgentEvent:
         biz = target["business_name"]
+        industry = target.get("industry", "unknown")
+        contact = target.get("contact_name") or "there"
+
         self.current_task = {
             "type": "outreach",
             "description": f"Drafting outreach for {biz}",
@@ -279,43 +381,36 @@ class OutreachAgent(BaseAgent):
         self.emit("generating", f"Writing outreach for {biz}")
 
         try:
-            needs = self._parse_needs(target.get("needs", "[]"))
+            observation = await self._get_observation(target)
 
-            prompt = OUTREACH_PROMPT.format(
+            pool = SUBJECT_LINES_NAMED + SUBJECT_LINES_GENERIC if contact != "there" else SUBJECT_LINES_GENERIC
+            subject = _capitalize_subject(random.choice(pool).format(
+                business_name=biz, contact_name=contact
+            ))
+
+            email_body = EMAIL_TEMPLATE.format(
+                contact_name=contact,
                 business_name=biz,
-                industry=target.get("industry", "unknown"),
-                location=target.get("location", "unknown"),
-                contact_name=target.get("contact_name", "Business Owner"),
-                needs=needs,
+                observation=observation,
             )
-            system = (
-                "You are a B2B sales copywriter specializing in personalized cold outreach. "
-                "You write emails that feel personal, not templated. Output only valid JSON."
+            dm_body = DM_TEMPLATE.format(
+                contact_name=contact,
+                business_name=biz,
+                observation=observation,
             )
 
-            result = await self.llm.generate(prompt, system=system, complexity="low")
-            outreach = self._parse_json(result)
-            if not outreach:
-                self.current_task = None
-                return self.emit("skipped", f"Invalid JSON for {biz}")
-
-            # Save email outreach
             await asyncio.to_thread(
                 self.pipeline_db.add_outreach,
-                target["id"], "email",
-                outreach.get("email_subject", ""),
-                outreach.get("email_body", ""),
+                target["id"], "email", subject, email_body,
+            )
+            await asyncio.to_thread(
+                self.pipeline_db.add_outreach,
+                target["id"], "dm", None, dm_body,
             )
 
-            # Save DM outreach
-            if outreach.get("dm_message"):
-                await asyncio.to_thread(
-                    self.pipeline_db.add_outreach,
-                    target["id"], "dm", None,
-                    outreach["dm_message"],
-                )
+            slug = biz.lower().replace(" ", "-")[:25]
+            save_output(json.dumps({"subject": subject, "email": email_body, "dm": dm_body, "business": biz, "industry": industry}, indent=2), "outreach", f"outreach-{slug}")
 
-            # Advance lead stage
             current_stage = target["stage"]
             if current_stage == "scraped":
                 await asyncio.to_thread(
@@ -348,17 +443,6 @@ class OutreachAgent(BaseAgent):
             except json.JSONDecodeError:
                 needs = [needs]
         return ", ".join(needs) if isinstance(needs, list) else str(needs)
-
-    @staticmethod
-    def _parse_json(result: str) -> dict | None:
-        if "```json" in result:
-            result = result.split("```json")[1].split("```")[0].strip()
-        elif "```" in result:
-            result = result.split("```")[1].split("```")[0].strip()
-        try:
-            return json.loads(result)
-        except json.JSONDecodeError:
-            return None
 
     def get_tools(self) -> list[dict]:
         return []

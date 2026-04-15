@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 RESEARCH_TOPICS = [
@@ -81,7 +81,7 @@ class ResearchAgent(BaseAgent):
                 result = result.split("```")[1].split("```")[0].strip()
 
             slug = topic.lower().replace(" ", "-")[:40]
-            save_result = save_template(result, f"research-{slug}", fmt="json")
+            save_result = save_output(result, "research-reports", f"research-{slug}", fmt="json")
             self.tasks_completed += 1
             self.index += 1
             self.current_task = None

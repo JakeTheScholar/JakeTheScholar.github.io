@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 PLATFORMS = ["instagram", "twitter", "tiktok", "pinterest"]
@@ -71,7 +71,7 @@ class SocialAgent(BaseAgent):
             elif "```" in result:
                 result = result.split("```")[1].split("```")[0].strip()
 
-            save_result = save_template(result, f"social-{platform}-{topic.replace(' ','-')}", fmt="json")
+            save_result = save_output(result, "social-posts", f"social-{platform}-{topic.replace(' ','-')}", fmt="json")
 
             # Track in Content pipeline
             if self.pipeline_db:

@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 SEO_TASKS = [
@@ -83,7 +83,7 @@ class SEOAgent(BaseAgent):
                 result = result.split("```")[1].split("```")[0].strip()
 
             slug = niche.replace(" ", "-")[:30]
-            save_result = save_template(result, f"seo-{slug}-{platform}", fmt="json")
+            save_result = save_output(result, "seo-reports", f"seo-{slug}-{platform}", fmt="json")
             self.tasks_completed += 1
             self.index += 1
             self.current_task = None

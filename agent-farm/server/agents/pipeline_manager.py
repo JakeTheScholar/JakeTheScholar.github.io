@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 class PipelineManagerAgent(BaseAgent):
@@ -126,7 +126,7 @@ Return ONLY valid JSON."""
             elif "```" in result:
                 result = result.split("```")[1].split("```")[0].strip()
 
-            save_template(result, "pipeline-report", fmt="json")
+            save_output(result, "pipeline-reports", "pipeline-report", fmt="json")
         except Exception:
             pass  # Report generation is best-effort
 

@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 MOCKUP_PROMPT = """Build a modern, mobile-responsive single-page website mockup for this business:
@@ -115,7 +115,7 @@ class WebDevAgent(BaseAgent):
 
             # Save the mockup
             slug = biz.lower().replace(" ", "-").replace("'", "")[:30]
-            save_result = save_template(result, f"mockup-{slug}", fmt="html")
+            save_result = save_output(result, "website-mockups", f"mockup-{slug}", fmt="html")
 
             # Track in websites pipeline
             await asyncio.to_thread(

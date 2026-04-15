@@ -12,11 +12,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import httpx
 from agent_base import BaseAgent, AgentEvent
+from tools.file_tools import save_output
 
 # Regex for extracting email addresses from web pages
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
+# Mailto links — most reliable email signal on a page
+MAILTO_RE = re.compile(r'mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})', re.IGNORECASE)
+# Nav/footer links that likely lead to contact pages
+CONTACT_LINK_RE = re.compile(r'href=["\']([^"\']*(?:contact|get-in-touch|reach-us|request|inquiry|enquiry)[^"\']*)["\']', re.IGNORECASE)
 # Common junk emails to ignore
-JUNK_EMAILS = {"noreply", "no-reply", "support", "info@example", "email@example", "user@example", "sentry"}
+JUNK_EMAILS = {"noreply", "no-reply", "support", "info@example", "email@example", "user@example", "sentry", "wordpress", "developer"}
 
 logger = logging.getLogger(__name__)
 
@@ -166,44 +171,152 @@ class LeadScraperAgent(BaseAgent):
 
     # ── Email extraction from business website ───────────────────
 
-    async def _scrape_email(self, website: str) -> str | None:
-        """Scrape business website homepage + contact page for an email address."""
-        if not website:
-            return None
-        try:
-            async with httpx.AsyncClient(timeout=8, follow_redirects=True) as client:
-                # Try homepage first
-                resp = await client.get(website, headers={"User-Agent": "Mozilla/5.0"})
-                if resp.status_code != 200:
-                    return None
-                text = resp.text[:50000]
+    async def _scrape_website(self, website: str) -> dict:
+        """Scrape business website for email and contact name.
 
-                # Also try /contact page — most business emails live there
+        Returns {"email": str|None, "contact_name": str|None}.
+        Checks mailto: links first (most reliable), then parses nav links
+        to find the real contact page, then falls back to common slugs.
+        """
+        result = {"email": None, "contact_name": None}
+        if not website:
+            return result
+
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+        try:
+            async with httpx.AsyncClient(timeout=8, follow_redirects=True, headers=headers) as client:
+                # 1. Fetch homepage
+                resp = await client.get(website)
+                if resp.status_code != 200:
+                    return result
+                homepage = resp.text[:60000]
+                all_text = homepage
+
+                # 2. Extract mailto: links from homepage (highest confidence)
+                mailto_emails = MAILTO_RE.findall(homepage)
+
+                # 3. Find real contact page links from nav/footer
+                contact_links = CONTACT_LINK_RE.findall(homepage)
                 base = website.rstrip("/")
-                for slug in ("/contact", "/contact-us", "/about", "/about-us"):
+
+                # Normalize discovered links to absolute URLs
+                pages_to_visit = []
+                seen = set()
+                for link in contact_links[:3]:
+                    if link.startswith("http"):
+                        url = link
+                    elif link.startswith("/"):
+                        url = base + link
+                    else:
+                        url = base + "/" + link
+                    if url not in seen:
+                        seen.add(url)
+                        pages_to_visit.append(url)
+
+                # 4. Also try common slugs not already discovered
+                for slug in ("/contact", "/contact-us", "/about", "/about-us",
+                             "/team", "/our-team", "/staff", "/get-in-touch"):
+                    url = base + slug
+                    if url not in seen:
+                        seen.add(url)
+                        pages_to_visit.append(url)
+
+                # 5. Crawl discovered + fallback pages (cap at 6 requests)
+                for page_url in pages_to_visit[:6]:
                     try:
-                        r2 = await client.get(base + slug, headers={"User-Agent": "Mozilla/5.0"})
+                        r2 = await client.get(page_url)
                         if r2.status_code == 200:
-                            text += r2.text[:30000]
+                            page_text = r2.text[:30000]
+                            all_text += page_text
+                            mailto_emails.extend(MAILTO_RE.findall(page_text))
                     except Exception:
                         pass
 
-            emails = EMAIL_RE.findall(text)
-            # Filter out junk / asset filenames / webmaster
-            good = []
-            for e in emails:
+            # 6. Extract emails — prefer mailto: hits, then regex on full text
+            candidates = mailto_emails + EMAIL_RE.findall(all_text)
+            good_emails = []
+            for e in candidates:
                 e_lower = e.lower()
                 if any(j in e_lower for j in JUNK_EMAILS):
                     continue
-                if e_lower.endswith((".png", ".jpg", ".gif", ".css", ".js")):
+                if e_lower.endswith((".png", ".jpg", ".gif", ".css", ".js", ".svg", ".woff")):
                     continue
                 if "webmaster" in e_lower or "admin@" in e_lower:
                     continue
-                good.append(e)
+                if e_lower not in [x.lower() for x in good_emails]:
+                    good_emails.append(e)
 
-            return good[0] if good else None
+            result["email"] = good_emails[0] if good_emails else self._guess_email_from_domain(website)
+
+            # 7. Try to extract a contact name from the page text
+            result["contact_name"] = self._extract_contact_name(all_text)
+
+        except Exception:
+            pass
+
+        return result
+
+    @staticmethod
+    def _guess_email_from_domain(website: str) -> str | None:
+        """Try info@domain as a fallback when no email found on pages."""
+        if not website:
+            return None
+        try:
+            from urllib.parse import urlparse
+            import socket
+            domain = urlparse(website).netloc.lower()
+            domain = domain.removeprefix("www.")
+            if not domain or "." not in domain:
+                return None
+            # Quick MX check — does this domain accept email at all?
+            try:
+                socket.getaddrinfo(domain, 25, socket.AF_INET, socket.SOCK_STREAM)
+            except socket.gaierror:
+                # No DNS for mail port — try MX record via dns resolution
+                pass
+            # Skip social media / platform domains
+            skip = ("facebook.com", "instagram.com", "twitter.com", "x.com",
+                    "linkedin.com", "youtube.com", "yelp.com", "tiktok.com",
+                    "google.com", "squarespace.com", "wix.com", "godaddy.com")
+            if any(domain.endswith(s) for s in skip):
+                return None
+            # If domain resolves, info@ is the most common small-biz pattern
+            return f"info@{domain}"
         except Exception:
             return None
+
+    # Words that look like names but aren't (nav text, page headings, etc.)
+    _NAME_BLACKLIST = {
+        "us contact", "our team", "about us", "contact us", "read more",
+        "learn more", "get started", "our story", "my account", "your name",
+        "first name", "last name", "full name", "business owner",
+    }
+
+    @staticmethod
+    def _extract_contact_name(html: str) -> str | None:
+        """Try to pull an owner/founder/manager name from page HTML."""
+        # Strip tags for cleaner text matching
+        text = re.sub(r"<[^>]+>", " ", html)
+        text = re.sub(r"\s+", " ", text)
+
+        # Look for patterns like "Owner: John Smith", "Founded by Jane Doe"
+        name_patterns = [
+            r"(?:owner|founder|principal|proprietor|president|ceo)[:\s\-–—]+([A-Z][a-z]{2,} [A-Z][a-z]{2,})",
+            r"([A-Z][a-z]{2,} [A-Z][a-z]{2,})[,\s\-–—]+(?:owner|founder|principal|proprietor|president|ceo)",
+            r"(?:hi,? i'?m|hello,? i'?m|my name is)\s+([A-Z][a-z]{2,} [A-Z][a-z]{2,})",
+            r"(?:Dr\.|Attorney|Atty\.)\s+([A-Z][a-z]{2,} [A-Z][a-z]{2,})",
+        ]
+        for pattern in name_patterns:
+            match = re.search(pattern, text)
+            if match:
+                name = match.group(1).strip()
+                if name.lower() in LeadScraperAgent._NAME_BLACKLIST:
+                    continue
+                if 5 < len(name) < 35 and " " in name:
+                    return name.title()
+
+        return None
 
     # ── LLM needs analysis ─────────────────────────────────────────
 
@@ -272,6 +385,7 @@ class LeadScraperAgent(BaseAgent):
             if isinstance(lead.get("needs"), list):
                 lead["needs"] = json.dumps(lead["needs"])
             await asyncio.to_thread(self.pipeline_db.add_lead, lead, "synthetic")
+            save_output(json.dumps(lead, indent=2), "leads", f"lead-synthetic-{industry['id']}")
             added += 1
         return added
 
@@ -333,8 +447,8 @@ class LeadScraperAgent(BaseAgent):
                 place["website"] = website
                 place["formatted_phone_number"] = phone
 
-                # Try to extract email from their website
-                contact_email = await self._scrape_email(website)
+                # Scrape website for email + contact name
+                site_data = await self._scrape_website(website)
 
                 # LLM pain-point analysis
                 needs_json = await self._analyze_needs(place, industry["name"])
@@ -343,8 +457,8 @@ class LeadScraperAgent(BaseAgent):
                 lead_data = {
                     "business_name": name,
                     "industry": industry["id"],
-                    "contact_name": None,
-                    "contact_email": contact_email,
+                    "contact_name": site_data["contact_name"],
+                    "contact_email": site_data["email"],
                     "contact_phone": phone,
                     "website": website,
                     "location": address,
@@ -353,6 +467,7 @@ class LeadScraperAgent(BaseAgent):
                 }
 
                 await asyncio.to_thread(self.pipeline_db.add_lead, lead_data, "google_places")
+                save_output(json.dumps(lead_data, indent=2), "leads", f"lead-{industry['id']}-{name[:20].lower().replace(' ', '-')}")
                 added += 1
 
             self.tasks_completed += added

@@ -28,7 +28,7 @@ def save_template(content: str, template_type: str, fmt: str = "html") -> dict:
     filepath.write_text(content, encoding="utf-8")
 
     return {
-        "file": str(filepath),
+        "file": str(filepath.relative_to(OUTPUT_DIR.resolve())),
         "filename": filename,
         "size_bytes": filepath.stat().st_size,
         "created": datetime.now().isoformat(),
@@ -47,7 +47,7 @@ def list_outputs(subdir: str = "printables") -> list[dict]:
         if f.is_file():
             files.append({
                 "filename": f.name,
-                "path": str(f),
+                "path": str(f.relative_to(OUTPUT_DIR.resolve())),
                 "size_bytes": f.stat().st_size,
                 "modified": datetime.fromtimestamp(f.stat().st_mtime).isoformat(),
             })
@@ -67,6 +67,29 @@ SAVE_TEMPLATE_SCHEMA = {
         "required": ["content", "template_type"],
     },
 }
+
+def save_output(content: str, subdir: str, name: str, fmt: str = "json") -> dict:
+    """Save generated content to a specific output subdirectory.
+
+    Unlike save_template (which dumps everything into printables/), this
+    routes output to the correct category folder.
+    """
+    out_dir = ensure_output_dir(subdir)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    slug = re.sub(r'[^a-z0-9\-]', '', name.replace(" ", "-").lower())[:60]
+    filename = f"{slug}-{timestamp}.{fmt}"
+    filepath = out_dir / filename
+
+    filepath.write_text(content, encoding="utf-8")
+
+    return {
+        "file": str(filepath.relative_to(OUTPUT_DIR.resolve())),
+        "filename": filename,
+        "subdir": subdir,
+        "size_bytes": filepath.stat().st_size,
+        "created": datetime.now().isoformat(),
+    }
+
 
 LIST_OUTPUTS_SCHEMA = {
     "name": "list_outputs",

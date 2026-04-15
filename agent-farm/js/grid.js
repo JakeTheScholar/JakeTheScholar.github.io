@@ -3,6 +3,18 @@
 // ─── Agent Categories ───
 
 const CATEGORIES = {
+  executive: {
+    label: 'Executive',
+    gridClass: 'exec-grid',
+    slots: [
+      { id: 'ceo-001', name: 'CEO', color: '#ffd700', description: 'Strategic oversight — monitors all departments and sets priorities' },
+      { id: 'cfo-001', name: 'CFO', color: '#00e676', description: 'Financial oversight — revenue tracking, ROI analysis, cost optimization' },
+      { id: 'coo-001', name: 'COO', color: '#ff6e40', description: 'Operations management — throughput, uptime, workflow optimization' },
+      { id: 'cmo-001', name: 'CMO', color: '#e040fb', description: 'Marketing strategy — campaigns, social, ads, brand growth' },
+      { id: 'cto-001', name: 'CTO', color: '#448aff', description: 'Technology oversight — LLM health, API status, automation efficiency' },
+      { id: 'cco-001', name: 'CCO', color: '#ff4081', description: 'Content strategy — quality control, publishing calendar, brand voice' },
+    ],
+  },
   content: {
     label: 'Content',
     gridClass: 'content-grid',
@@ -11,7 +23,7 @@ const CATEGORIES = {
       { id: 'etsy-lister-001', name: 'Etsy Lister', color: '#39ff14', description: 'Listing copy & SEO optimization' },
       { id: 'social-001', name: 'Social Content', color: '#c9a96e', description: 'Social media posts & captions' },
       { id: 'fiverr-001', name: 'Fiverr Gigs', color: '#8b5cf6', description: 'Gig management & delivery' },
-      { id: 'thumbnail-001', name: 'Thumbnail Creator', color: '#f472b6', description: 'Product images & mockups' },
+      { id: 'thumbnail-001', name: 'Thumbnail Creator', color: '#f472b6', description: 'YouTube thumbnails & visual content' },
       { id: 'research-001', name: 'Research Agent', color: '#fb923c', description: 'Market & trend research' },
       { id: 'analytics-001', name: 'Analytics Agent', color: '#fbbf24', description: 'Sales tracking & A/B testing' },
       { id: 'seo-001', name: 'SEO Agent', color: '#34d399', description: 'Keyword research & optimization' },
@@ -38,6 +50,24 @@ const CATEGORIES = {
       { id: 'review-001', name: 'Review/QA Agent', color: '#14b8a6', description: 'Quality audits on agent output' },
     ],
   },
+  revenue: {
+    label: 'Revenue',
+    gridClass: 'revenue-grid',
+    slots: [
+      { id: 'image-gen-001', name: 'Image Generator', color: '#e879f9', description: 'YouTube thumbnails & visual content' },
+      { id: 'faceless-content-001', name: 'Faceless Content', color: '#f97316', description: 'AI video content production' },
+      { id: 'freelance-scraper-001', name: 'Freelance Scraper', color: '#22d3ee', description: 'Scrapes Upwork/Fiverr gigs' },
+      { id: 'gumroad-001', name: 'Gumroad Agent', color: '#f472b6', description: 'Gumroad product listings' },
+      { id: 'video-producer-001', name: 'Video Producer', color: '#a78bfa', description: 'Full video production pipeline' },
+    ],
+  },
+  operations: {
+    label: 'Operations',
+    gridClass: 'ops-grid',
+    slots: [
+      { id: 'manager-001', name: 'Farm Manager', color: '#10b981', description: 'Agent health, stall detection, auto-restart' },
+    ],
+  },
 };
 
 // Flat list for lookups
@@ -45,7 +75,8 @@ const AGENT_SLOTS = Object.values(CATEGORIES).flatMap(c => c.slots);
 
 const Grid = {
   agentData: {},
-  category: 'content',
+  category: 'executive',
+  expandedAgent: null,
 
   init() {
     this.render();
@@ -55,6 +86,16 @@ const Grid = {
   setCategory(cat) {
     if (!CATEGORIES[cat]) return;
     this.category = cat;
+    this.expandedAgent = null;
+    this.render();
+  },
+
+  toggleExpand(agentId) {
+    if (this.expandedAgent === agentId) {
+      this.expandedAgent = null;
+    } else {
+      this.expandedAgent = agentId;
+    }
     this.render();
   },
 
@@ -71,28 +112,78 @@ const Grid = {
       return `<div class="grid-subtab ${active ? 'active' : ''}" data-cat="${key}">${cfg.label}${countBadge}</div>`;
     }).join('');
 
-    container.innerHTML =
-      `<div class="grid-subtabs">${tabs}</div>
-       <div class="agent-grid-inner ${catConfig.gridClass}">
-         ${slots.map(slot => this._renderCard(slot)).join('')}
-       </div>`;
+    // If an agent is expanded, show split layout
+    const expandedSlot = this.expandedAgent ? slots.find(s => s.id === this.expandedAgent) : null;
 
+    let gridContent;
+    if (expandedSlot) {
+      gridContent = `
+        <div class="grid-split">
+          <div class="grid-split-list">
+            ${slots.map(slot => this._renderCard(slot, true)).join('')}
+          </div>
+          <div class="grid-split-detail">
+            ${this._renderDetail(expandedSlot)}
+          </div>
+        </div>`;
+    } else {
+      gridContent = `
+        <div class="agent-grid-inner ${catConfig.gridClass}">
+          ${slots.map(slot => this._renderCard(slot, false)).join('')}
+        </div>`;
+    }
+
+    container.innerHTML = `<div class="grid-subtabs">${tabs}</div>${gridContent}`;
+
+    // Tab clicks
     container.querySelector('.grid-subtabs').addEventListener('click', (e) => {
       const tab = e.target.closest('.grid-subtab');
       if (tab) this.setCategory(tab.dataset.cat);
     });
+
+    // Card clicks for expand
+    container.querySelectorAll('.agent-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        // Don't expand if clicking a control button
+        if (e.target.closest('.ctrl-btn')) return;
+        const id = card.id.replace('card-', '');
+        this.toggleExpand(id);
+      });
+    });
   },
 
-  _renderCard(slot) {
+  _renderCard(slot, compact) {
     const data = this.agentData[slot.id] || {};
     const status = data.status || 'offline';
     const tasksCompleted = data.tasks_completed || 0;
-    const recentLog = data.recent_log || [];
     const isOnline = status !== 'offline';
     const isRunning = status === 'running';
+    const isExpanded = this.expandedAgent === slot.id;
 
+    if (compact) {
+      // Compact card for split view sidebar
+      return `
+        <div class="agent-card compact ${isRunning ? 'running' : ''} ${isExpanded ? 'selected' : ''}" id="card-${slot.id}" style="--agent-color: ${slot.color}">
+          <div class="card-header">
+            <div style="min-width:0;">
+              <div class="agent-name" style="color: ${isOnline ? slot.color : 'var(--text-muted)'}">${UI.esc(slot.name)}</div>
+              <div class="agent-id">${slot.id}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${UI.statusBadge(status)}
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="task-count">Tasks: <span>${tasksCompleted}</span></div>
+            <div class="flex">${Controls.renderButtons(slot.id, status, isOnline)}</div>
+          </div>
+        </div>`;
+    }
+
+    // Full card for grid view
+    const recentLog = data.recent_log || [];
     return `
-      <div class="agent-card ${isRunning ? 'running' : ''}" id="card-${slot.id}" style="--agent-color: ${slot.color}">
+      <div class="agent-card ${isRunning ? 'running' : ''}" id="card-${slot.id}" style="--agent-color: ${slot.color}; cursor:pointer;">
         <div class="card-header">
           <div>
             <div class="agent-name" style="color: ${isOnline ? slot.color : 'var(--text-muted)'}">${UI.esc(slot.name)}</div>
@@ -101,12 +192,13 @@ const Grid = {
           ${UI.statusBadge(status)}
         </div>
 
+        <div class="agent-desc">${UI.esc(slot.description)}</div>
+
         <div class="agent-log" id="log-${slot.id}">
           ${isOnline ? this._renderLog(recentLog, slot.color) : `
             <div style="display:flex; align-items:center; justify-content:center; height:100%; opacity:0.3;">
               <div style="text-align:center;">
                 <div style="font-size:20px; margin-bottom:4px; color:${slot.color};">&#9679;</div>
-                <div style="font-size:10px; color:var(--text-muted);">${UI.esc(slot.description)}</div>
                 <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">READY</div>
               </div>
             </div>
@@ -123,17 +215,91 @@ const Grid = {
     `;
   },
 
+  _renderDetail(slot) {
+    const data = this.agentData[slot.id] || {};
+    const status = data.status || 'offline';
+    const tasksCompleted = data.tasks_completed || 0;
+    const currentTask = data.current_task || null;
+    const recentLog = data.recent_log || [];
+    const isOnline = status !== 'offline';
+    const isRunning = status === 'running';
+
+    const taskInfo = currentTask
+      ? `<div class="detail-current-task">
+           <div class="detail-label">CURRENT TASK</div>
+           <div class="detail-task-type" style="color:${slot.color};">${UI.esc(currentTask.type || 'unknown')}</div>
+           <div class="detail-task-desc">${UI.esc(currentTask.description || '')}</div>
+         </div>`
+      : `<div class="detail-current-task">
+           <div class="detail-label">CURRENT TASK</div>
+           <div class="detail-task-desc" style="opacity:0.4;">No active task</div>
+         </div>`;
+
+    return `
+      <div class="detail-panel" style="--agent-color: ${slot.color};">
+        <div class="detail-header">
+          <div>
+            <div class="detail-name" style="color:${slot.color};">${UI.esc(slot.name)}</div>
+            <div class="detail-id">${slot.id}</div>
+            <div class="detail-desc">${UI.esc(slot.description)}</div>
+          </div>
+          <div style="text-align:right;">
+            ${UI.statusBadge(status)}
+            <div class="detail-controls" style="margin-top:8px;">
+              ${Controls.renderButtons(slot.id, status, isOnline)}
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-stats">
+          <div class="detail-stat">
+            <div class="detail-stat-val" style="color:${slot.color};">${tasksCompleted}</div>
+            <div class="detail-stat-lbl">TASKS DONE</div>
+          </div>
+          <div class="detail-stat">
+            <div class="detail-stat-val" style="color:${isRunning ? 'var(--neon)' : 'var(--text-muted)'};">${isRunning ? 'LIVE' : status.toUpperCase()}</div>
+            <div class="detail-stat-lbl">STATUS</div>
+          </div>
+          <div class="detail-stat">
+            <div class="detail-stat-val" style="color:var(--text-secondary);">${recentLog.length}</div>
+            <div class="detail-stat-lbl">LOG ENTRIES</div>
+          </div>
+        </div>
+
+        ${taskInfo}
+
+        <div class="detail-log-section">
+          <div class="detail-label">ACTIVITY LOG</div>
+          <div class="detail-log">
+            ${recentLog.length > 0
+              ? recentLog.slice().reverse().map(e => {
+                  const d = e.data || {};
+                  const actionClass = d.action === 'error' ? 'error' : (d.action === 'completed' ? 'completed' : '');
+                  return `<div class="detail-log-entry">
+                    <span class="log-time">${UI.formatTimeShort(e.timestamp)}</span>
+                    <span class="log-action ${actionClass}">${UI.esc(d.action || '?')}</span>
+                    <span style="color:var(--text-muted);"> ${UI.esc((d.detail || '').substring(0, 200))}</span>
+                  </div>`;
+                }).join('')
+              : '<div class="detail-log-entry" style="opacity:0.3;">No activity yet</div>'
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
   _renderLog(entries, color) {
     if (!entries || entries.length === 0) {
       return '<div class="log-entry" style="opacity:0.3;">Waiting for activity...</div>';
     }
-    return entries.map(e => {
+    return entries.slice(-5).map(e => {
       const d = e.data || {};
       const actionClass = d.action === 'error' ? 'error' : (d.action === 'completed' ? 'completed' : '');
       return `<div class="log-entry">
         <span class="log-time">${UI.formatTimeShort(e.timestamp)}</span>
         <span class="log-action ${actionClass}">${UI.esc(d.action || '?')}</span>
-        <span style="color:var(--text-muted);"> ${UI.esc((d.detail || '').substring(0, 80))}</span>
+        <span style="color:var(--text-muted);"> ${UI.esc((d.detail || '').substring(0, 60))}</span>
       </div>`;
     }).join('');
   },
@@ -156,7 +322,6 @@ const Grid = {
         }
       }
       this.render();
-      this._updateCounter();
     }
 
     if (msg.type === 'agent_event') {
@@ -173,28 +338,34 @@ const Grid = {
       }
 
       this._updateCard(aid);
-      this._updateCounter();
     }
   },
 
   _updateCard(agentId) {
+    // If this agent is in the expanded detail, re-render the whole view
+    if (this.expandedAgent === agentId) {
+      this.render();
+      return;
+    }
+
     const slot = AGENT_SLOTS.find(s => s.id === agentId);
     if (!slot) return;
     const el = document.getElementById(`card-${agentId}`);
     if (!el) return;
 
     const temp = document.createElement('div');
-    temp.innerHTML = this._renderCard(slot);
+    const isCompact = this.expandedAgent !== null;
+    temp.innerHTML = this._renderCard(slot, isCompact);
     const newCard = temp.firstElementChild;
     el.replaceWith(newCard);
 
+    // Re-attach click handler
+    newCard.addEventListener('click', (e) => {
+      if (e.target.closest('.ctrl-btn')) return;
+      this.toggleExpand(agentId);
+    });
+
     const log = document.getElementById(`log-${agentId}`);
     if (log) log.scrollTop = log.scrollHeight;
-  },
-
-  _updateCounter() {
-    const active = Object.values(this.agentData).filter(a => a.status === 'running').length;
-    const el = document.getElementById('agent-counter');
-    if (el) el.textContent = `${active}/${AGENT_SLOTS.length} ACTIVE`;
   },
 };

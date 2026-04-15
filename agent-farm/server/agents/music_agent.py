@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 # ─── Audio branding tasks (ties into content pipeline) ───
@@ -127,7 +127,7 @@ class MusicAgent(BaseAgent):
             elif "```" in result:
                 result = result.split("```")[1].split("```")[0].strip()
 
-            save_result = save_template(result, f"audio-brand-{task['type']}", fmt="json")
+            save_result = save_output(result, "music", f"audio-brand-{task['type']}", fmt="json")
 
             # Track in content pipeline as audio branding
             if self.pipeline_db:
@@ -185,7 +185,7 @@ class MusicAgent(BaseAgent):
                 result = result.split("```")[1].split("```")[0].strip()
 
             slug = genre.lower().replace(" ", "-").replace("/", "-")[:30]
-            save_result = save_template(result, f"audio-product-{slug}", fmt="json")
+            save_result = save_output(result, "music", f"audio-product-{slug}", fmt="json")
 
             # Track in audio pipeline
             if self.pipeline_db:

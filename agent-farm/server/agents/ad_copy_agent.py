@@ -7,10 +7,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
-AD_PLATFORMS = ["facebook", "instagram", "google"]
+AD_PLATFORMS = ["facebook", "instagram", "google", "tiktok", "pinterest"]
 
 PRODUCTS = [
     {"name": "Trading Journal Template", "type": "printable", "price": "$4.99", "audience": "day traders, swing traders"},
@@ -21,6 +21,10 @@ PRODUCTS = [
     {"name": "Custom Financial Dashboard", "type": "fiverr-gig", "price": "$25-75", "audience": "small business owners, startups"},
     {"name": "Lo-Fi Study Beats Pack", "type": "audio", "price": "$9.99", "audience": "students, content creators"},
     {"name": "Podcast Intro Music Pack", "type": "audio", "price": "$14.99", "audience": "podcasters, YouTubers"},
+    {"name": "Portfolio Tracker Spreadsheet", "type": "printable", "price": "$5.99", "audience": "retail investors, crypto traders"},
+    {"name": "Side Hustle Starter Kit", "type": "digital-bundle", "price": "$12.99", "audience": "aspiring entrepreneurs, college students"},
+    {"name": "YouTube Channel Art Pack", "type": "design", "price": "$9.99", "audience": "new YouTubers, content creators"},
+    {"name": "AI Automation Consulting", "type": "service", "price": "$50-200/hr", "audience": "small business owners, agencies"},
 ]
 
 AD_PROMPT = """Create {count} ad variations for {platform} advertising.
@@ -98,7 +102,7 @@ class AdCopyAgent(BaseAgent):
                 result = result.split("```")[1].split("```")[0].strip()
 
             slug = product["name"].lower().replace(" ", "-")[:25]
-            save_result = save_template(result, f"ad-{platform}-{slug}", fmt="json")
+            save_result = save_output(result, "ad-copy", f"ad-{platform}-{slug}", fmt="json")
 
             # Track in content pipeline
             if self.pipeline_db:

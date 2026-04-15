@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from tools.file_tools import save_template
+from tools.file_tools import save_output
 
 
 THUMBNAIL_TYPES = [
@@ -80,7 +80,7 @@ class ThumbnailAgent(BaseAgent):
                 return self.emit("skipped", f"No valid SVG in output for {product}")
 
             slug = product.lower().replace(" ", "-")
-            save_result = save_template(result, f"thumb-{slug}-{thumb['style']}", fmt="svg")
+            save_result = save_output(result, "thumbnails", f"thumb-{slug}-{thumb['style']}", fmt="svg")
             self.tasks_completed += 1
             self.index += 1
             self.current_task = None
