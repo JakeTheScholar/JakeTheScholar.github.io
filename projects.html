@@ -1007,6 +1007,7 @@
     <nav aria-label="Primary">
         <a href="index.html">Home</a>
         <a href="index.html#about">About</a>
+        <a href="services.html">Services</a>
         <a href="projects.html" class="active">Projects</a>
         <a href="index.html#contact">Contact</a>
     </nav>
@@ -1305,17 +1306,21 @@
                     </div>
 
                     <!-- Contact CTA -->
-                    <a href="index.html#contact" class="coming-soon-card coming-soon-cta reveal reveal-delay-4">
+                    <div class="coming-soon-card coming-soon-cta reveal reveal-delay-4">
                         <div class="project-icon gold" style="margin-bottom: 20px;">
                             <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                         </div>
                         <h3>Want a project of your own?</h3>
-                        <p class="cs-desc">Then contact me.</p>
-                        <span class="project-link">
+                        <p class="cs-desc">I'd love to hear what you're working on — let's build something together.</p>
+                        <a href="services.html" class="project-link" style="margin-bottom: 8px;">
+                            View Services
+                            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </a>
+                        <a href="index.html#contact" class="project-link">
                             Get In Touch
                             <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                        </span>
-                    </a>
+                        </a>
+                    </div>
 
                 </div>
             </div>
@@ -1343,6 +1348,10 @@
     </footer>
 
     <script>
+    // Scroll to top on refresh
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
     (function() {
         'use strict';
 
