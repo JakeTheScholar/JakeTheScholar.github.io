@@ -21,7 +21,12 @@ const Composite = {
 
       // Build composite index
       const composite = this._buildComposite(dataMap, components);
-      if (!composite || composite.series.length === 0) return;
+      if (!composite || composite.series.length === 0) {
+        document.getElementById('recession-value').textContent = '--';
+        document.getElementById('recession-desc').textContent = 'Insufficient data to calculate composite index. FRED API may be temporarily unavailable.';
+        document.getElementById('component-list').innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:20px;">Unable to load component signals. Try refreshing the page.</div>';
+        return;
+      }
 
       // Render chart
       Charts.timeSeries('composite-chart', composite.series, {
