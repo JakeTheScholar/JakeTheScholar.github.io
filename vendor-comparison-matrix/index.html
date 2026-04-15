@@ -961,7 +961,8 @@ window.addEventListener('DOMContentLoaded', render);
 function renderDashboard(root) {
   const vendors = Store.getVendors();
   vendors.forEach(v => Store.ensureAIScores(v));
-  const campaigns = Store.getCampaigns().filter(c => c.status === 'active');
+  const allCampaigns = Store.getCampaigns();
+  const campaigns = allCampaigns.filter(c => c.status === 'active');
   const vendorData = vendors.map(v => {
     const aiScoresArr = Store.getAIScores(v.id);
     const userScoresArr = Store.getScores(v.id);
@@ -977,13 +978,37 @@ function renderDashboard(root) {
   const top5 = [...vendorData].sort((a, b) => b.effectiveScore - a.effectiveScore).slice(0, 5);
   const counts = { BUY: 0, BUILD: 0, PARTNER: 0 };
   scored.forEach(v => counts[v.decision.recommendation]++);
+  const parseNum = s => { const n = parseFloat(String(s || '').replace(/[^0-9.]/g, '')); return isFinite(n) ? n : null; };
 
-  root.appendChild(el('div', { className: 'mb-8' },
+  // Read dashboard view from hash query
+  const queryStr = (location.hash.split('?')[1] || '');
+  const qp = {};
+  queryStr.split('&').forEach(pair => { if (!pair) return; const [k, v] = pair.split('='); qp[k] = v ? decodeURIComponent(v) : ''; });
+  let dashView = qp.view || 'overview';
+
+  root.appendChild(el('div', { className: 'mb-6' },
     el('h1', { className: 'text-2xl font-bold text-gray-900' }, 'Dashboard'),
     el('p', { className: 'text-gray-500 text-sm mt-1' }, 'Vendor evaluation overview for AF Group')
   ));
 
-  // Stats
+  // ── Dashboard view selector ──────────────────────────────────────────
+  const dashViews = [
+    { id: 'overview', label: 'Overview', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
+    { id: 'scores', label: 'Scores', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+    { id: 'recommendations', label: 'Recommendations', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+    { id: 'activity', label: 'Activity', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' }
+  ];
+  const viewBar = el('div', { className: 'flex flex-wrap gap-2 mb-6' });
+  dashViews.forEach(dv => {
+    const active = dashView === dv.id;
+    viewBar.appendChild(el('button', {
+      className: `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${active ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-indigo-200 hover:bg-indigo-50'}`,
+      onclick: () => { location.hash = `#/?view=${dv.id}`; }
+    }, svg(dv.icon), dv.label));
+  });
+  root.appendChild(viewBar);
+
+  // Stats strip (shared across all views)
   const stats = el('div', { className: 'grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 mb-8' });
   [
     { label: 'TOTAL VENDORS', val: vendors.length, color: 'text-indigo-700', href: '#/vendors' },
@@ -999,58 +1024,252 @@ function renderDashboard(root) {
   });
   root.appendChild(stats);
 
-  const grid = el('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' });
+  // ── VIEW: Overview (default) ─────────────────────────────────────────
+  if (dashView === 'overview') {
+    const grid = el('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' });
 
-  // Top vendors
-  const topCard = card(
-    el('div', { className: 'flex items-center justify-between mb-4' },
-      el('h2', { className: 'font-semibold text-gray-900' }, 'Top Rated Vendors'),
-      el('a', { href: '#/vendors', className: 'text-sm text-indigo-600 hover:underline' }, 'View all')
-    )
-  );
-  if (top5.length === 0) {
-    topCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'No vendors yet. ',
-      el('a', { href: '#/vendors/0/new', className: 'text-indigo-600 hover:underline' }, 'Add one')));
-  } else {
-    top5.forEach((v, i) => {
-      const hasUser = v.userSum !== null;
-      const badge = hasUser
-        ? userScoreBadge(v.userSum)
-        : aiBadge(v.aiSum);
-      topCard.appendChild(el('div', { className: 'flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors' },
-        el('div', { className: 'flex items-center gap-3' },
-          el('span', { className: 'w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold' }, String(i + 1)),
-          el('div', {},
-            el('p', { className: 'font-medium text-sm text-gray-900' }, v.name),
-            v.project ? el('p', { className: 'text-xs text-gray-400' }, v.project) : null
+    // Top vendors
+    const topCard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'Your Top Rated Vendors'),
+        el('a', { href: '#/vendors', className: 'text-sm text-indigo-600 hover:underline' }, 'View all')
+      )
+    );
+    if (top5.length === 0) {
+      topCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'No vendors yet. ',
+        el('a', { href: '#/vendors/0/new', className: 'text-indigo-600 hover:underline' }, 'Add one')));
+    } else {
+      top5.forEach((v, i) => {
+        const hasUser = v.userSum !== null;
+        const badge = hasUser
+          ? userScoreBadge(v.userSum)
+          : aiBadge(v.aiSum);
+        topCard.appendChild(el('div', { className: 'flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors' },
+          el('div', { className: 'flex items-center gap-3' },
+            el('span', { className: 'w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs font-bold' }, String(i + 1)),
+            el('div', {},
+              el('p', { className: 'font-medium text-sm text-gray-900' }, v.name),
+              v.project ? el('p', { className: 'text-xs text-gray-400' }, v.project) : null
+            )
+          ),
+          badge
+        ));
+      });
+    }
+    grid.appendChild(topCard);
+
+    // Decision summary
+    const decCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Decision Summary'));
+    if (scored.length === 0) {
+      decCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'Score vendors to see recommendations.'));
+    } else {
+      [{ l:'Buy',c:counts.BUY,bg:'bg-emerald-500' }, { l:'Build',c:counts.BUILD,bg:'bg-blue-500' }, { l:'Partner',c:counts.PARTNER,bg:'bg-purple-500' }].forEach(r => {
+        const pct = scored.length > 0 ? (r.c / scored.length) * 100 : 0;
+        decCard.appendChild(el('div', { className: 'mb-4' },
+          el('div', { className: 'flex justify-between text-sm mb-1.5' },
+            el('span', { className: 'font-medium text-gray-700' }, r.l),
+            el('span', { className: 'text-slate-400 text-xs' }, `${r.c} vendor${r.c !== 1 ? 's' : ''}`)
+          ),
+          el('div', { className: 'w-full bg-gray-100 rounded-full h-2.5 overflow-hidden' },
+            Object.assign(el('div', { className: `${r.bg} h-2.5 rounded-full bar-fill` }), { style: { width: pct + '%' } })
           )
-        ),
-        badge
-      ));
-    });
-  }
-  grid.appendChild(topCard);
+        ));
+      });
+    }
+    grid.appendChild(decCard);
+    root.appendChild(grid);
 
-  // Decision summary
-  const decCard = card(el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Decision Summary'));
-  if (scored.length === 0) {
-    decCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'Score vendors to see recommendations.'));
-  } else {
-    [{ l:'Buy',c:counts.BUY,bg:'bg-emerald-500' }, { l:'Build',c:counts.BUILD,bg:'bg-blue-500' }, { l:'Partner',c:counts.PARTNER,bg:'bg-purple-500' }].forEach(r => {
-      const pct = scored.length > 0 ? (r.c / scored.length) * 100 : 0;
-      decCard.appendChild(el('div', { className: 'mb-4' },
-        el('div', { className: 'flex justify-between text-sm mb-1.5' },
-          el('span', { className: 'font-medium text-gray-700' }, r.l),
-          el('span', { className: 'text-slate-400 text-xs' }, `${r.c} vendor${r.c !== 1 ? 's' : ''}`)
-        ),
-        el('div', { className: 'w-full bg-gray-100 rounded-full h-2.5 overflow-hidden' },
-          Object.assign(el('div', { className: `${r.bg} h-2.5 rounded-full bar-fill` }), { style: { width: pct + '%' } })
-        )
+  // ── VIEW: Scores ─────────────────────────────────────────────────────
+  } else if (dashView === 'scores') {
+    const allSorted = [...vendorData].sort((a, b) => b.effectiveScore - a.effectiveScore);
+    const scoresCard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'All Vendor Scores'),
+        el('p', { className: 'text-xs text-slate-400' }, `${allSorted.length} vendors \u00b7 sorted by score`)
+      )
+    );
+    if (allSorted.length === 0) {
+      scoresCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-6 text-center' }, 'No vendors yet.'));
+    } else {
+      allSorted.forEach((v, i) => {
+        const pct = Math.round((v.effectiveScore / 50) * 100);
+        const hasUser = v.userSum !== null;
+        const barColor = pct >= 70 ? 'from-emerald-400 to-emerald-600' : pct >= 40 ? 'from-amber-400 to-amber-500' : 'from-red-400 to-red-500';
+        scoresCard.appendChild(el('div', { className: 'flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors' },
+          el('span', { className: 'w-7 h-7 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-[11px] font-bold flex-shrink-0' }, String(i + 1)),
+          el('div', { className: 'flex-1 min-w-0' },
+            el('div', { className: 'flex items-center justify-between mb-1' },
+              el('a', { href: `#/vendors/${v.id}/edit`, className: 'font-medium text-sm text-gray-900 hover:text-indigo-600 no-underline truncate' }, v.name),
+              el('div', { className: 'flex items-center gap-2 flex-shrink-0' },
+                el('span', { className: `text-xs font-bold ${hasUser ? 'text-emerald-600' : 'text-indigo-500'}` }, `${v.effectiveScore}/50`),
+                el('span', { className: `text-[10px] px-1.5 py-0.5 rounded-full ${hasUser ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-500'}` }, hasUser ? 'You' : 'AI')
+              )
+            ),
+            (() => {
+              const barWrap = el('div', { className: 'w-full h-2 bg-slate-100 rounded-full overflow-hidden' });
+              const bar = el('div', { className: `h-2 bg-gradient-to-r ${barColor} rounded-full bar-fill` });
+              bar.style.width = pct + '%';
+              barWrap.appendChild(bar);
+              return barWrap;
+            })()
+          )
+        ));
+      });
+    }
+    root.appendChild(scoresCard);
+
+  // ── VIEW: Recommendations ────────────────────────────────────────────
+  } else if (dashView === 'recommendations') {
+    const bbpConfig = [
+      { key: 'BUY', label: 'Buy', color: 'emerald', desc: 'Vendors recommended for purchase' },
+      { key: 'BUILD', label: 'Build', color: 'blue', desc: 'Vendors where building in-house is recommended' },
+      { key: 'PARTNER', label: 'Partner', color: 'purple', desc: 'Vendors recommended for partnership' }
+    ];
+    // Summary pills
+    const summaryRow = el('div', { className: 'grid grid-cols-3 gap-4 mb-6' });
+    bbpConfig.forEach(b => {
+      summaryRow.appendChild(el('div', { className: `bg-${b.color}-50 rounded-2xl p-5 border border-${b.color}-200` },
+        el('p', { className: `text-3xl font-bold text-${b.color}-700` }, String(counts[b.key])),
+        el('p', { className: `text-sm font-semibold text-${b.color}-600 mt-1` }, b.label),
+        el('p', { className: 'text-xs text-slate-400 mt-0.5' }, b.desc)
       ));
     });
+    root.appendChild(summaryRow);
+
+    // Vendor lists per recommendation
+    bbpConfig.forEach(b => {
+      const matchingVendors = scored.filter(v => v.decision.recommendation === b.key)
+        .sort((a, c) => c.effectiveScore - a.effectiveScore);
+      const secCard = card(
+        el('div', { className: 'flex items-center gap-3 mb-4' },
+          el('div', { className: `w-3 h-3 rounded-full bg-${b.color}-500` }),
+          el('h2', { className: 'font-semibold text-gray-900' }, `${b.label} Recommendations`),
+          el('span', { className: 'text-xs text-slate-400' }, `${matchingVendors.length} vendor${matchingVendors.length !== 1 ? 's' : ''}`)
+        )
+      );
+      if (matchingVendors.length === 0) {
+        secCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-3' }, `No vendors recommended for ${b.label.toLowerCase()} yet.`));
+      } else {
+        matchingVendors.forEach(v => {
+          const costVal = parseNum(v.estAnnualCost);
+          secCard.appendChild(el('div', { className: 'flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors' },
+            el('div', { className: 'flex items-center gap-3 min-w-0 flex-1' },
+              el('span', { className: `w-8 h-8 rounded-lg bg-${b.color}-100 text-${b.color}-700 flex items-center justify-center text-xs font-bold flex-shrink-0` },
+                String(v.effectiveScore)),
+              el('div', { className: 'min-w-0' },
+                el('a', { href: `#/vendors/${v.id}/edit`, className: 'font-medium text-sm text-gray-900 hover:text-indigo-600 no-underline truncate block' }, v.name),
+                el('p', { className: 'text-xs text-slate-400 truncate' },
+                  [v.category, v.project].filter(Boolean).join(' \u00b7 ') || '\u00a0'
+                )
+              )
+            ),
+            el('div', { className: 'flex items-center gap-3 flex-shrink-0' },
+              costVal != null ? el('span', { className: 'text-xs text-slate-500' }, '$' + costVal.toLocaleString() + '/yr') : null,
+              v.decision ? el('span', { className: 'text-xs text-slate-400' }, v.decision.confidence + '%') : null
+            )
+          ));
+        });
+      }
+      root.appendChild(secCard);
+    });
+
+    // Unscored vendors
+    const unscored = vendorData.filter(v => !v.decision);
+    if (unscored.length > 0) {
+      const unsCard = card(
+        el('div', { className: 'flex items-center gap-3 mb-4' },
+          el('div', { className: 'w-3 h-3 rounded-full bg-slate-300' }),
+          el('h2', { className: 'font-semibold text-gray-900' }, 'Pending Evaluation'),
+          el('span', { className: 'text-xs text-slate-400' }, `${unscored.length} vendor${unscored.length !== 1 ? 's' : ''}`)
+        )
+      );
+      unscored.forEach(v => {
+        unsCard.appendChild(el('div', { className: 'flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors' },
+          el('a', { href: `#/vendors/${v.id}/edit`, className: 'font-medium text-sm text-gray-900 hover:text-indigo-600 no-underline' }, v.name),
+          el('a', { href: '#/scoring', className: 'text-xs text-indigo-600 hover:underline' }, 'Score now')
+        ));
+      });
+      root.appendChild(unsCard);
+    }
+
+  // ── VIEW: Activity ───────────────────────────────────────────────────
+  } else if (dashView === 'activity') {
+    // Active campaigns
+    const activeCard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'Active Campaigns'),
+        el('a', { href: '#/campaigns', className: 'text-sm text-indigo-600 hover:underline' }, 'View all')
+      )
+    );
+    if (campaigns.length === 0) {
+      activeCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'No active campaigns.'));
+    } else {
+      campaigns.forEach(c => {
+        const vendorCount = (c.vendorIds || []).length;
+        activeCard.appendChild(el('a', { href: `#/campaigns/${c.id}`, className: 'flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors no-underline block' },
+          el('div', { className: 'min-w-0' },
+            el('p', { className: 'font-medium text-sm text-gray-900' }, c.name),
+            el('p', { className: 'text-xs text-slate-400 mt-0.5' }, `${vendorCount} vendor${vendorCount !== 1 ? 's' : ''} \u00b7 ${c.status}`)
+          ),
+          el('span', { className: 'text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600 font-semibold flex-shrink-0' }, 'Active')
+        ));
+      });
+    }
+    root.appendChild(activeCard);
+
+    // Completed / other campaigns
+    const otherCampaigns = allCampaigns.filter(c => c.status !== 'active');
+    if (otherCampaigns.length > 0) {
+      const otherCard = card(
+        el('h2', { className: 'font-semibold text-gray-900 mb-4' }, 'Past Campaigns')
+      );
+      otherCampaigns.forEach(c => {
+        const vendorCount = (c.vendorIds || []).length;
+        otherCard.appendChild(el('a', { href: `#/campaigns/${c.id}`, className: 'flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors no-underline block' },
+          el('div', { className: 'min-w-0' },
+            el('p', { className: 'font-medium text-sm text-gray-900' }, c.name),
+            el('p', { className: 'text-xs text-slate-400 mt-0.5' }, `${vendorCount} vendor${vendorCount !== 1 ? 's' : ''} \u00b7 ${c.status}`)
+          ),
+          el('span', { className: 'text-xs px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 font-semibold flex-shrink-0' }, c.status || 'Closed')
+        ));
+      });
+      root.appendChild(otherCard);
+    }
+
+    // Recent vendor additions (by highest id = most recent)
+    const recentVendors = [...vendorData].sort((a, b) => b.id - a.id).slice(0, 10);
+    const recentCard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'Recently Added Vendors'),
+        el('a', { href: '#/vendors', className: 'text-sm text-indigo-600 hover:underline' }, 'View all')
+      )
+    );
+    if (recentVendors.length === 0) {
+      recentCard.appendChild(el('p', { className: 'text-sm text-gray-400 py-4' }, 'No vendors yet.'));
+    } else {
+      recentVendors.forEach(v => {
+        const hasUser = v.userSum !== null;
+        recentCard.appendChild(el('div', { className: 'flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors' },
+          el('div', { className: 'flex items-center gap-3 min-w-0 flex-1' },
+            el('div', { className: 'min-w-0' },
+              el('a', { href: `#/vendors/${v.id}/edit`, className: 'font-medium text-sm text-gray-900 hover:text-indigo-600 no-underline truncate block' }, v.name),
+              el('p', { className: 'text-xs text-slate-400 truncate' },
+                [v.category, v.project].filter(Boolean).join(' \u00b7 ') || '\u00a0'
+              )
+            )
+          ),
+          v.decision
+            ? el('span', { className: `text-xs px-2 py-1 rounded-full font-semibold ${
+                v.decision.recommendation === 'BUY' ? 'bg-emerald-50 text-emerald-600' :
+                v.decision.recommendation === 'BUILD' ? 'bg-blue-50 text-blue-600' :
+                'bg-purple-50 text-purple-600'
+              }` }, v.decision.recommendation)
+            : el('span', { className: 'text-xs text-slate-300' }, 'unscored')
+        ));
+      });
+    }
+    root.appendChild(recentCard);
   }
-  grid.appendChild(decCard);
-  root.appendChild(grid);
 }
 
 // ── Vendors List ───────────────────────────────────────────────────────
@@ -1882,7 +2101,7 @@ function renderCompare(root) {
   }
 
   // ── URL state ────────────────────────────────────────────────────────
-  // Hash format: #/compare?mode=dept&val=Claims   or   mode=cat&val=Claims%20CRM   or   mode=pick&val=1,3,5
+  // Hash format: #/compare?mode=dept&val=Claims&view=ranked   or   mode=cat&val=Claims%20CRM   or   mode=pick&val=1,3,5
   const queryStr = (location.hash.split('?')[1] || '');
   const queryParams = {};
   queryStr.split('&').forEach(pair => {
@@ -1892,6 +2111,7 @@ function renderCompare(root) {
   });
   let mode = queryParams.mode || 'dept';
   let selectedValue = queryParams.val || '';
+  let viewMode = queryParams.view || 'ranked';
   let pickedIds = (mode === 'pick' && selectedValue)
     ? selectedValue.split(',').map(n => parseInt(n, 10)).filter(n => !isNaN(n))
     : [];
@@ -1900,7 +2120,7 @@ function renderCompare(root) {
     let val;
     if (mode === 'pick') val = pickedIds.join(',');
     else val = selectedValue;
-    location.hash = `#/compare?mode=${mode}${val ? '&val=' + encodeURIComponent(val) : ''}`;
+    location.hash = `#/compare?mode=${mode}${val ? '&val=' + encodeURIComponent(val) : ''}&view=${viewMode}`;
   }
 
   // ── Mode tabs ────────────────────────────────────────────────────────
@@ -2103,142 +2323,296 @@ function renderCompare(root) {
     'text-amber-600'));
   pickerBody.appendChild(summaryStrip);
 
-  // ── Top Pick hero card ───────────────────────────────────────────────
-  const top = ranked[0];
-  if (top && top.dec) {
-    const recColor = { BUY: 'emerald', BUILD: 'blue', PARTNER: 'purple' }[top.dec.recommendation];
-    const hero = el('div', {
-      className: `relative overflow-hidden rounded-3xl p-6 md:p-8 mb-6 bg-gradient-to-br from-${recColor}-500 via-${recColor}-600 to-${recColor}-700 shadow-xl shadow-${recColor}-200`
+  // ── View selector tabs ───────────────────────────────────────────────
+  const views = [
+    { id: 'ranked', label: 'Ranked', icon: 'M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12' },
+    { id: 'side-by-side', label: 'Side-by-Side', icon: 'M9 3h6v18H9V3zM3 3h6v18H3V3zm12 0h6v18h-6V3z' },
+    { id: 'scorecard', label: 'Scorecard', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+    { id: 'cost', label: 'Cost Analysis', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1' }
+  ];
+  const viewBar = el('div', { className: 'flex flex-wrap gap-2 mt-6 mb-6' });
+  views.forEach(v => {
+    const active = viewMode === v.id;
+    viewBar.appendChild(el('button', {
+      className: `flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${active ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md shadow-slate-300' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-slate-300 hover:bg-slate-50'}`,
+      onclick: () => { viewMode = v.id; updateUrl(); }
     },
-      el('div', { className: 'flex flex-wrap items-center justify-between gap-4 relative z-10' },
-        el('div', { className: 'min-w-0 flex-1' },
-          el('p', { className: 'text-xs font-bold uppercase tracking-[0.2em] text-white/70 mb-2' }, '\u2605 Top Pick'),
-          el('a', { href: `#/vendors/${top.v.id}/edit`, className: 'text-3xl md:text-4xl font-bold text-white no-underline hover:underline block' }, top.v.name),
-          el('p', { className: 'text-sm text-white/80 mt-1' },
-            top.v.category || (top.v.sections || []).slice(0, 2).join(' \u00b7 ') || '\u00a0'
+      (() => {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'w-4 h-4');
+        svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor');
+        svg.setAttribute('viewBox', '0 0 24 24');
+        svg.setAttribute('stroke-width', '2');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('d', v.icon);
+        svg.appendChild(path);
+        return svg;
+      })(),
+      v.label
+    ));
+  });
+  pickerBody.appendChild(viewBar);
+
+  // ── Results container ────────────────────────────────────────────────
+  const resultsArea = el('div', {});
+  pickerBody.appendChild(resultsArea);
+
+  // ── VIEW: Ranked ─────────────────────────────────────────────────────
+  if (viewMode === 'ranked') {
+    // Top Pick hero card
+    const top = ranked[0];
+    if (top && top.dec) {
+      const recColor = { BUY: 'emerald', BUILD: 'blue', PARTNER: 'purple' }[top.dec.recommendation];
+      const hero = el('div', {
+        className: `relative overflow-hidden rounded-3xl p-6 md:p-8 mb-6 bg-gradient-to-br from-${recColor}-500 via-${recColor}-600 to-${recColor}-700 shadow-xl shadow-${recColor}-200`
+      },
+        el('div', { className: 'flex flex-wrap items-center justify-between gap-4 relative z-10' },
+          el('div', { className: 'min-w-0 flex-1' },
+            el('p', { className: 'text-xs font-bold uppercase tracking-[0.2em] text-white/70 mb-2' }, '\u2605 Top Pick'),
+            el('a', { href: `#/vendors/${top.v.id}/edit`, className: 'text-3xl md:text-4xl font-bold text-white no-underline hover:underline block' }, top.v.name),
+            el('p', { className: 'text-sm text-white/80 mt-1' },
+              top.v.category || (top.v.sections || []).slice(0, 2).join(' \u00b7 ') || '\u00a0'
+            ),
+            el('div', { className: 'flex flex-wrap items-center gap-2 mt-4' },
+              el('span', { className: 'bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-white/30' },
+                'Recommends: ' + top.dec.recommendation),
+              el('span', { className: 'bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-white/30' },
+                top.dec.confidence + '% confidence'),
+              el('span', { className: 'bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-white/30' },
+                `${top.strongest}/${BBP_MAX} best-path score`)
+            )
           ),
-          el('div', { className: 'flex flex-wrap items-center gap-2 mt-4' },
-            el('span', { className: 'bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-white/30' },
-              'Recommends: ' + top.dec.recommendation),
-            el('span', { className: 'bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-white/30' },
-              top.dec.confidence + '% confidence'),
-            el('span', { className: 'bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-white/30' },
-              `${top.strongest}/${BBP_MAX} best-path score`)
+          el('div', { className: 'text-right flex-shrink-0' },
+            el('p', { className: 'text-[10px] font-bold uppercase tracking-wider text-white/60 mb-1' }, 'Overall'),
+            el('p', { className: 'text-5xl md:text-6xl font-bold text-white leading-none' }, String(top.genScore)),
+            el('p', { className: 'text-xs text-white/70 mt-1' }, 'out of 50')
           )
-        ),
-        el('div', { className: 'text-right flex-shrink-0' },
-          el('p', { className: 'text-[10px] font-bold uppercase tracking-wider text-white/60 mb-1' }, 'Overall'),
-          el('p', { className: 'text-5xl md:text-6xl font-bold text-white leading-none' }, String(top.genScore)),
-          el('p', { className: 'text-xs text-white/70 mt-1' }, 'out of 50')
         )
+      );
+      hero.appendChild(el('div', {
+        className: 'absolute -right-16 -top-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none'
+      }));
+      resultsArea.appendChild(hero);
+    }
+
+    // Ranked leaderboard
+    const leaderboard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'Ranked Leaderboard'),
+        el('p', { className: 'text-xs text-slate-400' }, 'Sorted by strongest fit score')
       )
     );
-    // Decorative bg accent
-    hero.appendChild(el('div', {
-      className: 'absolute -right-16 -top-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none'
-    }));
-    pickerBody.appendChild(hero);
-  }
+    const maxStrongest = Math.max(...ranked.map(r => r.strongest), 1);
+    ranked.forEach((r, idx) => {
+      const rank = idx + 1;
+      const rankBg = rank === 1 ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-md shadow-amber-200'
+        : rank === 2 ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-white'
+        : rank === 3 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white'
+        : 'bg-slate-100 text-slate-500';
+      const recColor = r.dec ? { BUY: 'emerald', BUILD: 'blue', PARTNER: 'purple' }[r.dec.recommendation] : 'slate';
+      const pctBuy = r.dec ? (r.dec.raw.BUY / BBP_MAX) * 100 : 0;
+      const pctBuild = r.dec ? (r.dec.raw.BUILD / BBP_MAX) * 100 : 0;
+      const pctPartner = r.dec ? (r.dec.raw.PARTNER / BBP_MAX) * 100 : 0;
 
-  // ── Ranked list ──────────────────────────────────────────────────────
-  const leaderboard = card(
-    el('div', { className: 'flex items-center justify-between mb-4' },
-      el('h2', { className: 'font-semibold text-gray-900' }, 'Ranked Leaderboard'),
-      el('p', { className: 'text-xs text-slate-400' }, 'Sorted by strongest fit score')
-    )
-  );
-  const maxStrongest = Math.max(...ranked.map(r => r.strongest), 1);
-  ranked.forEach((r, idx) => {
-    const rank = idx + 1;
-    const rankBg = rank === 1 ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-md shadow-amber-200'
-      : rank === 2 ? 'bg-gradient-to-br from-slate-300 to-slate-400 text-white'
-      : rank === 3 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white'
-      : 'bg-slate-100 text-slate-500';
-    const recColor = r.dec ? { BUY: 'emerald', BUILD: 'blue', PARTNER: 'purple' }[r.dec.recommendation] : 'slate';
-    const pctBuy = r.dec ? (r.dec.raw.BUY / BBP_MAX) * 100 : 0;
-    const pctBuild = r.dec ? (r.dec.raw.BUILD / BBP_MAX) * 100 : 0;
-    const pctPartner = r.dec ? (r.dec.raw.PARTNER / BBP_MAX) * 100 : 0;
-    const strongestPct = (r.strongest / maxStrongest) * 100;
-
-    const row = el('div', { className: `flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-2xl border transition-all duration-200 hover:shadow-md ${rank === 1 ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100 hover:border-indigo-200'} mb-3` },
-      // Rank badge
-      el('div', { className: `w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center text-lg font-bold ${rankBg}` }, '#' + rank),
-      // Vendor name + meta
-      el('div', { className: 'flex-1 min-w-0' },
-        el('a', { href: `#/vendors/${r.v.id}/edit`, className: 'font-semibold text-gray-900 hover:text-indigo-600 no-underline text-base' }, r.v.name),
-        el('p', { className: 'text-xs text-slate-400 truncate mt-0.5' },
-          r.v.category || (r.v.sections || []).slice(0, 2).join(' \u00b7 ') || '\u00a0'
+      const row = el('div', { className: `flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-2xl border transition-all duration-200 hover:shadow-md ${rank === 1 ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100 hover:border-indigo-200'} mb-3` },
+        el('div', { className: `w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center text-lg font-bold ${rankBg}` }, '#' + rank),
+        el('div', { className: 'flex-1 min-w-0' },
+          el('a', { href: `#/vendors/${r.v.id}/edit`, className: 'font-semibold text-gray-900 hover:text-indigo-600 no-underline text-base' }, r.v.name),
+          el('p', { className: 'text-xs text-slate-400 truncate mt-0.5' },
+            r.v.category || (r.v.sections || []).slice(0, 2).join(' \u00b7 ') || '\u00a0'
+          ),
+          el('div', { className: 'flex gap-1 mt-2 max-w-xs' },
+            el('div', { className: 'flex-1' },
+              el('p', { className: 'text-[9px] font-bold text-emerald-600 uppercase' }, 'Buy'),
+              Object.assign(el('div', { className: 'w-full h-1.5 bg-slate-100 rounded-full overflow-hidden' }),
+                (() => { const bar = el('div', { className: 'h-1.5 bg-emerald-500 bar-fill' }); bar.style.width = pctBuy + '%'; return bar; })()
+              )
+            ),
+            el('div', { className: 'flex-1' },
+              el('p', { className: 'text-[9px] font-bold text-blue-600 uppercase' }, 'Build'),
+              Object.assign(el('div', { className: 'w-full h-1.5 bg-slate-100 rounded-full overflow-hidden' }),
+                (() => { const bar = el('div', { className: 'h-1.5 bg-blue-500 bar-fill' }); bar.style.width = pctBuild + '%'; return bar; })()
+              )
+            ),
+            el('div', { className: 'flex-1' },
+              el('p', { className: 'text-[9px] font-bold text-purple-600 uppercase' }, 'Partner'),
+              Object.assign(el('div', { className: 'w-full h-1.5 bg-slate-100 rounded-full overflow-hidden' }),
+                (() => { const bar = el('div', { className: 'h-1.5 bg-purple-500 bar-fill' }); bar.style.width = pctPartner + '%'; return bar; })()
+              )
+            )
+          )
         ),
-        // Three path bars — visual, not numeric
-        el('div', { className: 'flex gap-1 mt-2 max-w-xs' },
-          el('div', { className: 'flex-1' },
-            el('p', { className: 'text-[9px] font-bold text-emerald-600 uppercase' }, 'Buy'),
-            Object.assign(el('div', { className: 'w-full h-1.5 bg-slate-100 rounded-full overflow-hidden' }),
-              (() => { const bar = el('div', { className: 'h-1.5 bg-emerald-500 bar-fill' }); bar.style.width = pctBuy + '%'; return bar; })()
+        el('div', { className: 'flex-shrink-0 text-right' },
+          r.v.estAnnualCost ? el('p', { className: 'text-xs text-slate-500' }, '$' + (parseNum(r.v.estAnnualCost) != null ? parseNum(r.v.estAnnualCost).toLocaleString() : r.v.estAnnualCost) + '/yr') : null,
+          r.v.timeToDeploy ? el('p', { className: 'text-xs text-slate-400' }, r.v.timeToDeploy + ' wk deploy') : null
+        ),
+        r.dec
+          ? el('div', { className: 'flex-shrink-0 text-right' },
+              el('span', { className: `inline-block px-3 py-1.5 rounded-full text-xs font-bold bg-${recColor}-50 text-${recColor}-700 ring-1 ring-${recColor}-200` }, r.dec.recommendation),
+              el('p', { className: 'text-[10px] text-slate-400 mt-1' }, r.dec.confidence + '% confident')
             )
-          ),
-          el('div', { className: 'flex-1' },
-            el('p', { className: 'text-[9px] font-bold text-blue-600 uppercase' }, 'Build'),
-            Object.assign(el('div', { className: 'w-full h-1.5 bg-slate-100 rounded-full overflow-hidden' }),
-              (() => { const bar = el('div', { className: 'h-1.5 bg-blue-500 bar-fill' }); bar.style.width = pctBuild + '%'; return bar; })()
-            )
-          ),
-          el('div', { className: 'flex-1' },
-            el('p', { className: 'text-[9px] font-bold text-purple-600 uppercase' }, 'Partner'),
-            Object.assign(el('div', { className: 'w-full h-1.5 bg-slate-100 rounded-full overflow-hidden' }),
-              (() => { const bar = el('div', { className: 'h-1.5 bg-purple-500 bar-fill' }); bar.style.width = pctPartner + '%'; return bar; })()
-            )
-          )
-        )
-      ),
-      // Key metrics
-      el('div', { className: 'flex-shrink-0 text-right' },
-        r.v.estAnnualCost ? el('p', { className: 'text-xs text-slate-500' }, '$' + (parseNum(r.v.estAnnualCost) != null ? parseNum(r.v.estAnnualCost).toLocaleString() : r.v.estAnnualCost) + '/yr') : null,
-        r.v.timeToDeploy ? el('p', { className: 'text-xs text-slate-400' }, r.v.timeToDeploy + ' wk deploy') : null
-      ),
-      // Recommendation pill
-      r.dec
-        ? el('div', { className: 'flex-shrink-0 text-right' },
-            el('span', { className: `inline-block px-3 py-1.5 rounded-full text-xs font-bold bg-${recColor}-50 text-${recColor}-700 ring-1 ring-${recColor}-200` }, r.dec.recommendation),
-            el('p', { className: 'text-[10px] text-slate-400 mt-1' }, r.dec.confidence + '% confident')
-          )
-        : el('span', { className: 'text-xs text-slate-300 flex-shrink-0' }, 'unscored')
-    );
-    leaderboard.appendChild(row);
-  });
-  pickerBody.appendChild(leaderboard);
+          : el('span', { className: 'text-xs text-slate-300 flex-shrink-0' }, 'unscored')
+      );
+      leaderboard.appendChild(row);
+    });
+    resultsArea.appendChild(leaderboard);
 
-  // ── Collapsible full head-to-head table ──────────────────────────────
-  const detailsWrap = el('div', { className: 'mt-6' });
-  const isOpenInit = ranked.length <= 4;
-  const detailsCard = card();
-  const toggleBtn = el('button', {
-    className: 'w-full flex items-center justify-between text-left',
-    onclick: () => {
-      const body = detailsCard.querySelector('.details-body');
-      const arrow = detailsCard.querySelector('.details-arrow');
-      if (body.style.display === 'none') {
-        body.style.display = 'block';
-        arrow.textContent = '\u25b2';
-      } else {
-        body.style.display = 'none';
-        arrow.textContent = '\u25bc';
-      }
+  // ── VIEW: Side-by-Side ───────────────────────────────────────────────
+  } else if (viewMode === 'side-by-side') {
+    const tableCard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'Side-by-Side Comparison'),
+        el('p', { className: 'text-xs text-slate-400' }, 'Every metric, every vendor')
+      )
+    );
+    const tableWrap = el('div', { className: 'overflow-x-auto -mx-2' });
+    tableWrap.appendChild(renderHeadToHeadTable(ranked.map(r => r.v)));
+    tableCard.appendChild(tableWrap);
+    resultsArea.appendChild(tableCard);
+
+  // ── VIEW: Scorecard ──────────────────────────────────────────────────
+  } else if (viewMode === 'scorecard') {
+    resultsArea.appendChild(el('div', { className: 'mb-4' },
+      el('h2', { className: 'font-semibold text-gray-900' }, 'Vendor Scorecards'),
+      el('p', { className: 'text-xs text-slate-400 mt-0.5' }, 'Deep-dive score breakdown per vendor')
+    ));
+    const grid = el('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' });
+    ranked.forEach((r, idx) => {
+      const recColor = r.dec ? { BUY: 'emerald', BUILD: 'blue', PARTNER: 'purple' }[r.dec.recommendation] : 'slate';
+      const pctBuy = r.dec ? Math.round((r.dec.raw.BUY / BBP_MAX) * 100) : 0;
+      const pctBuild = r.dec ? Math.round((r.dec.raw.BUILD / BBP_MAX) * 100) : 0;
+      const pctPartner = r.dec ? Math.round((r.dec.raw.PARTNER / BBP_MAX) * 100) : 0;
+      const genPct = Math.round((r.genScore / 50) * 100);
+
+      const sc = card(
+        el('div', { className: 'flex items-start justify-between mb-4' },
+          el('div', {},
+            el('a', { href: `#/vendors/${r.v.id}/edit`, className: 'font-semibold text-gray-900 hover:text-indigo-600 no-underline text-lg' }, r.v.name),
+            el('p', { className: 'text-xs text-slate-400 mt-0.5' }, r.v.category || (r.v.sections || []).slice(0, 2).join(' \u00b7 ') || '\u00a0')
+          ),
+          r.dec
+            ? el('span', { className: `inline-block px-3 py-1.5 rounded-full text-xs font-bold bg-${recColor}-50 text-${recColor}-700 ring-1 ring-${recColor}-200` }, r.dec.recommendation)
+            : el('span', { className: 'text-xs text-slate-300' }, 'unscored')
+        ),
+        // General score bar
+        el('div', { className: 'mb-3' },
+          el('div', { className: 'flex justify-between text-xs mb-1' },
+            el('span', { className: 'font-semibold text-slate-600' }, 'General Score'),
+            el('span', { className: 'font-bold text-indigo-600' }, `${r.genScore}/50`)
+          ),
+          (() => {
+            const barWrap = el('div', { className: 'w-full h-2.5 bg-slate-100 rounded-full overflow-hidden' });
+            const bar = el('div', { className: 'h-2.5 bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full bar-fill' });
+            bar.style.width = genPct + '%';
+            barWrap.appendChild(bar);
+            return barWrap;
+          })()
+        ),
+        // BBP scores
+        ...[
+          { label: 'Buy', pct: pctBuy, val: r.dec ? r.dec.raw.BUY : 0, color: 'emerald' },
+          { label: 'Build', pct: pctBuild, val: r.dec ? r.dec.raw.BUILD : 0, color: 'blue' },
+          { label: 'Partner', pct: pctPartner, val: r.dec ? r.dec.raw.PARTNER : 0, color: 'purple' }
+        ].map(s => el('div', { className: 'mb-2' },
+          el('div', { className: 'flex justify-between text-xs mb-1' },
+            el('span', { className: `font-semibold text-${s.color}-600` }, s.label),
+            el('span', { className: `font-bold text-${s.color}-600` }, `${s.val}/${BBP_MAX}`)
+          ),
+          (() => {
+            const barWrap = el('div', { className: 'w-full h-2 bg-slate-100 rounded-full overflow-hidden' });
+            const bar = el('div', { className: `h-2 bg-${s.color}-500 rounded-full bar-fill` });
+            bar.style.width = s.pct + '%';
+            barWrap.appendChild(bar);
+            return barWrap;
+          })()
+        )),
+        // Confidence + meta
+        el('div', { className: 'flex flex-wrap gap-3 mt-4 pt-3 border-t border-slate-100' },
+          r.dec ? el('span', { className: 'text-xs text-slate-500' }, r.dec.confidence + '% confidence') : null,
+          r.v.estAnnualCost ? el('span', { className: 'text-xs text-slate-500' }, '$' + (parseNum(r.v.estAnnualCost) != null ? parseNum(r.v.estAnnualCost).toLocaleString() : r.v.estAnnualCost) + '/yr') : null,
+          r.v.timeToDeploy ? el('span', { className: 'text-xs text-slate-500' }, r.v.timeToDeploy + ' wk deploy') : null,
+          r.hasUserScores ? el('span', { className: 'text-xs font-medium text-emerald-600' }, 'Your scores') : el('span', { className: 'text-xs text-indigo-500' }, 'AI estimated')
+        )
+      );
+      grid.appendChild(sc);
+    });
+    resultsArea.appendChild(grid);
+
+  // ── VIEW: Cost Analysis ──────────────────────────────────────────────
+  } else if (viewMode === 'cost') {
+    const costCard = card(
+      el('div', { className: 'flex items-center justify-between mb-4' },
+        el('h2', { className: 'font-semibold text-gray-900' }, 'Cost Analysis'),
+        el('p', { className: 'text-xs text-slate-400' }, 'Pricing, deployment time & value comparison')
+      )
+    );
+    const costRanked = [...ranked].sort((a, b) => {
+      const ca = parseNum(a.v.estAnnualCost);
+      const cb = parseNum(b.v.estAnnualCost);
+      if (ca == null && cb == null) return 0;
+      if (ca == null) return 1;
+      if (cb == null) return -1;
+      return ca - cb;
+    });
+    const maxCost = Math.max(...costRanked.map(r => parseNum(r.v.estAnnualCost) || 0), 1);
+
+    costRanked.forEach(r => {
+      const costVal = parseNum(r.v.estAnnualCost);
+      const costPct = costVal != null ? Math.round((costVal / maxCost) * 100) : 0;
+      const recColor = r.dec ? { BUY: 'emerald', BUILD: 'blue', PARTNER: 'purple' }[r.dec.recommendation] : 'slate';
+      const scorePerDollar = costVal != null && costVal > 0 ? (r.genScore / costVal * 10000).toFixed(1) : null;
+
+      costCard.appendChild(el('div', { className: 'flex flex-col md:flex-row md:items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all duration-200 mb-3' },
+        // Vendor info
+        el('div', { className: 'flex-1 min-w-0' },
+          el('a', { href: `#/vendors/${r.v.id}/edit`, className: 'font-semibold text-gray-900 hover:text-indigo-600 no-underline' }, r.v.name),
+          el('p', { className: 'text-xs text-slate-400 truncate mt-0.5' },
+            r.v.category || (r.v.sections || []).slice(0, 2).join(' \u00b7 ') || '\u00a0'
+          )
+        ),
+        // Cost bar
+        el('div', { className: 'flex-1 min-w-0' },
+          el('div', { className: 'flex justify-between text-xs mb-1' },
+            el('span', { className: 'font-semibold text-slate-600' }, 'Est. Annual Cost'),
+            el('span', { className: 'font-bold text-amber-600' }, costVal != null ? '$' + costVal.toLocaleString() : 'Not set')
+          ),
+          (() => {
+            const barWrap = el('div', { className: 'w-full h-2 bg-slate-100 rounded-full overflow-hidden' });
+            const bar = el('div', { className: 'h-2 bg-gradient-to-r from-amber-400 to-amber-500 rounded-full bar-fill' });
+            bar.style.width = costPct + '%';
+            barWrap.appendChild(bar);
+            return barWrap;
+          })()
+        ),
+        // Metrics
+        el('div', { className: 'flex gap-4 flex-shrink-0 items-center' },
+          el('div', { className: 'text-center' },
+            el('p', { className: 'text-[10px] font-semibold text-slate-400 uppercase' }, 'Deploy'),
+            el('p', { className: 'text-sm font-bold text-slate-700' }, r.v.timeToDeploy ? r.v.timeToDeploy + ' wk' : '\u2014')
+          ),
+          el('div', { className: 'text-center' },
+            el('p', { className: 'text-[10px] font-semibold text-slate-400 uppercase' }, 'Score'),
+            el('p', { className: 'text-sm font-bold text-indigo-600' }, `${r.genScore}/50`)
+          ),
+          el('div', { className: 'text-center' },
+            el('p', { className: 'text-[10px] font-semibold text-slate-400 uppercase' }, 'Value'),
+            el('p', { className: 'text-sm font-bold text-emerald-600' }, scorePerDollar != null ? scorePerDollar : '\u2014')
+          ),
+          r.dec
+            ? el('span', { className: `inline-block px-3 py-1.5 rounded-full text-xs font-bold bg-${recColor}-50 text-${recColor}-700 ring-1 ring-${recColor}-200` }, r.dec.recommendation)
+            : null
+        )
+      ));
+    });
+
+    if (costRanked.every(r => parseNum(r.v.estAnnualCost) == null)) {
+      costCard.appendChild(el('p', { className: 'text-sm text-slate-400 text-center py-6' }, 'No vendors have pricing set yet. Edit a vendor to add estimated annual cost.'));
     }
-  },
-    el('div', {},
-      el('h2', { className: 'font-semibold text-gray-900' }, 'Full Side-by-Side Details'),
-      el('p', { className: 'text-xs text-slate-400 mt-0.5' }, 'Every metric, every path, every vendor')
-    ),
-    el('span', { className: 'details-arrow text-slate-400 text-sm' }, isOpenInit ? '\u25b2' : '\u25bc')
-  );
-  detailsCard.appendChild(toggleBtn);
-  const detailsBody = el('div', { className: 'details-body mt-4' });
-  detailsBody.style.display = isOpenInit ? 'block' : 'none';
-  detailsBody.appendChild(renderHeadToHeadTable(ranked.map(r => r.v)));
-  detailsCard.appendChild(detailsBody);
-  detailsWrap.appendChild(detailsCard);
-  pickerBody.appendChild(detailsWrap);
+    resultsArea.appendChild(costCard);
+  }
 }
 
 // ── Scoring ────────────────────────────────────────────────────────────
