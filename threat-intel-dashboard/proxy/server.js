@@ -23,6 +23,8 @@ const ALLOWED_ORIGINS = [
 ];
 app.use(cors({
   origin(origin, cb) {
+    // Allow requests with no Origin (curl, health checks, server-to-server)
+    if (!origin) return cb(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
     cb(new Error('CORS blocked'));
   },
