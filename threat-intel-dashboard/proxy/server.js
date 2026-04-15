@@ -8,6 +8,9 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust Railway's reverse proxy for correct IP detection
+app.set('trust proxy', 1);
+
 // ═══ Security middleware ═══
 app.use(helmet());
 app.use(express.json({ limit: '1kb' }));
