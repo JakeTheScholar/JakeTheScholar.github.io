@@ -26,22 +26,53 @@ class LLMRouter:
         """
         Generate text using Ollama (default) or Claude API (fallback).
 
-        complexity="low"  -> always Ollama
-        complexity="high" -> try Ollama, fallback to Claude
+        complexity="low"  -> always Ollama (default ctx)
+        complexity="high" -> try Ollama with expanded context/output budget,
+                             fallback to Claude if output is truncated or fails.
         """
-        # Try Ollama first
+        # Give high-complexity tasks (mockups, long emails) a bigger context +
+        # unbounded num_predict so Ollama doesn't clip at 2048 tokens.
+        options = None
+        if complexity == "high":
+            options = {"num_ctx": 8192, "num_predict": 8192}
+
+        ollama_result: str | None = None
         try:
-            result = await self.ollama.generate(self.model, prompt, system)
-            if result and len(result.strip()) > 10:
-                return result.strip()
+            ollama_result = await self.ollama.generate(self.model, prompt, system, options=options)
         except Exception as e:
             log.error(f"Ollama generate failed: {e}")
             if complexity == "low":
                 return "[LLM Error] Ollama unavailable"
 
-        # Claude fallback for high-complexity tasks
-        if complexity == "high" and self.anthropic_client:
+        # For low-complexity, return whatever Ollama produced.
+        if complexity == "low":
+            if ollama_result and len(ollama_result.strip()) > 10:
+                return ollama_result.strip()
+            return "[LLM Error] No model available"
+
+        # For high-complexity (e.g. mockup HTML), detect truncated output and
+        # fall back to Claude. A complete HTML response ends with </html>;
+        # if Ollama clipped, we'd rather pay for a Claude call than save a
+        # broken file that the manager has to auto-fix later.
+        def looks_truncated(text: str) -> bool:
+            if not text or len(text.strip()) < 100:
+                return True
+            lowered = text.lower()
+            # If the prompt is asking for HTML, demand a closing </html>
+            if "<html" in lowered or "<!doctype html" in lowered:
+                return "</html>" not in lowered
+            return False
+
+        if ollama_result and not looks_truncated(ollama_result):
+            return ollama_result.strip()
+
+        if self.anthropic_client:
+            log.info("High-complexity: Ollama output looked truncated, falling back to Claude")
             return await self._claude_generate(prompt, system)
+
+        # No Claude available — return whatever Ollama gave us (better than nothing)
+        if ollama_result and len(ollama_result.strip()) > 10:
+            return ollama_result.strip()
 
         return "[LLM Error] No model available"
 
@@ -49,7 +80,7 @@ class LLMRouter:
         try:
             kwargs = {
                 "model": "claude-sonnet-4-20250514",
-                "max_tokens": 4096,
+                "max_tokens": 8192,
                 "messages": [{"role": "user", "content": prompt}],
             }
             if system:

@@ -18,7 +18,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agent_base import BaseAgent, AgentEvent
-from gmail_sender import send_email, is_gmail_ready
+from gmail_sender import send_email, create_draft, is_gmail_ready
+from tools.screenshot import screenshot_html
+
+OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 log = logging.getLogger("manager-agent")
 
@@ -26,6 +29,9 @@ log = logging.getLogger("manager-agent")
 SEND_PER_TICK = 3
 # Daily send cap (start low to warm Gmail account, ramp up over weeks)
 DAILY_SEND_LIMIT = 20
+# Daily cap on manual-review mockup drafts (Jake reviews/sends these by hand,
+# so drafting more than ~10/day creates a triage backlog).
+DAILY_MOCKUP_DRAFT_LIMIT = 10
 
 # Max automatic restarts per agent before giving up
 MAX_RESTARTS = 3
@@ -47,6 +53,7 @@ class ManagerAgent(BaseAgent):
         self.restart_count: dict[str, int] = {}  # agent_id -> restart attempts
         self._last_seen_running: dict[str, datetime] = {}  # tracks when we last saw an agent running
         self._previously_running: set[str] = set()  # agents that were running on previous tick
+        self._retry_count: dict[int, int] = {}  # outreach row id -> retry attempts
 
     async def tick(self) -> AgentEvent:
         if not self.orchestrator:
@@ -56,6 +63,9 @@ class ManagerAgent(BaseAgent):
         design_result = await self._qa_design_quality()
         if design_result:
             return design_result
+
+        # ── Auto-recover stuck drafts before QA so they get picked up this tick ──
+        await self._auto_recover_stuck_drafts()
 
         # ── Email QA + auto-send (runs before health check) ──
         qa_result = await self._qa_and_send_emails()
@@ -296,17 +306,63 @@ class ManagerAgent(BaseAgent):
 
         return None
 
+    # ── Auto-recovery: revive stuck drafts ────────────────────────
+
+    MAX_RETRIES_PER_ROW = 2
+
+    async def _auto_recover_stuck_drafts(self) -> None:
+        """Flip stuck mockup_email rows back to 'drafted' so they get re-QA'd.
+
+        Recovers from two failure modes:
+          1. `failed` rows: Gmail API hiccup — retry up to MAX_RETRIES_PER_ROW times.
+          2. `rejected` rows older than 2h: QA may have rejected under a transient
+             LLM outage; give them one more pass with the current template logic.
+        """
+        pipeline_db = getattr(self, "pipeline_db", None)
+        if not pipeline_db:
+            outreach = self.orchestrator.agents.get("outreach-001") if self.orchestrator else None
+            if outreach:
+                pipeline_db = getattr(outreach, "pipeline_db", None)
+        if not pipeline_db:
+            return
+
+        recovered = 0
+        # Retry API-failed rows (fresh, likely transient)
+        for row in await asyncio.to_thread(pipeline_db.get_stuck_outreach, "mockup_email", "failed", 0):
+            rid = row["id"]
+            if self._retry_count.get(rid, 0) >= self.MAX_RETRIES_PER_ROW:
+                continue
+            await asyncio.to_thread(pipeline_db.update_outreach_status, rid, "drafted")
+            self._retry_count[rid] = self._retry_count.get(rid, 0) + 1
+            recovered += 1
+
+        # Retry QA-rejected rows older than 2h (transient LLM issues, etc.)
+        for row in await asyncio.to_thread(pipeline_db.get_stuck_outreach, "mockup_email", "rejected", 2):
+            rid = row["id"]
+            if self._retry_count.get(rid, 0) >= self.MAX_RETRIES_PER_ROW:
+                continue
+            await asyncio.to_thread(pipeline_db.update_outreach_status, rid, "drafted")
+            self._retry_count[rid] = self._retry_count.get(rid, 0) + 1
+            recovered += 1
+
+        if recovered:
+            log.info(f"Auto-recovered {recovered} stuck mockup_email drafts for re-QA")
+
     # ── Email QA + Auto-Send ─────────────────────────────────────
 
     @staticmethod
-    def _qa_check(row: dict) -> tuple[bool, str]:
-        """Validate an outreach email draft. Returns (passed, reason)."""
+    def _qa_check(row: dict, allow_missing_email: bool = False) -> tuple[bool, str]:
+        """Validate an outreach email draft. Returns (passed, reason).
+
+        `allow_missing_email=True` for mockup_email track — we intentionally
+        draft with a placeholder recipient so Jake can manually route from Drafts.
+        """
         subject = row.get("subject") or ""
         body = row.get("body") or ""
         to_email = row.get("contact_email") or ""
 
-        # Must have a recipient
-        if not to_email or "@" not in to_email:
+        # Standard outreach requires a real recipient; mockup drafts may not have one
+        if not allow_missing_email and (not to_email or "@" not in to_email):
             return False, "missing or invalid contact_email"
 
         # Subject must exist and not be empty
@@ -337,7 +393,10 @@ class ManagerAgent(BaseAgent):
         return True, "ok"
 
     async def _qa_and_send_emails(self) -> AgentEvent | None:
-        """Review drafted emails, QA-check them, and auto-send if they pass."""
+        """Two tracks:
+          - `email` channel (standard outreach, with-website leads) → QA → auto-send
+          - `mockup_email` channel (no-website mockup pitch) → QA → create Gmail DRAFT for manual review
+        """
         if not is_gmail_ready():
             return None
 
@@ -350,63 +409,187 @@ class ManagerAgent(BaseAgent):
             if not pipeline_db:
                 return None
 
-        # Check daily send count
-        sent_today = await asyncio.to_thread(pipeline_db.count_sent_today)
-        if sent_today >= DAILY_SEND_LIMIT:
-            return None
-
-        # Get unsent email drafts
-        unsent = await asyncio.to_thread(pipeline_db.get_unsent_outreach, "email", SEND_PER_TICK)
-        if not unsent:
-            unsent = await asyncio.to_thread(pipeline_db.get_unsent_outreach, "mockup_email", SEND_PER_TICK)
-        if not unsent:
-            return None
-
         sent = 0
         rejected = 0
-        for row in unsent:
+        drafted = 0
+
+        # ── Track 1: auto-send standard outreach (channel = "email") ──
+        sent_today = await asyncio.to_thread(pipeline_db.count_sent_today)
+        if sent_today < DAILY_SEND_LIMIT:
+            batch = min(SEND_PER_TICK, DAILY_SEND_LIMIT - sent_today)
+            unsent = await asyncio.to_thread(pipeline_db.get_unsent_outreach, "email", batch)
+            for row in unsent:
+                biz = row.get("business_name", "unknown")
+                to_email = row.get("contact_email")
+
+                if not to_email:
+                    await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "no_email")
+                    continue
+
+                passed, reason = self._qa_check(row)
+                if not passed:
+                    log.info(f"QA REJECTED email draft {row['id']} for {biz}: {reason}")
+                    await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "rejected")
+                    rejected += 1
+                    continue
+
+                self.current_task = {"type": "qa_send", "description": f"QA passed, sending to {biz}"}
+                result = await asyncio.to_thread(send_email, to_email, row.get("subject", ""), row.get("body", ""))
+
+                if result["ok"]:
+                    await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "sent")
+                    sent += 1
+                    log.info(f"QA SENT email to {biz} ({to_email})")
+                else:
+                    await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "failed")
+                    log.warning(f"Send failed for {biz}: {result['error']}")
+
+        # ── Track 2: Gmail DRAFT only for mockup pitches — user reviews before sending ──
+        # Sender's own Gmail, used as a placeholder "to" for drafts with no scraped email.
+        # Draft still lands in Jake's Drafts folder; the subject/body contain the contact info.
+        PLACEHOLDER_TO = "jakemcgaha968@gmail.com"
+
+        # Daily cap: only draft up to DAILY_MOCKUP_DRAFT_LIMIT mockup emails per day.
+        drafted_today = await asyncio.to_thread(
+            pipeline_db.count_drafted_today, "mockup_email",
+            ["gmail_draft", "gmail_draft_manual"]
+        )
+        remaining = DAILY_MOCKUP_DRAFT_LIMIT - drafted_today
+        if remaining <= 0:
+            log.info(
+                f"Daily mockup-draft cap reached ({drafted_today}/{DAILY_MOCKUP_DRAFT_LIMIT}) — "
+                f"skipping mockup drafting this tick"
+            )
+            unsent_mock = []
+        else:
+            mock_batch = min(SEND_PER_TICK, remaining)
+            unsent_mock = await asyncio.to_thread(pipeline_db.get_unsent_outreach, "mockup_email", mock_batch)
+
+        for row in unsent_mock:
             biz = row.get("business_name", "unknown")
-            to_email = row.get("contact_email")
+            to_email = row.get("contact_email") or PLACEHOLDER_TO  # never skip — always draft
 
-            if not to_email:
-                await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "no_email")
-                continue
-
-            passed, reason = self._qa_check(row)
-
+            passed, reason = self._qa_check(row, allow_missing_email=True)
             if not passed:
-                log.info(f"QA REJECTED draft {row['id']} for {biz}: {reason}")
+                log.info(f"QA REJECTED mockup draft {row['id']} for {biz}: {reason}")
                 await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "rejected")
                 rejected += 1
                 continue
 
-            # QA passed — send directly
-            self.current_task = {
-                "type": "qa_send",
-                "description": f"QA passed, sending to {biz}",
-            }
+            self.current_task = {"type": "qa_draft", "description": f"Creating Gmail draft for {biz}"}
+
+            # Look up the mockup HTML file via the websites pipeline item linked to this lead
+            attachments: list[str] = []
+            inline_image: str | None = None
+            mockup_broken = False
+            try:
+                lead_id = row.get("lead_id")
+                mockup_item = await asyncio.to_thread(
+                    pipeline_db.get_item_for_lead, "websites", lead_id
+                ) if lead_id else None
+                meta = (mockup_item or {}).get("metadata") or {}
+                filename = meta.get("filename")
+                if filename:
+                    html_path = OUTPUT_DIR / "website-mockups" / filename
+                    if html_path.exists():
+                        # Auto-fix: detect truncated HTML (LLM was cut off mid-tag).
+                        # A valid mockup ends with </html> and has real section content.
+                        try:
+                            html_text = html_path.read_text(encoding="utf-8", errors="replace")
+                        except Exception:
+                            html_text = ""
+                        valid = (
+                            "</body>" in html_text.lower()
+                            and "</html>" in html_text.lower()
+                            and len(html_text) >= 3000
+                        )
+                        if not valid:
+                            mockup_broken = True
+                        else:
+                            attachments.append(str(html_path))
+                            # Generate screenshot alongside the HTML. Regenerate if
+                            # the cached PNG is suspiciously small (< 20KB usually
+                            # means the render failed before CSS/fonts loaded).
+                            png_path = html_path.with_suffix(".png")
+                            needs_render = (
+                                not png_path.exists()
+                                or png_path.stat().st_size < 20_000
+                            )
+                            if needs_render:
+                                result_png = await asyncio.to_thread(screenshot_html, html_path, png_path)
+                                if result_png and result_png.exists() and result_png.stat().st_size >= 20_000:
+                                    inline_image = str(result_png)
+                            else:
+                                inline_image = str(png_path)
+            except Exception as e:
+                log.warning(f"Mockup attachment lookup failed for {biz}: {e}")
+
+            # Auto-fix: broken HTML means web-dev-agent's LLM output got truncated.
+            # Purge the pipeline item + file + outreach row, reset lead to scraped,
+            # web-dev-agent will regenerate on its next tick.
+            if mockup_broken:
+                try:
+                    if mockup_item:
+                        await asyncio.to_thread(pipeline_db.delete_item, mockup_item["id"])
+                    if filename:
+                        bad_html = OUTPUT_DIR / "website-mockups" / filename
+                        bad_png = bad_html.with_suffix(".png")
+                        for p in (bad_html, bad_png):
+                            try:
+                                if p.exists():
+                                    p.unlink()
+                            except Exception:
+                                pass
+                    if lead_id:
+                        await asyncio.to_thread(
+                            pipeline_db.reset_lead_to_scraped, lead_id,
+                            self.agent_id, "Auto-fix: mockup HTML was truncated"
+                        )
+                    await asyncio.to_thread(pipeline_db.delete_outreach_row, row["id"])
+                except Exception as e:
+                    log.warning(f"Auto-fix cleanup failed for {biz}: {e}")
+                log.info(f"AUTO-FIX: purged broken mockup for {biz} — web-dev will rebuild")
+                continue
 
             result = await asyncio.to_thread(
-                send_email, to_email, row.get("subject", ""), row.get("body", "")
+                create_draft,
+                to_email, row.get("subject", ""), row.get("body", ""),
+                attachments, inline_image,
             )
 
             if result["ok"]:
-                await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "sent")
-                sent += 1
-                log.info(f"QA SENT email to {biz} ({to_email})")
+                # Distinguish "ready to send" vs "needs manual routing" drafts via status
+                status = "gmail_draft" if row.get("contact_email") else "gmail_draft_manual"
+                await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], status)
+                drafted += 1
+                tag = "MANUAL" if status == "gmail_draft_manual" else "ready"
+                extras = []
+                if attachments:
+                    extras.append(f"{len(attachments)} attached")
+                if inline_image:
+                    extras.append("screenshot inline")
+                extras_str = f" [{', '.join(extras)}]" if extras else ""
+                log.info(f"Gmail DRAFT ({tag}) created for {biz} ({to_email}){extras_str} — awaiting manual review")
             else:
                 await asyncio.to_thread(pipeline_db.update_outreach_status, row["id"], "failed")
-                log.warning(f"Send failed for {biz}: {result['error']}")
+                log.warning(f"Draft creation failed for {biz}: {result['error']}")
 
-        if sent or rejected:
-            self.tasks_completed += sent
+        if sent or rejected or drafted:
+            self.tasks_completed += sent + drafted
             self.current_task = None
             parts = []
             if sent:
                 parts.append(f"{sent} sent")
+            if drafted:
+                parts.append(f"{drafted} drafted for review")
             if rejected:
                 parts.append(f"{rejected} rejected")
-            return self.emit("qa_review", f"Email QA: {', '.join(parts)} | {sent_today + sent}/{DAILY_SEND_LIMIT} today")
+            return self.emit(
+                "qa_review",
+                f"Email QA: {', '.join(parts)} | "
+                f"{sent_today + sent}/{DAILY_SEND_LIMIT} sent, "
+                f"{drafted_today + drafted}/{DAILY_MOCKUP_DRAFT_LIMIT} mockup drafts today"
+            )
 
         return None
 

@@ -8,10 +8,15 @@ Setup: python agent-farm/server/gmail_auth.py
 
 import json
 import base64
+import mimetypes
 import urllib.request
 import urllib.parse
 from pathlib import Path
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email import encoders
 
 AGENT_FARM_DIR = Path(__file__).resolve().parent
 TOKEN_FILE = AGENT_FARM_DIR / "data" / "gmail_token.json"
@@ -96,8 +101,72 @@ def send_email(to: str, subject: str, body: str) -> dict:
         return {"ok": False, "error": str(e)}
 
 
-def create_draft(to: str, subject: str, body: str) -> dict:
+def _build_message(to: str, subject: str, body: str,
+                   attachments: list[str] | None = None,
+                   inline_image: str | None = None):
+    """Build a MIME message with optional file attachments and one optional
+    inline image rendered BELOW the body (preview at the bottom of the email).
+    """
+    attachments = attachments or []
+
+    if not attachments and not inline_image:
+        msg = MIMEText(body)
+    else:
+        msg = MIMEMultipart("related")
+        alt = MIMEMultipart("alternative")
+        msg.attach(alt)
+
+        if inline_image and Path(inline_image).exists():
+            # Preview goes UNDERNEATH the body — Jake reads the pitch first,
+            # then sees the mockup image, and still has the HTML as an attachment.
+            html_body = (
+                f'<pre style="font-family:Helvetica,Arial,sans-serif;font-size:14px;'
+                f'white-space:pre-wrap;margin:0 0 18px 0;">{body}</pre>'
+                f'<div style="margin-top:8px;"><p style="font-family:Helvetica,Arial,sans-serif;'
+                f'font-size:13px;color:#555;margin:0 0 6px 0;">Preview:</p>'
+                f'<img src="cid:mockup_preview" '
+                f'style="max-width:640px;width:100%;border:1px solid #ddd;border-radius:6px;"/></div>'
+            )
+            alt.attach(MIMEText(body, "plain"))
+            alt.attach(MIMEText(html_body, "html"))
+
+            with open(inline_image, "rb") as f:
+                img = MIMEImage(f.read())
+            img.add_header("Content-ID", "<mockup_preview>")
+            img.add_header("Content-Disposition", "inline", filename=Path(inline_image).name)
+            msg.attach(img)
+        else:
+            alt.attach(MIMEText(body, "plain"))
+
+        for path in attachments:
+            fp = Path(path)
+            if not fp.exists():
+                continue
+            ctype, encoding = mimetypes.guess_type(str(fp))
+            if ctype is None or encoding is not None:
+                ctype = "application/octet-stream"
+            maintype, subtype = ctype.split("/", 1)
+            with open(fp, "rb") as f:
+                part = MIMEBase(maintype, subtype)
+                part.set_payload(f.read())
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", "attachment", filename=fp.name)
+            msg.attach(part)
+
+    msg["to"] = to
+    msg["from"] = "jakemcgaha968@gmail.com"
+    msg["subject"] = subject
+    return msg
+
+
+def create_draft(to: str, subject: str, body: str,
+                 attachments: list[str] | None = None,
+                 inline_image: str | None = None) -> dict:
     """Create a draft email in Gmail for manual review and sending.
+
+    Optional `attachments`: list of absolute file paths to attach.
+    Optional `inline_image`: absolute path to a PNG/JPG rendered inline at the
+    top of the body (e.g. a mockup screenshot).
 
     Returns {"ok": True, "draft_id": "..."} on success,
             {"ok": False, "error": "..."} on failure.
@@ -107,10 +176,7 @@ def create_draft(to: str, subject: str, body: str) -> dict:
         return {"ok": False, "error": "Gmail not connected -- run: python agent-farm/server/gmail_auth.py"}
 
     try:
-        message = MIMEText(body)
-        message["to"] = to
-        message["from"] = "jakemcgaha968@gmail.com"
-        message["subject"] = subject
+        message = _build_message(to, subject, body, attachments, inline_image)
         raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
 
         draft_body = json.dumps({"message": {"raw": raw}}).encode()
@@ -124,7 +190,7 @@ def create_draft(to: str, subject: str, body: str) -> dict:
             },
             method="POST",
         )
-        resp = urllib.request.urlopen(req, timeout=15)
+        resp = urllib.request.urlopen(req, timeout=20)
         result = json.loads(resp.read())
 
         return {"ok": True, "draft_id": result.get("id", "")}

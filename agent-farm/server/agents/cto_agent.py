@@ -59,7 +59,7 @@ class CTOAgent(BaseAgent):
             agents = self.orchestrator.agents
             total = len(agents)
             ws_clients = len(self.orchestrator.ws_clients)
-            event_count = len(self.orchestrator.events)
+            event_count = len(self.orchestrator.event_history)
             parts.append(f"Agents: {total} registered, {ws_clients} WS clients, {event_count} events buffered")
 
             # Check for agents with high error rates

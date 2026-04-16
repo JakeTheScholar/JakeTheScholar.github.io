@@ -44,6 +44,8 @@ class COOAgent(BaseAgent):
         paused = 0
         throughput_delta = 0
         top_performers = []
+        errored_names: list[str] = []     # call out specific broken agents
+        stalled_names: list[str] = []     # running but no progress in >3 ticks
 
         for aid, agent in agents.items():
             if aid in ("ceo-001", "cfo-001", "coo-001", "cmo-001", "cto-001", "cco-001"):
@@ -56,6 +58,7 @@ class COOAgent(BaseAgent):
                 idle += 1
             elif agent.status == "error":
                 errored += 1
+                errored_names.append(agent.name)
             elif agent.status == "paused":
                 paused += 1
 
@@ -68,6 +71,17 @@ class COOAgent(BaseAgent):
             if delta > 0:
                 top_performers.append((agent.name, delta))
 
+            # Stall heuristic: running agent with zero delta across 3+ COO ticks
+            # (COO tick = 150s, so 7.5min without progress is suspicious).
+            if agent.status == "running" and delta == 0:
+                strikes = getattr(agent, "_coo_stall_strikes", 0) + 1
+                agent._coo_stall_strikes = strikes
+                if strikes >= 3:
+                    stalled_names.append(agent.name)
+            else:
+                if hasattr(agent, "_coo_stall_strikes"):
+                    agent._coo_stall_strikes = 0
+
         # Sort by tasks completed this tick
         top_performers.sort(key=lambda x: x[1], reverse=True)
         top_str = ", ".join(f"{name}(+{d})" for name, d in top_performers[:3])
@@ -78,12 +92,37 @@ class COOAgent(BaseAgent):
             f"Ops: {running}/{total} running ({uptime_pct} uptime)",
             f"+{throughput_delta} tasks this cycle",
         ]
-        if errored:
+        if errored_names:
+            parts.append(f"ERRORS: {', '.join(errored_names[:3])}")
+        elif errored:
             parts.append(f"{errored} in error state")
+        if stalled_names:
+            parts.append(f"STALLED: {', '.join(stalled_names[:3])}")
         if paused:
             parts.append(f"{paused} paused")
         if top_str:
             parts.append(f"Top: {top_str}")
+
+        # Mockup pitch flow depth — flags pipeline bottlenecks in the no-website track
+        if self.pipeline_db:
+            try:
+                no_site_scraped = await asyncio.to_thread(
+                    self.pipeline_db.get_leads_by_stage, "scraped", 100
+                )
+                queued = sum(1 for l in no_site_scraped if not l.get("website"))
+                pitch_ready = await asyncio.to_thread(
+                    self.pipeline_db.get_leads_by_stage, "pitch_ready", 100
+                )
+                drafts_pending = await asyncio.to_thread(
+                    self.pipeline_db.count_outreach_by_status, "mockup_email",
+                    ["gmail_draft", "gmail_draft_manual"]
+                )
+                if queued or pitch_ready or drafts_pending:
+                    parts.append(
+                        f"Mockup flow: {queued} queued → {len(pitch_ready)} pitch-ready → {drafts_pending} drafts"
+                    )
+            except Exception:
+                pass
 
         self.tasks_completed += 1
         self.current_task = None

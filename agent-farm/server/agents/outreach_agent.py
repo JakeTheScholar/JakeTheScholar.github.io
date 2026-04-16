@@ -79,17 +79,43 @@ MOCKUP_SUBJECT_LINES = [
     "{business_name}'s new website",
 ]
 
+# When no email was scraped, the subject doubles as a contact-reminder so Jake
+# sees the phone/social inline in Drafts. Business name is always first so he
+# can scan drafts quickly.
+MOCKUP_MANUAL_SUBJECT_TEMPLATE = "[MANUAL] {business_name} — {contact_hint}"
+
 MOCKUP_EMAIL_TEMPLATE = """Hi {contact_name},
 
-I think {observation} - so instead of just talking about it, I went ahead and built you something: {mockup_link}
+Hope you're having a good week at {business_name}. I'm a web designer here in {location_short} and I came across your business — noticed you don't have a website yet, which honestly surprised me given how solid your reputation is locally.
 
-Modern, mobile-first, and fast. No catch - I just wanted to show you what's possible.
+So instead of just pitching, I went ahead and built you a full mockup this morning. Preview is in this email and the complete HTML file is attached — open it in any browser to click through it.
 
-If you like it, the source files are yours for free.
+A few things I focused on:
+  • Clean, modern design that works great on phones
+  • {observation}
+  • Fast-loading, no bloat, built to rank on Google
+
+If you like it, the source files are yours, free. If you want me to polish it up, register your domain, and get it live, I can have it done within a week.
+
+Either way, no pressure. Would love to hear what you think.
 
 Jake McGaha
 Web Design & Local SEO
-jakemcgaha.com"""
+jakemcgaha.com
+"""
+
+# Prepended to mockup_email body when there's no scraped email — gives Jake
+# everything he needs to manually route the draft.
+MANUAL_CONTACT_HEADER = """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠ MANUAL SEND — no email on file for this lead
+Business: {business_name}
+Phone:    {phone}
+Maps:     {maps_url}
+Social:   {social_url}
+Location: {location}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+"""
 
 MOCKUP_DM_TEMPLATE = """Hey {contact_name} - I noticed {business_name}'s site could use a refresh so I actually built you a new one: {mockup_link}
 
@@ -179,12 +205,17 @@ class OutreachAgent(BaseAgent):
         if target and mockup_item:
             return await self._draft_mockup_pitch(target, mockup_item)
 
-        leads = await asyncio.to_thread(self.pipeline_db.get_leads_by_stage, "scraped", 5)
+        # Standard outreach is for businesses that ALREADY have a website.
+        # No-website leads are handled exclusively by the web-dev mockup flow,
+        # which fast-tracks them to pitch_ready and triggers a single mockup-pitch email.
+        leads = await asyncio.to_thread(self.pipeline_db.get_leads_by_stage, "scraped", 20)
         if not leads:
-            leads = await asyncio.to_thread(self.pipeline_db.get_leads_by_stage, "researched", 5)
+            leads = await asyncio.to_thread(self.pipeline_db.get_leads_by_stage, "researched", 20)
 
         target = None
         for lead in leads:
+            if not lead.get("website"):
+                continue  # No-website leads go through the web-dev/mockup flow instead
             has = await asyncio.to_thread(self.pipeline_db.has_outreach, lead["id"])
             if not has:
                 target = lead
@@ -274,8 +305,12 @@ class OutreachAgent(BaseAgent):
             for prefix in ["i noticed ", "i noticed that ", "i saw that ", "i saw "]:
                 if result.startswith(prefix):
                     result = result[len(prefix):]
-            # Sanity check
-            if result and 5 < len(result) < 150 and "[LLM Error]" not in result.lower():
+            # Sanity check — reject empty, too short/long, or LLM error passthroughs
+            lower_result = result.lower()
+            if (result and 5 < len(result) < 150
+                    and "[llm error]" not in lower_result
+                    and "unavailable" not in lower_result
+                    and "error" not in lower_result.split()[:3]):
                 return result
         except Exception:
             pass
@@ -319,15 +354,77 @@ class OutreachAgent(BaseAgent):
 
             observation = await self._get_observation(target)
 
-            subject = _capitalize_subject(random.choice(MOCKUP_SUBJECT_LINES).format(
-                business_name=biz, contact_name=contact
-            ))
-            email_body = MOCKUP_EMAIL_TEMPLATE.format(
+            # Parse contact hints saved by lead_scraper into lead.notes
+            lead_notes = target.get("notes") or ""
+            maps_url = ""
+            social_url = ""
+            if lead_notes:
+                try:
+                    parsed = json.loads(lead_notes)
+                    maps_url = parsed.get("maps_url") or ""
+                    social_url = parsed.get("social_url") or ""
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            phone = target.get("contact_phone") or ""
+            has_email = bool(target.get("contact_email"))
+
+            # Subject: standard template if we have an email, otherwise a
+            # manual-review subject that surfaces the phone/social inline
+            if has_email:
+                subject = _capitalize_subject(random.choice(MOCKUP_SUBJECT_LINES).format(
+                    business_name=biz, contact_name=contact
+                ))
+            else:
+                # contact_hint = phone > social > maps > placeholder
+                contact_hint = phone or social_url or maps_url or "no contact found"
+                subject = MOCKUP_MANUAL_SUBJECT_TEMPLATE.format(
+                    business_name=biz, contact_hint=contact_hint
+                )
+
+            # Extract "City, ST" from full location string for the opener.
+            # Input examples:
+            #   "123 Main St, Big Rapids, MI 49307"         → "Big Rapids, MI"
+            #   "200 W Main St, Mecosta, MI 49332, USA"     → "Mecosta, MI"
+            #   "Big Rapids, MI"                             → "Big Rapids, MI"
+            location_full = target.get("location") or ""
+            parts = [p.strip() for p in location_full.split(",") if p.strip()]
+            # Drop trailing country if present
+            if parts and parts[-1].upper() in ("USA", "US", "UNITED STATES"):
+                parts = parts[:-1]
+            location_short = "your area"
+            if len(parts) >= 2:
+                # Last part should hold state (+ optional zip); take just the state token
+                state_tokens = parts[-1].split()
+                state = state_tokens[0] if state_tokens else ""
+                city = parts[-2]
+                # Guard against address-line fallback (e.g. "123 Main St")
+                if any(ch.isdigit() for ch in city[:3]):
+                    location_short = state or "your area"
+                else:
+                    location_short = f"{city}, {state}".rstrip(", ")
+            elif parts:
+                location_short = parts[0]
+
+            # Body: prepend a contact-info header when there's no email
+            body_base = MOCKUP_EMAIL_TEMPLATE.format(
                 contact_name=contact,
                 business_name=biz,
                 observation=observation,
-                mockup_link=mockup_link,
+                location_short=location_short,
             )
+            if has_email:
+                email_body = body_base
+            else:
+                header = MANUAL_CONTACT_HEADER.format(
+                    business_name=biz,
+                    phone=phone or "(none)",
+                    maps_url=maps_url or "(none)",
+                    social_url=social_url or "(none)",
+                    location=target.get("location") or "(unknown)",
+                )
+                email_body = header + body_base
+
             dm_body = MOCKUP_DM_TEMPLATE.format(
                 contact_name=contact,
                 business_name=biz,

@@ -78,6 +78,14 @@ const Pipeline = {
       if (total > 0) activeCount++;
     });
 
+    // Websites built (no-website lead flow) — pull from "websites" pipeline stats
+    const siteStats = this.allStats.websites || {};
+    const sitesBuilt = siteStats.total || 0;
+    const sitesDelivered = (siteStats.stage_counts && siteStats.stage_counts.delivered) || 0;
+    // Mockup drafts in Gmail awaiting Jake's review (populated by manager agent)
+    const mockupDraftStats = this.allStats.mockup_drafts || {};
+    const mockupDrafts = mockupDraftStats.pending_review || 0;
+
     container.innerHTML = `
       <div class="pipeline-summary-bar">
         <div class="pipeline-summary-item">
@@ -91,6 +99,14 @@ const Pipeline = {
         <div class="pipeline-summary-item">
           <span class="pipeline-summary-num">${Object.keys(this.pipelineTypes).length}</span>
           <span class="pipeline-summary-lbl">Pipeline Types</span>
+        </div>
+        <div class="pipeline-summary-item" style="--accent:#f472b6;">
+          <span class="pipeline-summary-num" style="color:#f472b6;">${sitesBuilt}</span>
+          <span class="pipeline-summary-lbl">Websites Built${sitesDelivered ? ` · ${sitesDelivered} delivered` : ''}</span>
+        </div>
+        <div class="pipeline-summary-item" style="--accent:#fbbf24;">
+          <span class="pipeline-summary-num" style="color:#fbbf24;">${mockupDrafts}</span>
+          <span class="pipeline-summary-lbl">Mockup Drafts${mockupDrafts ? ' · awaiting review' : ''}</span>
         </div>
       </div>
       ${this._renderTypeTabs()}

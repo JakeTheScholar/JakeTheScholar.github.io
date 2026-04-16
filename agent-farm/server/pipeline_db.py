@@ -257,13 +257,13 @@ class PipelineDB:
         with self._lock:
             self._conn.execute(
                 """INSERT INTO leads (id, business_name, industry, contact_name, contact_email,
-                   contact_phone, website, location, needs, stage, score, source, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scraped', ?, ?, ?, ?)""",
+                   contact_phone, website, location, needs, stage, score, source, notes, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scraped', ?, ?, ?, ?, ?)""",
                 (lead_id, data.get("business_name", ""), data.get("industry", ""),
                  data.get("contact_name"), data.get("contact_email"),
                  data.get("contact_phone"), data.get("website"),
                  data.get("location"), data.get("needs"),
-                 data.get("score", 50), source, now, now),
+                 data.get("score", 50), source, data.get("notes"), now, now),
             )
             self._conn.execute(
                 "INSERT INTO pipeline_stages (lead_id, from_stage, to_stage, changed_by, changed_at, detail) VALUES (?, NULL, 'scraped', ?, ?, ?)",
@@ -304,6 +304,30 @@ class PipelineDB:
                 (stage, limit),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    def reset_lead_to_scraped(self, lead_id: str, changed_by: str, detail: str = "") -> bool:
+        """Force a lead back to `scraped`, bypassing the forward-only transition rules.
+
+        Used by Manager's auto-fix flow so web-dev-agent regenerates a broken mockup.
+        """
+        now = datetime.now().isoformat()
+        with self._lock:
+            row = self._conn.execute("SELECT stage FROM leads WHERE id = ?", (lead_id,)).fetchone()
+            if not row:
+                return False
+            old_stage = row["stage"]
+            if old_stage == "scraped":
+                return False
+            self._conn.execute(
+                "UPDATE leads SET stage = 'scraped', updated_at = ? WHERE id = ?",
+                (now, lead_id),
+            )
+            self._conn.execute(
+                "INSERT INTO pipeline_stages (lead_id, from_stage, to_stage, changed_by, changed_at, detail) VALUES (?, ?, ?, ?, ?, ?)",
+                (lead_id, old_stage, "scraped", changed_by, now, detail),
+            )
+            self._conn.commit()
+        return True
 
     def update_lead_stage(self, lead_id: str, new_stage: str, changed_by: str, detail: str = "") -> bool:
         if new_stage not in VALID_STAGES:
@@ -386,6 +410,53 @@ class PipelineDB:
                 (f"{today}%",),
             ).fetchone()
         return row["cnt"]
+
+    def count_drafted_today(self, channel: str, statuses: list[str]) -> int:
+        """Count outreach rows created today for a channel in given statuses.
+
+        Used to cap the number of manual-review mockup drafts created per day.
+        """
+        today = datetime.now().strftime("%Y-%m-%d")
+        if not statuses:
+            return 0
+        placeholders = ",".join("?" for _ in statuses)
+        with self._lock:
+            row = self._conn.execute(
+                f"SELECT COUNT(*) as cnt FROM outreach_log "
+                f"WHERE channel = ? AND status IN ({placeholders}) AND created_at LIKE ?",
+                (channel, *statuses, f"{today}%"),
+            ).fetchone()
+        return row["cnt"]
+
+    def count_outreach_by_status(self, channel: str, statuses: list[str]) -> int:
+        """Count outreach rows for a channel in any of the given statuses.
+
+        Used by C-suite monitoring to surface e.g. mockup drafts awaiting review.
+        """
+        if not statuses:
+            return 0
+        placeholders = ",".join("?" for _ in statuses)
+        with self._lock:
+            row = self._conn.execute(
+                f"SELECT COUNT(*) as cnt FROM outreach_log WHERE channel = ? AND status IN ({placeholders})",
+                (channel, *statuses),
+            ).fetchone()
+        return row["cnt"]
+
+    def get_stuck_outreach(self, channel: str, status: str, hours: int = 1) -> list[dict]:
+        """Find outreach rows stuck in a given status older than N hours.
+
+        Used by the Manager agent to auto-recover drafts that never got picked up
+        (e.g. manager-agent was down when outreach-agent created them).
+        """
+        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT id, lead_id, channel, status, created_at FROM outreach_log "
+                "WHERE channel = ? AND status = ? AND created_at < ?",
+                (channel, status, cutoff),
+            ).fetchall()
+        return [dict(r) for r in rows]
 
     def has_item_for_lead(self, pipeline_type: str, lead_id: str) -> bool:
         with self._lock:
@@ -509,6 +580,30 @@ class PipelineDB:
             rows = self._conn.execute(query, params).fetchall()
         return [dict(r) for r in rows]
 
+    def delete_item(self, item_id: str) -> bool:
+        """Remove a pipeline item (and its transition history).
+
+        Used by the Manager agent's auto-fix flow to purge a broken mockup so
+        the web-dev agent regenerates it on the next tick.
+        """
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT id FROM pipeline_items WHERE id = ?", (item_id,)
+            ).fetchone()
+            if not row:
+                return False
+            self._conn.execute("DELETE FROM pipeline_transitions WHERE item_id = ?", (item_id,))
+            self._conn.execute("DELETE FROM pipeline_items WHERE id = ?", (item_id,))
+            self._conn.commit()
+        return True
+
+    def delete_outreach_row(self, row_id: int) -> bool:
+        """Remove an outreach_log entry (used by manager auto-fix)."""
+        with self._lock:
+            self._conn.execute("DELETE FROM outreach_log WHERE id = ?", (row_id,))
+            self._conn.commit()
+        return True
+
     def update_item_stage(self, item_id: str, new_stage: str, changed_by: str, detail: str = "") -> bool:
         now = datetime.now().isoformat()
         with self._lock:
@@ -594,6 +689,12 @@ class PipelineDB:
         # Generic pipeline items
         for ptype in ("etsy", "fiverr", "content", "audio", "websites", "gumroad", "freelance"):
             result[ptype] = self.get_item_stats(ptype)
+        # Mockup drafts awaiting manual review in Jake's Gmail
+        result["mockup_drafts"] = {
+            "pending_review": self.count_outreach_by_status(
+                "mockup_email", ["gmail_draft", "gmail_draft_manual"]
+            )
+        }
         return result
 
     # ─── Performance Metrics ───

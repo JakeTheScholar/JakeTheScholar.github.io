@@ -13,8 +13,12 @@ const Metrics = {
     const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      const r = await fetch('/api/pipeline/metrics', { headers });
-      if (r.ok) this.data = await r.json();
+      const [metricsRes, allStatsRes] = await Promise.all([
+        fetch('/api/pipeline/metrics', { headers }),
+        fetch('/api/pipeline/all-stats', { headers }),
+      ]);
+      if (metricsRes.ok) this.data = await metricsRes.json();
+      if (allStatsRes.ok) this.allStats = await allStatsRes.json();
     } catch (e) {
       console.error('[Metrics] Fetch error:', e);
     }
@@ -70,12 +74,22 @@ const Metrics = {
     const totalLeads = firstCount;
     const outreachTotal = d.outreach ? (d.outreach.total || 0) : 0;
 
+    // Websites built (no-website lead flow)
+    const siteStats = (this.allStats && this.allStats.websites) || {};
+    const sitesBuilt = siteStats.total || 0;
+    // Mockup drafts sitting in Gmail awaiting Jake's review
+    const mockupDrafts = (this.allStats && this.allStats.mockup_drafts)
+      ? (this.allStats.mockup_drafts.pending_review || 0)
+      : 0;
+
     return `<div class="metrics-kpi-row">
       ${this._kpiCard(totalLeads, 'Total Leads', 'var(--cyber)', '◆')}
       ${this._kpiCard(convRate + '%', 'Close Rate', 'var(--neon)', '▲')}
       ${this._kpiCard(avgScore, 'Avg Score', 'var(--violet)', '●')}
       ${this._kpiCard(sendRate + '%', 'Send Rate', 'var(--gold)', '◉')}
       ${this._kpiCard(outreachTotal, 'Outreach', 'var(--rose)', '✦')}
+      ${this._kpiCard(sitesBuilt, 'Websites Built', '#f472b6', '◈')}
+      ${this._kpiCard(mockupDrafts, 'Mockup Drafts', '#fbbf24', '✉')}
     </div>`;
   },
 

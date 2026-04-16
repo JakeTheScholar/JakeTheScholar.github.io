@@ -153,8 +153,21 @@ class LeadScraperAgent(BaseAgent):
 
         return data.get("results", [])[:5]
 
+    # Domains that are social pages, NOT real business websites — treat as no-website
+    _SOCIAL_DOMAINS = (
+        "facebook.com", "instagram.com", "tiktok.com", "yelp.com",
+        "twitter.com", "x.com", "linkedin.com", "nextdoor.com", "youtube.com",
+    )
+
+    @classmethod
+    def _is_social_url(cls, url: str | None) -> bool:
+        if not url:
+            return False
+        u = url.lower()
+        return any(s in u for s in cls._SOCIAL_DOMAINS)
+
     async def _place_details(self, place_id: str) -> dict:
-        """Fetch phone number and website from Place Details API."""
+        """Fetch phone number, website, and Google Maps URL from Place Details API."""
         params = {
             "place_id": place_id,
             "fields": "formatted_phone_number,website,url",
@@ -432,6 +445,7 @@ class LeadScraperAgent(BaseAgent):
 
                 phone = None
                 website = None
+                maps_url = None
 
                 # Fetch details if we have budget and place_id
                 if place_id and details_budget > 0:
@@ -439,20 +453,36 @@ class LeadScraperAgent(BaseAgent):
                         details = await self._place_details(place_id)
                         phone = details.get("formatted_phone_number")
                         website = details.get("website")
+                        maps_url = details.get("url")  # Google Maps listing URL
                         details_budget -= 1
                     except Exception as e:
                         logger.warning("Place details fetch failed for %s: %s", name, e)
+
+                # A "website" that's actually a social page → treat as no-website, save as social_url
+                social_url = None
+                if self._is_social_url(website):
+                    social_url = website
+                    website = None
 
                 # Merge details back for scoring/needs analysis
                 place["website"] = website
                 place["formatted_phone_number"] = phone
 
-                # Scrape website for email + contact name
+                # Scrape website for email + contact name (only if there's a real website)
                 site_data = await self._scrape_website(website)
 
                 # LLM pain-point analysis
                 needs_json = await self._analyze_needs(place, industry["name"])
                 score = _score_lead(place)
+
+                # Structured contact-hint blob — used by outreach agent to build subject
+                # lines and body previews when the lead has no scrapable email.
+                notes_data = {}
+                if maps_url:
+                    notes_data["maps_url"] = maps_url
+                if social_url:
+                    notes_data["social_url"] = social_url
+                notes_json = json.dumps(notes_data) if notes_data else None
 
                 lead_data = {
                     "business_name": name,
@@ -464,6 +494,7 @@ class LeadScraperAgent(BaseAgent):
                     "location": address,
                     "needs": needs_json,
                     "score": score,
+                    "notes": notes_json,
                 }
 
                 await asyncio.to_thread(self.pipeline_db.add_lead, lead_data, "google_places")

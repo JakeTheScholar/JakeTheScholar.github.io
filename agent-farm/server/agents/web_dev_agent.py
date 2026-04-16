@@ -42,7 +42,7 @@ class WebDevAgent(BaseAgent):
         super().__init__(
             agent_id="web-dev-001",
             name="Web Dev Agent",
-            description="Client site mockups for leads",
+            description="Mockups for no-website leads (new scout→mockup→pitch flow)",
             color="#f472b6",
         )
         self.tick_interval = 150
@@ -52,13 +52,19 @@ class WebDevAgent(BaseAgent):
         if not self.pipeline_db:
             return self.emit("error", "No pipeline database connected")
 
-        # Find pitch-ready leads that don't have a mockup yet
+        # NEW FLOW: only no-website leads get a mockup. With-website leads follow
+        # the untouched standard outreach flow (scraped → researched → pitch_ready).
+        # We pull from `scraped` directly and fast-track to `pitch_ready` after building,
+        # so the outreach agent's mockup-pitch handler drafts a single email.
         leads = await asyncio.to_thread(
-            self.pipeline_db.get_leads_by_stage, "pitch_ready", 10
+            self.pipeline_db.get_leads_by_stage, "scraped", 25
         )
 
         target = None
         for lead in leads:
+            # Skip businesses that already have a website — they belong to the standard flow
+            if lead.get("website"):
+                continue
             has_mockup = await asyncio.to_thread(
                 self.pipeline_db.has_item_for_lead, "websites", lead["id"]
             )
@@ -68,7 +74,7 @@ class WebDevAgent(BaseAgent):
 
         if not target:
             self.current_task = None
-            return self.emit("waiting", "No pitch-ready leads need mockups")
+            return self.emit("waiting", "No no-website leads need mockups")
 
         biz = target["business_name"]
         self.current_task = {
@@ -130,6 +136,18 @@ class WebDevAgent(BaseAgent):
                     "filename": save_result["filename"],
                 },
                 source_agent=self.agent_id,
+            )
+
+            # Fast-track the lead through the intermediate stages so the outreach
+            # agent's mockup-pitch handler picks it up and drafts a single email.
+            # Transitions are strictly scraped→researched→pitch_ready, so we walk both.
+            await asyncio.to_thread(
+                self.pipeline_db.update_lead_stage,
+                target["id"], "researched", self.agent_id, "Fast-track: no website"
+            )
+            await asyncio.to_thread(
+                self.pipeline_db.update_lead_stage,
+                target["id"], "pitch_ready", self.agent_id, "Mockup built — ready for pitch"
             )
 
             self.tasks_completed += 1

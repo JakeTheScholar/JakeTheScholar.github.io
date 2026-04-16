@@ -27,7 +27,8 @@ class OllamaClient:
         except Exception:
             return []
 
-    async def generate(self, model: str, prompt: str, system: str = None) -> str:
+    async def generate(self, model: str, prompt: str, system: str = None,
+                       options: dict | None = None) -> str:
         payload = {
             "model": model,
             "prompt": prompt,
@@ -35,6 +36,8 @@ class OllamaClient:
         }
         if system:
             payload["system"] = system
+        if options:
+            payload["options"] = options
 
         r = await self.client.post(
             f"{self.base_url}/api/generate",
