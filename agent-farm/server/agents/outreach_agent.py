@@ -119,12 +119,15 @@ Web Design & Local SEO
 jakemcgaha.com
 """
 
-# Prepended to mockup_email body when there's no scraped email — gives Jake
-# everything he needs to manually route the draft.
-MANUAL_CONTACT_HEADER = """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠ MANUAL SEND — no email on file for this lead
+# Prepended to every draft body so Jake reviews with full lead context visible.
+# `mode_banner` switches between manual-send warning (no scraped email) and a
+# plain review reminder (email present — draft will land in Gmail Drafts).
+REVIEW_HEADER = """━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{mode_banner}
 Business: {business_name}
 Phone:    {phone}
+Email:    {email}
+Website:  {website}
 Maps:     {maps_url}
 Social:   {social_url}
 Location: {location}
@@ -436,17 +439,22 @@ class OutreachAgent(BaseAgent):
                 observation=observation,
                 opener=opener,
             )
-            if has_email:
-                email_body = body_base
-            else:
-                header = MANUAL_CONTACT_HEADER.format(
-                    business_name=biz,
-                    phone=phone or "(none)",
-                    maps_url=maps_url or "(none)",
-                    social_url=social_url or "(none)",
-                    location=target.get("location") or "(unknown)",
-                )
-                email_body = header + body_base
+            mode_banner = (
+                "⚠ REVIEW — delete this block before sending"
+                if has_email
+                else "⚠ MANUAL SEND — no email on file for this lead"
+            )
+            header = REVIEW_HEADER.format(
+                mode_banner=mode_banner,
+                business_name=biz,
+                phone=phone or "(none)",
+                email=target.get("contact_email") or "(none)",
+                website=target.get("website") or "(none)",
+                maps_url=maps_url or "(none)",
+                social_url=social_url or "(none)",
+                location=target.get("location") or "(unknown)",
+            )
+            email_body = header + body_base
 
             dm_body = MOCKUP_DM_TEMPLATE.format(
                 contact_name=contact,
@@ -508,7 +516,7 @@ class OutreachAgent(BaseAgent):
                 business_name=biz, contact_name=contact
             ))
 
-            email_body = EMAIL_TEMPLATE.format(
+            body_base = EMAIL_TEMPLATE.format(
                 contact_name=contact,
                 business_name=biz,
                 observation=observation,
@@ -518,6 +526,36 @@ class OutreachAgent(BaseAgent):
                 business_name=biz,
                 observation=observation,
             )
+
+            # Surface phone / website / email so Jake reviews with full context
+            # in the Gmail draft. He removes the header block before sending.
+            has_email = bool(target.get("contact_email"))
+            mode_banner = (
+                "⚠ REVIEW — delete this block before sending"
+                if has_email
+                else "⚠ MANUAL SEND — no email on file for this lead"
+            )
+            lead_notes = target.get("notes") or ""
+            maps_url = ""
+            social_url = ""
+            if lead_notes:
+                try:
+                    parsed = json.loads(lead_notes)
+                    maps_url = parsed.get("maps_url") or ""
+                    social_url = parsed.get("social_url") or ""
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            header = REVIEW_HEADER.format(
+                mode_banner=mode_banner,
+                business_name=biz,
+                phone=target.get("contact_phone") or "(none)",
+                email=target.get("contact_email") or "(none)",
+                website=target.get("website") or "(none)",
+                maps_url=maps_url or "(none)",
+                social_url=social_url or "(none)",
+                location=target.get("location") or "(unknown)",
+            )
+            email_body = header + body_base
 
             await asyncio.to_thread(
                 self.pipeline_db.add_outreach,
