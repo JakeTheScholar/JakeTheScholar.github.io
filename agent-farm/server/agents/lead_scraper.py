@@ -427,8 +427,6 @@ class LeadScraperAgent(BaseAgent):
                 return self.emit("skipped", f"No Google Places results for {industry['name']} in {location}")
 
             added = 0
-            # Limit to 3 places per tick; fetch details for at most 2 (rate limit budget)
-            details_budget = 2
             # Get existing business names to avoid duplicates
             existing_leads = await asyncio.to_thread(self.pipeline_db.get_all_lead_names)
 
@@ -447,14 +445,14 @@ class LeadScraperAgent(BaseAgent):
                 website = None
                 maps_url = None
 
-                # Fetch details if we have budget and place_id
-                if place_id and details_budget > 0:
+                # Always fetch details for each new lead — phone/website/maps
+                # are the whole point of the lead and cost ~$0.017/call.
+                if place_id:
                     try:
                         details = await self._place_details(place_id)
                         phone = details.get("formatted_phone_number")
                         website = details.get("website")
                         maps_url = details.get("url")  # Google Maps listing URL
-                        details_budget -= 1
                     except Exception as e:
                         logger.warning("Place details fetch failed for %s: %s", name, e)
 

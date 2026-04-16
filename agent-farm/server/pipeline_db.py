@@ -449,7 +449,9 @@ class PipelineDB:
         Used by the Manager agent to auto-recover drafts that never got picked up
         (e.g. manager-agent was down when outreach-agent created them).
         """
-        cutoff = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        # Match the isoformat() used when inserting — mixing formats breaks
+        # lexicographic comparison at the date/time boundary ("T" vs " ").
+        cutoff = (datetime.now() - timedelta(hours=hours)).isoformat()
         with self._lock:
             rows = self._conn.execute(
                 "SELECT id, lead_id, channel, status, created_at FROM outreach_log "

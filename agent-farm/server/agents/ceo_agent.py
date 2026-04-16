@@ -92,8 +92,8 @@ class CEOAgent(BaseAgent):
         if self.pipeline_db:
             try:
                 stats = await asyncio.to_thread(self.pipeline_db.get_pipeline_stats)
-                total_leads = stats.get("total", 0)
-                closed = stats.get("stages", {}).get("closed", 0)
+                total_leads = stats.get("total_leads", 0)
+                closed = stats.get("stage_counts", {}).get("closed", 0)
 
                 # Websites built (no-website mockup flow)
                 try:

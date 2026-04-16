@@ -589,6 +589,22 @@ async def order_stats():
     return await asyncio.to_thread(pipeline_db.get_order_stats)
 
 
+@app.get("/api/orders/types", dependencies=[Depends(verify_api_key)])
+async def order_types():
+    return {
+        "types": {
+            "thumbnail": {"label": "YouTube Thumbnail", "agent": "image-gen-001", "price_range": "$10-30"},
+            "ad_copy": {"label": "Ad Copy Package", "agent": "ad-copy-001", "price_range": "$25-50"},
+            "template": {"label": "Financial Template", "agent": "printables-001", "price_range": "$15-40"},
+            "social_content": {"label": "Social Media Pack", "agent": "social-001", "price_range": "$30-75"},
+            "seo_report": {"label": "SEO Keyword Report", "agent": "seo-001", "price_range": "$20-50"},
+            "fiverr_gig": {"label": "Fiverr Gig Listing", "agent": "fiverr-001", "price_range": "$10-25"},
+            "music": {"label": "Audio/Music Pack", "agent": "music-001", "price_range": "$15-50"},
+            "website_mockup": {"label": "Website Mockup", "agent": "web-dev-001", "price_range": "$25-75"},
+        }
+    }
+
+
 @app.get("/api/orders/{order_id}", dependencies=[Depends(verify_api_key)])
 async def get_order(order_id: str):
     order = await asyncio.to_thread(pipeline_db.get_order, order_id)
@@ -633,22 +649,6 @@ async def update_order_status(order_id: str, status: str = Query(...)):
     if not ok:
         raise HTTPException(404, "Order not found")
     return {"ok": True, "status": status}
-
-
-@app.get("/api/orders/types", dependencies=[Depends(verify_api_key)])
-async def order_types():
-    return {
-        "types": {
-            "thumbnail": {"label": "YouTube Thumbnail", "agent": "image-gen-001", "price_range": "$10-30"},
-            "ad_copy": {"label": "Ad Copy Package", "agent": "ad-copy-001", "price_range": "$25-50"},
-            "template": {"label": "Financial Template", "agent": "printables-001", "price_range": "$15-40"},
-            "social_content": {"label": "Social Media Pack", "agent": "social-001", "price_range": "$30-75"},
-            "seo_report": {"label": "SEO Keyword Report", "agent": "seo-001", "price_range": "$20-50"},
-            "fiverr_gig": {"label": "Fiverr Gig Listing", "agent": "fiverr-001", "price_range": "$10-25"},
-            "music": {"label": "Audio/Music Pack", "agent": "music-001", "price_range": "$15-50"},
-            "website_mockup": {"label": "Website Mockup", "agent": "web-dev-001", "price_range": "$25-75"},
-        }
-    }
 
 
 # ─── Exports API ───

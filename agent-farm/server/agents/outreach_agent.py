@@ -84,9 +84,24 @@ MOCKUP_SUBJECT_LINES = [
 # can scan drafts quickly.
 MOCKUP_MANUAL_SUBJECT_TEMPLATE = "[MANUAL] {business_name} — {contact_hint}"
 
+# Opener when the lead has no website on file — the original "built you one from scratch" pitch.
+MOCKUP_OPENER_NO_SITE = (
+    "Hope you're having a good week at {business_name}. I'm a web designer here in "
+    "{location_short} and I came across your business — noticed you don't have a "
+    "website yet, which honestly surprised me given how solid your reputation is locally."
+)
+
+# Opener when the lead already has a website — frame as an alternate/refresh concept
+# rather than falsely claiming they have nothing online.
+MOCKUP_OPENER_HAS_SITE = (
+    "Hope you're having a good week at {business_name}. I'm a web designer here in "
+    "{location_short} and I came across your current site — really liked what you've "
+    "got going, and it got me thinking about a fresh take I'd love to show you."
+)
+
 MOCKUP_EMAIL_TEMPLATE = """Hi {contact_name},
 
-Hope you're having a good week at {business_name}. I'm a web designer here in {location_short} and I came across your business — noticed you don't have a website yet, which honestly surprised me given how solid your reputation is locally.
+{opener}
 
 So instead of just pitching, I went ahead and built you a full mockup this morning. Preview is in this email and the complete HTML file is attached — open it in any browser to click through it.
 
@@ -406,12 +421,20 @@ class OutreachAgent(BaseAgent):
             elif parts:
                 location_short = parts[0]
 
-            # Body: prepend a contact-info header when there's no email
+            # Pick opener based on whether the lead has a real site already —
+            # "no website yet" lies if Google actually has one on file.
+            has_site = bool(target.get("website"))
+            opener_template = MOCKUP_OPENER_HAS_SITE if has_site else MOCKUP_OPENER_NO_SITE
+            opener = opener_template.format(
+                business_name=biz,
+                location_short=location_short,
+            )
+
             body_base = MOCKUP_EMAIL_TEMPLATE.format(
                 contact_name=contact,
                 business_name=biz,
                 observation=observation,
-                location_short=location_short,
+                opener=opener,
             )
             if has_email:
                 email_body = body_base
