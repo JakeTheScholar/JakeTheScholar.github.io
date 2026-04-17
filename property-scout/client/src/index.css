@@ -88,6 +88,9 @@
   .badge-hidden-gem {
     @apply bg-yellow-500/20 text-yellow-400 border border-yellow-500/30;
   }
+  .badge-caution {
+    @apply bg-orange-500/20 text-orange-300 border border-orange-500/40;
+  }
   .card {
     @apply bg-gray-900 border border-gray-800 rounded-xl transition-all duration-300;
   }

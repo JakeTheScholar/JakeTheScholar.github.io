@@ -1,20 +1,42 @@
 import { fullAnalysis, formatCurrency, formatPct } from '../utils/mortgage';
 import { calculateNeighborhoodScore, getDefaultNeighborhoodData } from '../utils/neighborhood';
+import { strAnalysis, strLocationScore, defaultNightlyRate, estimateOccupancy } from '../utils/str';
 import NeighborhoodBadge from './NeighborhoodBadge';
 
-export default function PropertyCard({ property, onSelect, onSave, onRemove, isSaved, index = 0 }) {
-  const analysis = fullAnalysis(property);
-  const nhData = getDefaultNeighborhoodData(property);
-  const nh = calculateNeighborhoodScore(nhData);
+export default function PropertyCard({ property, mode = 'hack', location, onSelect, onSave, onRemove, isSaved, index = 0 }) {
+  const isStr = mode === 'str';
 
-  const cashFlowPositive = analysis.liveIn.net >= 0;
+  // Build the right analysis + badge for the active mode
+  let primary, secondary, tertiary, badge, score;
+  if (isStr) {
+    const nightlyRate = defaultNightlyRate(property, location);
+    const occupancyPct = estimateOccupancy(location);
+    const str = strAnalysis(property, { nightlyRate, occupancyPct });
+    const strScore = strLocationScore({ location, property });
+    primary   = { label: 'Cash Flow / mo',  value: formatCurrency(str.cashFlowMonthly), color: str.cashFlowMonthly >= 0 ? 'text-green-400' : 'text-red-400' };
+    secondary = { label: 'Y1 Tax Shield',   value: formatCurrency(str.taxShieldY1),     color: 'text-purple-400' };
+    tertiary  = { label: `ADR @ ${str.occupancyPct}%`, value: `$${str.nightlyRate}/n`,  color: 'text-gray-300' };
+    badge = strScore.badge;
+    score = strScore.overall;
+  } else {
+    const analysis = fullAnalysis(property);
+    const nhData = getDefaultNeighborhoodData(property);
+    const nh = calculateNeighborhoodScore(nhData);
+    const cashFlowPositive = analysis.liveIn.net >= 0;
+    primary   = { label: 'Monthly CF',  value: formatCurrency(analysis.liveIn.net),    color: cashFlowPositive ? 'text-green-400' : 'text-red-400' };
+    secondary = { label: 'CoC Return',  value: formatPct(analysis.liveIn.coc),         color: 'text-blue-400' };
+    tertiary  = { label: 'Est. Rent',   value: `${formatCurrency(analysis.estimatedRent)}/u`, color: 'text-gray-300' };
+    badge = nh.badge;
+    score = nh.overall;
+  }
+
+  const unitsLabel = isStr ? `${property.bedrooms || 0} br` : `${property.units || 2} units`;
 
   return (
     <div
       className={`card card-hover glow-ring overflow-hidden cursor-pointer group animate-fade-in-up stagger-${Math.min(index + 1, 9)}`}
       onClick={() => onSelect?.(property)}
     >
-      {/* Image */}
       <div className="relative h-48 bg-gray-800 overflow-hidden">
         {property.imgSrc ? (
           <img src={property.imgSrc} alt={property.address} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out" />
@@ -25,10 +47,9 @@ export default function PropertyCard({ property, onSelect, onSave, onRemove, isS
             </svg>
           </div>
         )}
-        {/* Subtle gradient overlay at bottom of image */}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-900/80 to-transparent pointer-events-none" />
         <div className="absolute top-2 left-2">
-          <NeighborhoodBadge badge={nh.badge} score={nh.overall} />
+          <NeighborhoodBadge badge={badge} score={score} />
         </div>
         <button
           onClick={e => { e.stopPropagation(); isSaved ? onRemove?.(property.zpid) : onSave?.(property); }}
@@ -40,35 +61,31 @@ export default function PropertyCard({ property, onSelect, onSave, onRemove, isS
         </button>
       </div>
 
-      {/* Info */}
       <div className="p-4">
         <div className="flex items-start justify-between mb-1">
-          <h3 className="text-xl font-bold text-green-400">{formatCurrency(property.price)}</h3>
-          <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">{property.units || 2} units</span>
+          <h3 className={`text-xl font-bold ${isStr ? 'text-purple-400' : 'text-green-400'}`}>{formatCurrency(property.price)}</h3>
+          <span className="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full">{unitsLabel}</span>
         </div>
         <p className="text-sm text-gray-300 mb-1">{property.address}</p>
         <p className="text-xs text-gray-500 mb-3">
           {property.bedrooms} bd | {property.bathrooms} ba | {property.livingArea ? `${property.livingArea.toLocaleString()} sqft` : ''}
         </p>
 
-        {/* Quick metrics */}
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-gray-800/50 rounded-lg p-2 transition-colors duration-200 group-hover:bg-gray-800/70">
-            <p className="text-[10px] text-gray-500 uppercase">Monthly CF</p>
-            <p className={`text-sm font-bold ${cashFlowPositive ? 'text-green-400' : 'text-red-400'}`}>
-              {formatCurrency(analysis.liveIn.net)}
-            </p>
-          </div>
-          <div className="bg-gray-800/50 rounded-lg p-2 transition-colors duration-200 group-hover:bg-gray-800/70">
-            <p className="text-[10px] text-gray-500 uppercase">CoC Return</p>
-            <p className="text-sm font-bold text-blue-400">{formatPct(analysis.liveIn.coc)}</p>
-          </div>
-          <div className="bg-gray-800/50 rounded-lg p-2 transition-colors duration-200 group-hover:bg-gray-800/70">
-            <p className="text-[10px] text-gray-500 uppercase">Est. Rent</p>
-            <p className="text-sm font-bold text-gray-300">{formatCurrency(analysis.estimatedRent)}/u</p>
-          </div>
+          <MiniMetric label={primary.label}   value={primary.value}   color={primary.color} />
+          <MiniMetric label={secondary.label} value={secondary.value} color={secondary.color} />
+          <MiniMetric label={tertiary.label}  value={tertiary.value}  color={tertiary.color} />
         </div>
       </div>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value, color }) {
+  return (
+    <div className="bg-gray-800/50 rounded-lg p-2 transition-colors duration-200 group-hover:bg-gray-800/70">
+      <p className="text-[10px] text-gray-500 uppercase">{label}</p>
+      <p className={`text-sm font-bold ${color}`}>{value}</p>
     </div>
   );
 }

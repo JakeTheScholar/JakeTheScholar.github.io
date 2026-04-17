@@ -90,10 +90,11 @@ async function apiFetch(endpoint, params) {
 // Search properties by location
 app.get('/api/search', rateLimit, async (req, res) => {
   try {
-    const { location, minPrice, maxPrice, minBeds, homeType } = req.query;
+    const { location, minPrice, maxPrice, minBeds, homeType, mode } = req.query;
+    const isStr = mode === 'str';
 
     if (!RAPIDAPI_KEY) {
-      return res.json({ results: generateDemoProperties(location), demo: true });
+      return res.json({ results: generateDemoProperties(location, mode), demo: true });
     }
 
     const params = {
@@ -101,6 +102,8 @@ app.get('/api/search', rateLimit, async (req, res) => {
       listType: 'for-sale',
       page: '1',
     };
+    // STR mode targets single-family / condo / townhome — wider net than multi-family
+    if (isStr && homeType) params.homeType = homeType;
 
     const data = await apiFetch('/properties/by-location', params);
 
@@ -118,13 +121,21 @@ app.get('/api/search', rateLimit, async (req, res) => {
       listings = data.data;
     }
 
-    const results = listings.map(normalizeProperty).filter(p => p.price > 0);
+    let results = listings.map(p => normalizeProperty(p, mode)).filter(p => p.price > 0);
 
-    console.log(`[Search] "${location}" → ${results.length} results`);
+    // STR mode: drop pure multi-family — STRs are typically SFR, condo, townhome, cabin
+    if (isStr) {
+      results = results.filter(p => {
+        const t = (p.propertyType || '').toLowerCase();
+        return !/(duplex|triplex|fourplex|multi)/.test(t);
+      });
+    }
+
+    console.log(`[Search] mode=${mode || 'hack'} "${location}" → ${results.length} results`);
     res.json({ results });
   } catch (err) {
     console.error('Search error:', err.message);
-    res.json({ results: generateDemoProperties(req.query.location), error: 'Search failed — showing demo data', demo: true });
+    res.json({ results: generateDemoProperties(req.query.location, req.query.mode), error: 'Search failed — showing demo data', demo: true });
   }
 });
 
@@ -153,7 +164,7 @@ app.get('/api/property-by-url', rateLimit, async (req, res) => {
 });
 
 // Normalize various property response formats into a consistent shape
-function normalizeProperty(p) {
+function normalizeProperty(p, mode) {
   return {
     zpid: p.zpid || p.id || p.propertyId || `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     address: p.address || p.streetAddress || p.formattedAddress || formatAddress(p),
@@ -164,7 +175,7 @@ function normalizeProperty(p) {
     imgSrc: p.imgSrc || p.image || p.thumbnail || p.primaryPhotoUrl
       || p.miniCardPhoto?.[0]?.url || p.photos?.[0]?.url || p.photos?.[0]?.href || p.photos?.[0]
       || p.big || p.hugePhoto?.url || p.photoUrl || null,
-    units: guessUnits(p),
+    units: mode === 'str' ? 1 : guessUnits(p),
     rentEstimate: p.rentZestimate || p.rentEstimate || null,
     propertyType: p.propertyType || p.homeType || p.type || '',
     listingStatus: p.listingStatus || p.status || '',
@@ -199,8 +210,35 @@ const DEMO_IMAGES = [
   'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop',
 ];
 
-function generateDemoProperties(location) {
+function generateDemoProperties(location, mode) {
   const loc = location || 'Demo City, ST';
+
+  if (mode === 'str') {
+    const strBases = [
+      { price: 425000, beds: 3, baths: 2, sqft: 1600, suffix: 'Smoky Ridge Cabin' },
+      { price: 389000, beds: 4, baths: 3, sqft: 1900, suffix: 'Hillside A-Frame' },
+      { price: 525000, beds: 4, baths: 3, sqft: 2200, suffix: 'Lakeview Cabin' },
+      { price: 295000, beds: 2, baths: 2, sqft: 1100, suffix: 'Forest Cottage' },
+      { price: 478000, beds: 5, baths: 4, sqft: 2600, suffix: 'Mountain View Lodge' },
+      { price: 349000, beds: 3, baths: 2, sqft: 1500, suffix: 'Creek Side Cabin' },
+      { price: 599000, beds: 5, baths: 4, sqft: 2900, suffix: 'Ridgetop Estate' },
+      { price: 265000, beds: 2, baths: 2, sqft: 1000, suffix: 'Trailhead Studio' },
+      { price: 449000, beds: 4, baths: 3, sqft: 2000, suffix: 'Pine Hollow' },
+    ];
+    return strBases.map((b, i) => ({
+      zpid: `str-demo-${i}`,
+      address: `${100 + i * 12} ${b.suffix}`,
+      price: b.price,
+      bedrooms: b.beds,
+      bathrooms: b.baths,
+      livingArea: b.sqft,
+      units: 1,
+      rentEstimate: null,
+      imgSrc: DEMO_IMAGES[i % DEMO_IMAGES.length],
+      propertyType: 'SingleFamily',
+    }));
+  }
+
   const bases = [
     { price: 165000, beds: 4, baths: 2, sqft: 1800, suffix: 'Oak St' },
     { price: 189000, beds: 4, baths: 2, sqft: 2100, suffix: 'Elm Ave' },
@@ -214,7 +252,7 @@ function generateDemoProperties(location) {
   ];
 
   return bases.map((b, i) => ({
-    zpid: `demo-${i}-${Date.now()}`,
+    zpid: `demo-${i}`,
     address: `${100 + i * 12} ${b.suffix}, ${loc}`,
     price: b.price,
     bedrooms: b.beds,
