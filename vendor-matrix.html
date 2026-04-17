@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor VIP Zone</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --af-navy:#0B2A4A; --af-blue:#1A5A8E; --af-sky:#4A90C9; --af-ice:#E8F1FA;
+    --af-gold:#E9A53A; --af-green:#2E8B57; --af-red:#C8384E; --af-purple:#6B46C1;
+  }
+  html,body{font-family:'Inter',system-ui,sans-serif;background:#F3F5F8;color:#1F2937;}
+  .af-gradient{background:linear-gradient(135deg,var(--af-navy) 0%,var(--af-blue) 55%,var(--af-sky) 100%);}
+  .panel-header{background:linear-gradient(135deg,var(--af-navy),var(--af-blue));color:#fff;}
+  .sidebar-item{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:13px;color:#374151;border-left:3px solid transparent;cursor:pointer;}
+  .sidebar-item:hover{background:#F1F5F9;color:var(--af-navy);}
+  .sidebar-item.active{background:#E8F1FA;color:var(--af-navy);border-left-color:var(--af-blue);font-weight:600;}
+  .sidebar-group-label{padding:12px 14px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;color:#94A3B8;text-transform:uppercase;}
+  .btn-primary{background:var(--af-blue);color:#fff;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;transition:.15s;}
+  .btn-primary:hover{background:var(--af-navy);}
+  .btn-secondary{background:#fff;color:var(--af-navy);padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:1px solid #CBD5E1;}
+  .btn-secondary:hover{background:#F1F5F9;}
+  .btn-ghost{color:#475569;padding:6px 10px;border-radius:6px;font-size:12px;}
+  .btn-ghost:hover{background:#F1F5F9;}
+  .btn-danger{background:var(--af-red);color:#fff;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;}
+  .btn-danger:hover{background:#A42E42;}
+  .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
+  .card{background:#fff;border:1px solid #E2E8F0;border-radius:10px;box-shadow:0 1px 2px rgba(15,23,42,.04);}
+  .input{width:100%;padding:7px 10px;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;background:#fff;}
+  .input:focus{outline:none;border-color:var(--af-blue);box-shadow:0 0 0 2px rgba(26,90,142,.15);}
+  .label{display:block;font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+  table.af th{background:#F8FAFC;padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #E2E8F0;}
+  table.af td{padding:10px;font-size:13px;border-bottom:1px solid #F1F5F9;}
+  table.af tr:hover td{background:#F8FAFC;}
+  .score-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;}
+  .score-ai{background:linear-gradient(135deg,#EEF2FF,#E0E7FF);color:#4338CA;border:1px solid #C7D2FE;}
+  .score-personal{background:linear-gradient(135deg,#FEF3C7,#FDE68A);color:#92400E;border:1px solid #FCD34D;}
+  .dropdown{position:absolute;top:100%;right:0;margin-top:6px;background:#fff;border:1px solid #E2E8F0;border-radius:8px;box-shadow:0 10px 30px rgba(15,23,42,.15);min-width:240px;z-index:50;}
+  .dropdown-item{padding:8px 14px;font-size:13px;color:#334155;cursor:pointer;display:flex;align-items:center;gap:10px;}
+  .dropdown-item:hover{background:#F1F5F9;color:var(--af-navy);}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--af-navy);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.25);animation:slideIn .3s ease;z-index:200;margin-top:8px;}
+  @keyframes slideIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .modal{background:#fff;border-radius:12px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;}
+  .star-btn{width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;transition:.12s;border:1px solid transparent;}
+  .star-btn.filled-ai{background:var(--af-blue);color:#fff;}
+  .star-btn.filled-personal{background:var(--af-gold);color:#fff;}
+  .star-btn.empty{background:#F1F5F9;color:#94A3B8;}
+  .star-btn:hover{transform:scale(1.08);}
+  .bar-buy{background:#059669;}.bar-build{background:#2563EB;}.bar-partner{background:#7C3AED;}
+  .rec-BUY{background:#ECFDF5;color:#047857;border:1px solid #A7F3D0;}
+  .rec-BUILD{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;}
+  .rec-PARTNER{background:#F5F3FF;color:#6D28D9;border:1px solid #DDD6FE;}
+  .tab{padding:8px 14px;font-size:13px;color:#64748B;border-bottom:2px solid transparent;cursor:pointer;}
+  .tab.active{color:var(--af-navy);border-bottom-color:var(--af-blue);font-weight:600;}
+  .badge-count{background:var(--af-red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;display:inline-flex;align-items:center;justify-content:center;}
+  ::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="flex h-screen overflow-hidden">
+  <aside class="w-60 bg-white border-r border-slate-200 flex flex-col shrink-0">
+    <div class="px-4 py-4 border-b border-slate-200">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-md af-gradient flex items-center justify-center text-white font-bold text-sm">V</div>
+        <div>
+          <div class="text-sm font-bold text-slate-800 leading-tight">Vendor VIP Zone</div>
+          <div class="text-[10px] text-slate-400 leading-tight">Enterprise Edition</div>
+        </div>
+      </div>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-2" id="sidebarNav"></nav>
+    <div class="border-t border-slate-200 px-4 py-3 text-[10px] text-slate-400">v2.0 &middot; local demo</div>
+  </aside>
+
+  <div class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-14 bg-white border-b border-slate-200 px-4 flex items-center gap-3 shrink-0">
+      <div class="flex-1 max-w-xl relative">
+        <svg class="w-4 h-4 absolute left-3 top-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>
+        <input id="globalSearch" oninput="globalSearchHandler(event)" type="text" placeholder="Search vendors, campaigns, tickets..." class="w-full pl-9 pr-3 py-1.5 text-sm bg-slate-100 rounded-md border border-transparent focus:border-slate-300 focus:bg-white focus:outline-none"/>
+        <div id="searchResults" class="dropdown hidden" style="left:0;right:auto;min-width:100%;"></div>
+      </div>
+
+      <button onclick="startTour()" class="btn-ghost flex items-center gap-1.5 text-xs">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
+        Take a Tour
+      </button>
+
+      <div class="relative">
+        <button onclick="toggleDropdown('appsDD',event)" class="btn-ghost">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div id="appsDD" class="dropdown hidden" style="min-width:280px;">
+          <div class="px-4 py-2 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">Apps &amp; Suites</div>
+          <div class="grid grid-cols-3 gap-1 p-2">
+            <button onclick="navigate('dashboard');closeDropdowns();" class="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-slate-50"><div class="w-8 h-8 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold">VM</div><span class="text-[10px] text-slate-600">Vendors</span></button>
+            <button onclick="navigate('scoring');closeDropdowns();" class="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-slate-50"><div class="w-8 h-8 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">SC</div><span class="text-[10px] text-slate-600">Scoring</span></button>
+            <button onclick="navigate('decisions');closeDropdowns();" class="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-slate-50"><div class="w-8 h-8 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">DC</div><span class="text-[10px] text-slate-600">Decisions</span></button>
+            <button onclick="navigate('engagement-create');closeDropdowns();" class="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-slate-50"><div class="w-8 h-8 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center text-xs font-bold">EM</div><span class="text-[10px] text-slate-600">Engagement</span></button>
+            <button onclick="navigate('tickets');closeDropdowns();" class="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-slate-50"><div class="w-8 h-8 rounded-md bg-rose-100 text-rose-700 flex items-center justify-center text-xs font-bold">SP</div><span class="text-[10px] text-slate-600">Support</span></button>
+            <button onclick="navigate('campaigns');closeDropdowns();" class="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-slate-50"><div class="w-8 h-8 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center text-xs font-bold">CP</div><span class="text-[10px] text-slate-600">Campaigns</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative">
+        <button onclick="toggleDropdown('mgmtDD',event)" class="btn-secondary flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/></svg>
+          Management
+        </button>
+        <div id="mgmtDD" class="dropdown hidden">
+          <div class="px-4 py-2 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">Management</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-account');closeDropdowns();"><span class="w-5">&#9881;</span>Account Settings</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-users');closeDropdowns();"><span class="w-5">&#128101;</span>User Management</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-apikeys');closeDropdowns();"><span class="w-5">&#128273;</span>API Keys</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-email');closeDropdowns();"><span class="w-5">&#9993;</span>Email Templates</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-forms');closeDropdowns();"><span class="w-5">&#128221;</span>Form Settings</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-engagement-settings');closeDropdowns();"><span class="w-5">&#128202;</span>Engagement Settings</div>
+          <div class="dropdown-item" onclick="navigate('mgmt-audit');closeDropdowns();"><span class="w-5">&#128275;</span>Audit Log</div>
+        </div>
+      </div>
+
+      <div class="relative">
+        <button onclick="toggleDropdown('bellDD',event)" class="btn-ghost relative">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 1 1-6 0v-1m6 0H9"/></svg>
+          <span id="bellBadge" class="absolute -top-1 -right-1 badge-count hidden">0</span>
+        </button>
+        <div id="bellDD" class="dropdown hidden" style="min-width:340px;">
+          <div class="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Notifications</span>
+            <button onclick="markAllRead()" class="text-[11px] text-blue-600 hover:underline">Mark all read</button>
+          </div>
+          <div id="bellList" class="max-h-80 overflow-y-auto"></div>
+        </div>
+      </div>
+
+      <div class="relative">
+        <button onclick="toggleDropdown('profileDD',event)" class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md hover:bg-slate-100">
+          <div class="w-7 h-7 rounded-full af-gradient text-white flex items-center justify-center text-xs font-bold">TU</div>
+          <span class="text-xs font-medium text-slate-700 hidden sm:inline">Test User</span>
+          <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="profileDD" class="dropdown hidden">
+          <div class="px-4 py-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full af-gradient text-white flex items-center justify-center text-sm font-bold">TU</div>
+              <div>
+                <div class="text-sm font-semibold text-slate-800">Test User</div>
+                <div class="text-[11px] text-slate-500">test.user@example.com</div>
+              </div>
+            </div>
+          </div>
+          <div class="dropdown-item" onclick="navigate('profile-settings');closeDropdowns();"><span class="w-5">&#128100;</span>Profile Settings</div>
+          <div class="dropdown-item" onclick="navigate('profile-company');closeDropdowns();"><span class="w-5">&#127970;</span>Company Profile</div>
+          <div class="dropdown-item" onclick="navigate('profile-password');closeDropdowns();"><span class="w-5">&#128274;</span>Change Password</div>
+          <div class="dropdown-item" onclick="navigate('profile-theme');closeDropdowns();"><span class="w-5">&#127912;</span>Theme &amp; Display</div>
+          <div class="dropdown-item" onclick="navigate('profile-notifications');closeDropdowns();"><span class="w-5">&#128276;</span>Notification Preferences</div>
+          <div class="border-t border-slate-100"></div>
+          <div class="dropdown-item text-rose-600" onclick="logout()"><span class="w-5">&#8594;</span>Sign Out</div>
+        </div>
+      </div>
+    </header>
+
+    <main id="viewRoot" class="flex-1 overflow-y-auto p-6"></main>
+  </div>
+</div>
+
+<div id="toastRoot" class="fixed bottom-6 right-6 z-[200] flex flex-col gap-2 items-end"></div>
+<div id="modalRoot"></div>
+
+<script>
+const STORAGE_KEY='vm_store_v2';
+const SCORING_CRITERIA=['Cost Effectiveness','Technical Fit','Integration Complexity','Vendor Stability','Support Quality','Security & Compliance','Scalability','Innovation','Implementation Timeline','Cultural Fit'];
+const AF_SECTIONS=['Claims','Underwriting','IT / Technology','Marketing','Human Resources','Finance / Accounting','Legal / Compliance','Customer Service','Risk Management','Sales','Operations','Actuarial','Loss Control','Executive Leadership'];
+
+const defaultStore={vendors:[],campaigns:[],scores:{},personalScores:{},tickets:[],engagements:[],feedback:[],documents:{},notifications:[],apiKeys:[],users:[],emailTemplates:[],settings:{companyName:'Test Company',theme:'light',scoringMode:'dual',emailNotifs:true,defaultPersonality:'balanced'},_seq:100};
+
+let store=loadStore();
+
+function loadStore(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultStore);return {...structuredClone(defaultStore),...JSON.parse(raw)};}catch(e){return structuredClone(defaultStore);}}
+function saveStore(){localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}
+function nextId(){store._seq=(store._seq||100)+1;return store._seq;}
+function resetStore(){if(!confirm('Reset all data to seed defaults?'))return;localStorage.removeItem(STORAGE_KEY);store=structuredClone(defaultStore);seedData();saveStore();toast('Store reset to seed data','success');render();}
+
+function calculateAIScore(vendor,scoreArr){let total=0;const fields=['name','website','contact_name','contact_email','mission_statement','project'];const filled=fields.filter(f=>vendor[f]&&String(vendor[f]).trim().length>0).length;total+=(filled/fields.length)*20;if(scoreArr.length>0){const avg=scoreArr.reduce((s,sc)=>s+sc.score,0)/scoreArr.length;total+=(avg/5)*50;}let sections=[];try{sections=JSON.parse(vendor.sections||'[]');}catch{sections=[];}total+=Math.min(sections.length/5,1)*15;let web=0;if(vendor.website)web+=5;if(vendor.social_linkedin)web+=4;if(vendor.social_twitter)web+=3;if(vendor.social_facebook)web+=3;total+=Math.min(web,15);return Math.round(total);}
+function calculateDecision(scoreArr){const m={};scoreArr.forEach(s=>{m[s.criterion]=s.score;});const inv=v=>6-(v||3);const buyScore=(m['Technical Fit']||0)*3+(m['Cost Effectiveness']||0)*2+(m['Vendor Stability']||0)*3+(m['Support Quality']||0)*2+inv(m['Integration Complexity'])*2;const buildScore=(m['Scalability']||0)*3+(m['Security & Compliance']||0)*3+(m['Innovation']||0)*2+inv(m['Implementation Timeline'])*2+inv(m['Vendor Stability'])*2;const partnerScore=(m['Cultural Fit']||0)*3+(m['Innovation']||0)*3+(m['Technical Fit']||0)*2+(m['Scalability']||0)*2+(m['Support Quality']||0)*2;const best=Math.max(buyScore,buildScore,partnerScore);let rec='BUY';if(best===buildScore&&buildScore>buyScore)rec='BUILD';if(best===partnerScore&&partnerScore>buyScore&&partnerScore>buildScore)rec='PARTNER';return{recommendation:rec,confidence:Math.round((best/60)*100),scores:{buy:Math.round((buyScore/60)*100),build:Math.round((buildScore/60)*100),partner:Math.round((partnerScore/60)*100)}};}
+function getScores(id){return store.scores[id]||[];}
+function getPersonalScores(id){return store.personalScores[id]||[];}
+function setScore(id,criterion,score,personal=false){const b=personal?store.personalScores:store.scores;if(!b[id])b[id]=[];const ex=b[id].find(s=>s.criterion===criterion);if(ex)ex.score=score;else b[id].push({criterion,score});saveStore();}
+function vendorSummary(v){const ai=getScores(v.id),per=getPersonalScores(v.id);return{vendor:v,aiScore:calculateAIScore(v,ai),personalScore:calculateAIScore(v,per),aiDecision:ai.length>0?calculateDecision(ai):null,personalDecision:per.length>0?calculateDecision(per):null,scoreCount:ai.length,personalCount:per.length};}
+function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function toast(msg,type='info'){const el=document.createElement('div');el.className='toast';const colors={info:'#0B2A4A',success:'#047857',error:'#C8384E',warn:'#B45309'};el.style.background=colors[type]||colors.info;el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2800);}
+function openModal(html){document.getElementById('modalRoot').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';}
+function confirmModal(title,body,onConfirm){window.__confirmCb=onConfirm;openModal(`<div class="panel-header px-5 py-3 rounded-t-xl"><h3 class="font-semibold">${escHtml(title)}</h3></div><div class="p-5 text-sm text-slate-700">${body}</div><div class="px-5 py-3 border-t border-slate-100 flex justify-end gap-2"><button class="btn-secondary" onclick="closeModal()">Cancel</button><button class="btn-primary" onclick="window.__confirmCb&&window.__confirmCb();closeModal()">Confirm</button></div>`);}
+function closeDropdowns(){document.querySelectorAll('.dropdown').forEach(d=>d.classList.add('hidden'));}
+function toggleDropdown(id,ev){if(ev){ev.stopPropagation();}const el=document.getElementById(id);const hidden=el.classList.contains('hidden');closeDropdowns();if(hidden)el.classList.remove('hidden');}
+document.addEventListener('click',e=>{if(!e.target.closest('.dropdown')&&!e.target.closest('[onclick*="toggleDropdown"]')){closeDropdowns();}});
+function downloadCSV(rows,filename){if(!rows.length){toast('Nothing to export','warn');return;}const keys=Object.keys(rows[0]);const lines=[keys.join(',')].concat(rows.map(r=>keys.map(k=>`"${String(r[k]??'').replace(/"/g,'""')}"`).join(',')));const blob=new Blob([lines.join('\n')],{type:'text/csv'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);toast(`Exported ${rows.length} rows to ${filename}`,'success');}
+function copyLink(){const u=location.origin+location.pathname+'#'+current.route;navigator.clipboard.writeText(u).then(()=>toast('Link copied to clipboard','success')).catch(()=>toast('Copy failed','error'));}
+function saveLayout(){localStorage.setItem('vm_layout_'+current.route,JSON.stringify(current.params||{}));toast('Layout saved for this view','success');}
+function logout(){closeDropdowns();confirmModal('Sign Out','Are you sure you want to sign out?',()=>toast('Signed out (demo)','info'));}
+function startTour(){openModal(`<div class="panel-header px-5 py-3 rounded-t-xl flex items-center justify-between"><h3 class="font-semibold">Welcome to the Vendor VIP Zone</h3><button onclick="closeModal()" class="text-white/80 hover:text-white">&times;</button></div><div class="p-5 text-sm text-slate-700 space-y-3"><p><strong>1. Vendors</strong> &mdash; Manage your vendor roster, scoring, and documents.</p><p><strong>2. Scoring</strong> &mdash; Rate vendors on 10 criteria with both AI and Personal scores.</p><p><strong>3. Decisions</strong> &mdash; Auto-generated Buy/Build/Partner recommendations with confidence.</p><p><strong>4. Engagement</strong> &mdash; Build quarterly engagement matrices tied to objectives.</p><p><strong>5. Support</strong> &mdash; File tickets, share feedback, and get help.</p></div><div class="px-5 py-3 border-t border-slate-100 flex justify-end"><button class="btn-primary" onclick="closeModal()">Got it</button></div>`);}
+
+function markAllRead(){store.notifications.forEach(n=>n.read=true);saveStore();renderNotifications();toast('All notifications marked read');}
+function renderNotifications(){const list=document.getElementById('bellList');const badge=document.getElementById('bellBadge');const unread=store.notifications.filter(n=>!n.read).length;badge.textContent=unread;badge.classList.toggle('hidden',unread===0);if(!store.notifications.length){list.innerHTML='<div class="p-6 text-center text-xs text-slate-400">No notifications</div>';return;}list.innerHTML=store.notifications.slice(-10).reverse().map(n=>`<div class="px-4 py-3 border-b border-slate-50 ${n.read?'':'bg-blue-50/40'}"><div class="flex items-start gap-2"><div class="w-1.5 h-1.5 rounded-full mt-1.5 ${n.read?'bg-slate-300':'bg-blue-500'}"></div><div class="flex-1"><div class="text-xs font-medium text-slate-800">${escHtml(n.title)}</div><div class="text-[11px] text-slate-500 mt-0.5">${escHtml(n.body||'')}</div><div class="text-[10px] text-slate-400 mt-1">${n.time||''}</div></div></div></div>`).join('');}
+function pushNotif(title,body){store.notifications.push({id:nextId(),title,body,time:new Date().toLocaleString(),read:false});saveStore();renderNotifications();}
+
+function globalSearchHandler(e){const q=e.target.value.trim().toLowerCase();const box=document.getElementById('searchResults');if(!q){box.classList.add('hidden');return;}const vs=store.vendors.filter(v=>v.name.toLowerCase().includes(q)||(v.project||'').toLowerCase().includes(q)).slice(0,5);const cs=store.campaigns.filter(c=>c.name.toLowerCase().includes(q)).slice(0,3);const ts=store.tickets.filter(t=>t.title.toLowerCase().includes(q)).slice(0,3);if(!vs.length&&!cs.length&&!ts.length){box.innerHTML='<div class="p-4 text-xs text-slate-400">No results</div>';box.classList.remove('hidden');return;}let html='';if(vs.length){html+='<div class="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Vendors</div>'+vs.map(v=>`<div class="dropdown-item" onclick="navigate('vendor-detail',{id:${v.id}});document.getElementById('globalSearch').value='';closeDropdowns();">${escHtml(v.name)}</div>`).join('');}if(cs.length){html+='<div class="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Campaigns</div>'+cs.map(c=>`<div class="dropdown-item" onclick="navigate('campaign-detail',{id:${c.id}});document.getElementById('globalSearch').value='';closeDropdowns();">${escHtml(c.name)}</div>`).join('');}if(ts.length){html+='<div class="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Tickets</div>'+ts.map(t=>`<div class="dropdown-item" onclick="navigate('ticket-detail',{id:${t.id}});document.getElementById('globalSearch').value='';closeDropdowns();">${escHtml(t.title)}</div>`).join('');}box.innerHTML=html;box.classList.remove('hidden');}
+
+const current={route:'dashboard',params:{}};
+function navigate(route,params={}){current.route=route;current.params=params;render();window.scrollTo(0,0);}
+function render(){renderSidebar();renderView();renderNotifications();}
+
+function renderSidebar(){const groups=[{label:'Main',items:[{id:'dashboard',label:'Dashboard',icon:'&#9737;'},{id:'vendors',label:'Vendors',icon:'&#128188;'},{id:'scoring',label:'Scoring Matrix',icon:'&#11088;'},{id:'decisions',label:'Decisions',icon:'&#128202;'},{id:'campaigns',label:'Campaigns',icon:'&#128204;'}]},{label:'Engagement',items:[{id:'engagement-create',label:'Create Engagement',icon:'&#10133;'},{id:'engagements',label:'My Engagements',icon:'&#128196;'}]},{label:'Support',items:[{id:'tickets',label:'All Tickets',icon:'&#127903;'},{id:'ticket-create',label:'Create Ticket',icon:'&#10069;'},{id:'feedback',label:'Feedback',icon:'&#128172;'}]},{label:'System',items:[{id:'mgmt-account',label:'Settings',icon:'&#9881;'},{id:'_reset',label:'Reset Demo Data',icon:'&#128465;',action:'resetStore()'}]}];const active=current.route;const html=groups.map(g=>`<div class="sidebar-group-label">${g.label}</div>`+g.items.map(i=>{const isActive=active===i.id||(i.id==='mgmt-account'&&active.startsWith('mgmt-'));const handler=i.action?`onclick="${i.action}"`:`onclick="navigate('${i.id}')"`;return `<div class="sidebar-item ${isActive?'active':''}" ${handler}><span class="w-4 text-slate-400">${i.icon}</span>${i.label}</div>`;}).join('')).join('');document.getElementById('sidebarNav').innerHTML=html;}
+
+function renderView(){const r=current.route,p=current.params;const routes={dashboard:renderDashboard,vendors:renderVendors,'vendor-new':()=>renderVendorForm(),'vendor-edit':()=>renderVendorForm(p.id),'vendor-detail':()=>renderVendorDetail(p.id),campaigns:renderCampaigns,'campaign-new':()=>renderCampaignForm(),'campaign-edit':()=>renderCampaignForm(p.id),'campaign-detail':()=>renderCampaignDetail(p.id),scoring:renderScoring,decisions:renderDecisions,'engagement-create':renderEngagementCreate,engagements:renderEngagements,'engagement-detail':()=>renderEngagementDetail(p.id),tickets:renderTickets,'ticket-create':renderTicketCreate,'ticket-detail':()=>renderTicketDetail(p.id),feedback:renderFeedback,'mgmt-account':renderMgmtAccount,'mgmt-users':renderMgmtUsers,'mgmt-apikeys':renderMgmtApiKeys,'mgmt-email':renderMgmtEmail,'mgmt-forms':renderMgmtForms,'mgmt-engagement-settings':renderMgmtEngagementSettings,'mgmt-audit':renderMgmtAudit,'profile-settings':renderProfileSettings,'profile-company':renderProfileCompany,'profile-password':renderProfilePassword,'profile-theme':renderProfileTheme,'profile-notifications':renderProfileNotifications};const fn=routes[r]||(()=>document.getElementById('viewRoot').innerHTML=`<div class="card p-8 text-center text-slate-400">View not found: ${escHtml(r)}</div>`);fn();}
+
+function pageHeader(title,subtitle,actions){return `<div class="mb-5 flex items-start justify-between gap-4"><div><h1 class="text-xl font-bold text-slate-800">${escHtml(title)}</h1>${subtitle?`<p class="text-xs text-slate-500 mt-1">${escHtml(subtitle)}</p>`:''}</div><div class="flex items-center gap-2">${actions||''}</div></div>`;}
+function panelHeader(title,actions){return `<div class="panel-header px-5 py-3 rounded-t-lg flex items-center justify-between"><h2 class="text-sm font-semibold tracking-wide">${escHtml(title)}</h2><div class="flex items-center gap-2">${actions||''}</div></div>`;}
+function toolbarButton(label,icon,onclick,cls=''){return `<button class="btn-ghost flex items-center gap-1.5 ${cls}" onclick="${onclick}"><span>${icon||''}</span>${escHtml(label)}</button>`;}
+function aiScorePill(score){return `<span class="score-pill score-ai" title="AI Score"><span>AI</span><span>${score}</span></span>`;}
+function personalScorePill(score,hasScores=true){if(!hasScores)return `<span class="score-pill" style="background:#F1F5F9;color:#94A3B8;border:1px solid #E2E8F0;"><span>YOU</span><span>&ndash;</span></span>`;return `<span class="score-pill score-personal" title="Personal Score"><span>YOU</span><span>${score}</span></span>`;}
+function dualScore(s){return `<div class="flex items-center gap-1.5">${aiScorePill(s.aiScore)}${personalScorePill(s.personalScore,s.personalCount>0)}</div>`;}
+function recPill(rec,confidence){if(!rec)return '<span class="text-xs text-slate-300">Not scored</span>';return `<span class="chip rec-${rec}">${rec} &middot; ${confidence}%</span>`;}
+function dualRec(s){return `<div class="flex flex-col gap-1">${s.aiDecision?`<div class="text-[10px] text-slate-500">AI: ${recPill(s.aiDecision.recommendation,s.aiDecision.confidence)}</div>`:'<div class="text-[10px] text-slate-300">AI: not scored</div>'}${s.personalDecision?`<div class="text-[10px] text-slate-500">You: ${recPill(s.personalDecision.recommendation,s.personalDecision.confidence)}</div>`:'<div class="text-[10px] text-slate-300">You: not scored</div>'}</div>`;}
+
+function renderDashboard(){
+  const vs=store.vendors.map(vendorSummary);
+  const scored=vs.filter(v=>v.aiDecision);
+  const counts={BUY:0,BUILD:0,PARTNER:0};scored.forEach(v=>counts[v.aiDecision.recommendation]++);
+  const avgAi=vs.length?Math.round(vs.reduce((s,v)=>s+v.aiScore,0)/vs.length):0;
+  const avgPer=vs.filter(v=>v.personalCount>0).length?Math.round(vs.filter(v=>v.personalCount>0).reduce((s,v)=>s+v.personalScore,0)/vs.filter(v=>v.personalCount>0).length):0;
+  const topAi=[...vs].sort((a,b)=>b.aiScore-a.aiScore).slice(0,5);
+  const topPer=[...vs].filter(v=>v.personalCount>0).sort((a,b)=>b.personalScore-a.personalScore).slice(0,5);
+  const actions=`${toolbarButton('Export','&#128229;','exportDashboard()')}${toolbarButton('Copy Link','&#128279;','copyLink()')}<button class="btn-primary" onclick="navigate('vendor-new')">+ New Vendor</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader('Dashboard','Real-time overview of your vendor portfolio',actions)+`
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
+      ${dashStat('Total Vendors',store.vendors.length,'&#128188;','bg-blue-50 text-blue-700')}
+      ${dashStat('Active Campaigns',store.campaigns.filter(c=>c.status==='active').length,'&#128204;','bg-emerald-50 text-emerald-700')}
+      ${dashStat('Avg AI Score',avgAi,'&#129302;','bg-indigo-50 text-indigo-700')}
+      ${dashStat('Avg Personal Score',avgPer||'&ndash;','&#128101;','bg-amber-50 text-amber-700')}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+      ${decisionCard('BUY',counts.BUY,'Purchase solutions','bg-emerald-500')}
+      ${decisionCard('BUILD',counts.BUILD,'Build in-house','bg-blue-500')}
+      ${decisionCard('PARTNER',counts.PARTNER,'Strategic partnership','bg-purple-500')}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+      <div class="card">
+        ${panelHeader('Top Vendors by AI Score','<button class="btn-ghost text-white/80 text-xs" onclick="navigate(\'decisions\')">View All &rarr;</button>')}
+        <div class="p-3">
+          ${topAi.length?topAi.map((v,i)=>`<div class="flex items-center gap-3 py-2 px-2 rounded hover:bg-slate-50 cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><span class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-[11px] font-bold">${i+1}</span><div class="flex-1"><div class="text-sm font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'No project')}</div></div>${dualScore(v)}</div>`).join(''):'<div class="p-6 text-center text-xs text-slate-400">No vendors yet</div>'}
+        </div>
+      </div>
+      <div class="card">
+        ${panelHeader('Top Vendors by Personal Score','<button class="btn-ghost text-white/80 text-xs" onclick="navigate(\'scoring\')">Score More &rarr;</button>')}
+        <div class="p-3">
+          ${topPer.length?topPer.map((v,i)=>`<div class="flex items-center gap-3 py-2 px-2 rounded hover:bg-slate-50 cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><span class="w-6 h-6 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[11px] font-bold">${i+1}</span><div class="flex-1"><div class="text-sm font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'No project')}</div></div>${dualScore(v)}</div>`).join(''):'<div class="p-6 text-center text-xs text-slate-400">No personal scores yet. <button class="text-blue-600 hover:underline" onclick="navigate(\'scoring\')">Start scoring</button></div>'}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="card">
+        ${panelHeader('Recent Campaigns','<button class="btn-ghost text-white/80 text-xs" onclick="navigate(\'campaigns\')">All &rarr;</button>')}
+        <div class="p-3">
+          ${store.campaigns.length?store.campaigns.slice(-4).reverse().map(c=>`<div class="flex items-center justify-between py-2 px-2 rounded hover:bg-slate-50 cursor-pointer" onclick="navigate('campaign-detail',{id:${c.id}})"><div><div class="text-sm font-medium text-slate-800">${escHtml(c.name)}</div><div class="text-[11px] text-slate-400">${(c.vendorIds||[]).length} vendors</div></div><span class="chip ${c.status==='active'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${c.status}</span></div>`).join(''):'<div class="p-6 text-center text-xs text-slate-400">No campaigns</div>'}
+        </div>
+      </div>
+      <div class="card">
+        ${panelHeader('Open Tickets','<button class="btn-ghost text-white/80 text-xs" onclick="navigate(\'tickets\')">All &rarr;</button>')}
+        <div class="p-3">
+          ${store.tickets.filter(t=>t.status!=='Closed').slice(0,4).map(t=>`<div class="flex items-center justify-between py-2 px-2 rounded hover:bg-slate-50 cursor-pointer" onclick="navigate('ticket-detail',{id:${t.id}})"><div><div class="text-sm font-medium text-slate-800">${escHtml(t.title)}</div><div class="text-[11px] text-slate-400">${escHtml(t.category)} &middot; ${escHtml(t.priority)}</div></div><span class="chip bg-amber-50 text-amber-700">${escHtml(t.status)}</span></div>`).join('')||'<div class="p-6 text-center text-xs text-slate-400">No open tickets</div>'}
+        </div>
+      </div>
+    </div>`;
+}
+function dashStat(label,value,icon,bg){return `<div class="card p-4"><div class="flex items-center justify-between"><div><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${label}</div><div class="text-2xl font-bold text-slate-800 mt-1">${value}</div></div><div class="w-9 h-9 rounded-lg ${bg} flex items-center justify-center text-lg">${icon}</div></div></div>`;}
+function decisionCard(label,count,desc,dotCls){return `<button class="card p-4 text-left hover:shadow-md transition-shadow" onclick="navigate('decisions')"><div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${dotCls}"></span><span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">${label}</span></div><div class="text-3xl font-bold text-slate-800 mt-1">${count}</div><div class="text-[11px] text-slate-400 mt-1">${desc}</div></button>`;}
+function exportDashboard(){const rows=store.vendors.map(v=>{const s=vendorSummary(v);return{name:v.name,project:v.project,ai_score:s.aiScore,personal_score:s.personalScore,ai_recommendation:s.aiDecision?.recommendation||'',personal_recommendation:s.personalDecision?.recommendation||''};});downloadCSV(rows,'dashboard.csv');}
+
+function seedData(){
+  if(store.vendors.length>0)return;
+  const now=new Date().toISOString();
+  const seeds=[
+    {name:'Test Vendor 1',project:'Claims Automation Pilot',sections:['Claims','IT / Technology'],website:'https://test-vendor-1.example.com'},
+    {name:'Test Vendor 2',project:'Underwriting AI Assistant',sections:['Underwriting','Actuarial']},
+    {name:'Test Vendor 3',project:'Customer Service Chatbot',sections:['Customer Service','Marketing'],website:'https://test-vendor-3.example.com'},
+    {name:'Test Vendor 4',project:'Risk Analytics Platform',sections:['Risk Management','IT / Technology']},
+    {name:'Test Vendor 5',project:'Document Intelligence Suite',sections:['Claims','Legal / Compliance','Operations']},
+    {name:'Test Vendor 6',project:'Telematics Data Provider',sections:['Loss Control','Underwriting']},
+    {name:'Test Vendor 7',project:'HR Talent Platform',sections:['Human Resources']},
+    {name:'Test Vendor 8',project:'Finance Close Automation',sections:['Finance / Accounting','Executive Leadership']},
+  ];
+  seeds.forEach((v,i)=>{
+    const id=i+1;
+    store.vendors.push({id,name:v.name,website:v.website||'',social_linkedin:'',social_twitter:'',social_facebook:'',contact_name:`Test Contact ${id}`,contact_email:`contact${id}@test-vendor-${id}.example.com`,contact_phone:`555-01${String(id).padStart(2,'0')}`,mission_statement:`Test mission statement for Test Vendor ${id}. This vendor supports ${v.project.toLowerCase()}.`,project:v.project,sections:JSON.stringify(v.sections),notes:'',created_at:now,updated_at:now});
+    store.scores[id]=SCORING_CRITERIA.map(c=>({criterion:c,score:2+Math.floor(Math.random()*4)}));
+    if(id<=5)store.personalScores[id]=SCORING_CRITERIA.map(c=>({criterion:c,score:2+Math.floor(Math.random()*4)}));
+    store._seq=Math.max(store._seq||100,id);
+  });
+  store.campaigns.push({id:1,name:'Test Campaign - Claims Modernization',description:'Evaluating vendors for claims automation rollout.',objective:'Reduce claims cycle time by 30% via AI-assisted triage.',status:'active',vendorIds:[1,5],created_at:now});
+  store.campaigns.push({id:2,name:'Test Campaign - Underwriting AI',description:'Shortlist underwriting AI assistants.',objective:'Pilot an AI underwriting assistant by end of Q3.',status:'active',vendorIds:[2,4],created_at:now});
+  store._seq=Math.max(store._seq||100,20);
+  store.notifications.push({id:nextId(),title:'Welcome to the Vendor VIP Zone',body:'Seed data loaded. Start by reviewing Test Vendor 1.',time:new Date().toLocaleString(),read:false});
+  store.notifications.push({id:nextId(),title:'Quarterly review due',body:'Q2 engagement review is due in 14 days.',time:new Date().toLocaleString(),read:false});
+  store.tickets.push({id:nextId(),title:'Sample: export to CSV not working',category:'Bug',priority:'Medium',status:'Open',description:'When exporting vendor list the CSV is empty.',created_at:now});
+  store.feedback.push({id:nextId(),rating:5,category:'UI',message:'Love the new dashboard look.',created_at:now});
+  store.users.push({id:nextId(),name:'Test User',email:'test.user@example.com',role:'Admin',status:'Active'});
+  store.users.push({id:nextId(),name:'Test Viewer',email:'viewer@example.com',role:'Viewer',status:'Active'});
+  store.apiKeys.push({id:nextId(),name:'Default API Key',key:'vm_test_****1234',created_at:now,lastUsed:'Never'});
+  store.emailTemplates.push({id:nextId(),name:'Vendor Welcome',subject:'Welcome to our vendor program',body:'Hello {{vendor_name}}, welcome to our vendor program.'});
+  store.emailTemplates.push({id:nextId(),name:'Scoring Complete',subject:'Scoring complete for {{vendor_name}}',body:'The scoring process has been completed for {{vendor_name}}.'});
+  saveStore();
+}
+
+/* View stubs populated by later script blocks */
+function renderVendors(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Vendors view loading...</div>';}
+function renderVendorForm(id){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Vendor form loading...</div>';}
+function renderVendorDetail(id){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Vendor detail loading...</div>';}
+function renderCampaigns(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Campaigns loading...</div>';}
+function renderCampaignForm(id){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Campaign form loading...</div>';}
+function renderCampaignDetail(id){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Campaign detail loading...</div>';}
+function renderScoring(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Scoring loading...</div>';}
+function renderDecisions(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Decisions loading...</div>';}
+function renderEngagementCreate(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Engagement create loading...</div>';}
+function renderEngagements(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Engagements loading...</div>';}
+function renderEngagementDetail(id){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Engagement detail loading...</div>';}
+function renderTickets(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Tickets loading...</div>';}
+function renderTicketCreate(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Create ticket loading...</div>';}
+function renderTicketDetail(id){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Ticket detail loading...</div>';}
+function renderFeedback(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Feedback loading...</div>';}
+function renderMgmtAccount(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Account loading...</div>';}
+function renderMgmtUsers(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Users loading...</div>';}
+function renderMgmtApiKeys(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">API keys loading...</div>';}
+function renderMgmtEmail(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Email loading...</div>';}
+function renderMgmtForms(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Forms loading...</div>';}
+function renderMgmtEngagementSettings(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Engagement settings loading...</div>';}
+function renderMgmtAudit(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Audit loading...</div>';}
+function renderProfileSettings(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Profile loading...</div>';}
+function renderProfileCompany(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Company loading...</div>';}
+function renderProfilePassword(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Password loading...</div>';}
+function renderProfileTheme(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Theme loading...</div>';}
+function renderProfileNotifications(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Notifications loading...</div>';}
+
+seedData();
+render();
+window.store=store;window.navigate=navigate;
+</script>
+<script>
+/* ============================================================
+   VENDORS LIST + FORM + DETAIL
+   ============================================================ */
+let vendorsFilter={q:'',section:'',recommendation:''};
+function renderVendors(){
+  const q=vendorsFilter.q.toLowerCase();
+  let list=store.vendors.map(vendorSummary);
+  if(q)list=list.filter(s=>s.vendor.name.toLowerCase().includes(q)||(s.vendor.project||'').toLowerCase().includes(q)||(s.vendor.contact_name||'').toLowerCase().includes(q));
+  if(vendorsFilter.section)list=list.filter(s=>{try{return JSON.parse(s.vendor.sections||'[]').includes(vendorsFilter.section);}catch{return false;}});
+  if(vendorsFilter.recommendation)list=list.filter(s=>s.aiDecision&&s.aiDecision.recommendation===vendorsFilter.recommendation);
+  const actions=`
+    ${toolbarButton('Export','&#128229;','exportVendors()')}
+    ${toolbarButton('Save Layout','&#128190;','saveLayout()')}
+    ${toolbarButton('Copy Link','&#128279;','copyLink()')}
+    <button class="btn-primary" onclick="navigate('vendor-new')">+ Add Vendor</button>
+  `;
+  document.getElementById('viewRoot').innerHTML=pageHeader('Vendors',`${list.length} of ${store.vendors.length} vendors`,actions)+`
+    <div class="card mb-4 p-3 flex flex-wrap gap-3 items-center">
+      <input class="input flex-1 min-w-[200px]" placeholder="Search vendors..." value="${escHtml(vendorsFilter.q)}" oninput="vendorsFilter.q=this.value;renderVendors()"/>
+      <select class="input w-auto" onchange="vendorsFilter.section=this.value;renderVendors()">
+        <option value="">All Sections</option>
+        ${AF_SECTIONS.map(s=>`<option ${vendorsFilter.section===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <select class="input w-auto" onchange="vendorsFilter.recommendation=this.value;renderVendors()">
+        <option value="">All Recommendations</option>
+        <option ${vendorsFilter.recommendation==='BUY'?'selected':''}>BUY</option>
+        <option ${vendorsFilter.recommendation==='BUILD'?'selected':''}>BUILD</option>
+        <option ${vendorsFilter.recommendation==='PARTNER'?'selected':''}>PARTNER</option>
+      </select>
+      <button class="btn-ghost" onclick="vendorsFilter={q:'',section:'',recommendation:''};renderVendors()">Clear</button>
+    </div>
+    <div class="card overflow-x-auto">
+      <table class="af w-full">
+        <thead><tr>
+          <th>Vendor</th><th>Project</th><th>Contact</th><th>Scores</th><th>Recommendation</th><th class="text-right">Actions</th>
+        </tr></thead>
+        <tbody>
+          ${list.length?list.map(s=>`
+            <tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${s.vendor.id}})">
+              <td><div class="font-medium text-slate-800">${escHtml(s.vendor.name)}</div><div class="text-[11px] text-slate-400">${s.scoreCount}/10 AI &middot; ${s.personalCount}/10 personal</div></td>
+              <td class="text-slate-600">${escHtml(s.vendor.project||'&mdash;')}</td>
+              <td><div class="text-slate-700">${escHtml(s.vendor.contact_name||'&mdash;')}</div><div class="text-[11px] text-slate-400">${escHtml(s.vendor.contact_email||'')}</div></td>
+              <td>${dualScore(s)}</td>
+              <td>${dualRec(s)}</td>
+              <td class="text-right" onclick="event.stopPropagation()">
+                <button class="btn-ghost" onclick="navigate('vendor-edit',{id:${s.vendor.id}})">Edit</button>
+                <button class="btn-ghost text-rose-600 hover:bg-rose-50" onclick="deleteVendor(${s.vendor.id})">Delete</button>
+              </td>
+            </tr>`).join(''):`<tr><td colspan="6" class="text-center py-12 text-slate-400">No vendors match your filters</td></tr>`}
+        </tbody>
+      </table>
+    </div>`;
+}
+function deleteVendor(id){const v=store.vendors.find(x=>x.id===id);if(!v)return;confirmModal('Delete vendor?',`Delete <strong>${escHtml(v.name)}</strong>? This removes all scores and campaign memberships.`,()=>{store.vendors=store.vendors.filter(x=>x.id!==id);delete store.scores[id];delete store.personalScores[id];store.campaigns.forEach(c=>{c.vendorIds=(c.vendorIds||[]).filter(vid=>vid!==id);});saveStore();toast('Vendor deleted','success');render();});}
+function exportVendors(){downloadCSV(store.vendors.map(v=>{const s=vendorSummary(v);return{id:v.id,name:v.name,project:v.project,website:v.website,contact_email:v.contact_email,ai_score:s.aiScore,personal_score:s.personalScore,ai_rec:s.aiDecision?.recommendation||'',personal_rec:s.personalDecision?.recommendation||''};}),'vendors.csv');}
+
+function renderVendorForm(id){
+  const v=id?store.vendors.find(x=>x.id===Number(id))||null:null;
+  const isNew=!v;
+  const initialSections=v?JSON.parse(v.sections||'[]'):[];
+  window.__formDocs=v?[...(store.documents[v.id]||[])]:[];
+  const actions=`${toolbarButton('Cancel','','navigate(\'vendors\')')}`;
+  document.getElementById('viewRoot').innerHTML=pageHeader(isNew?'New Vendor':'Edit Vendor',isNew?'Add a new vendor to the matrix':`Editing ${escHtml(v.name)}`,actions)+`
+    <form class="card" onsubmit="event.preventDefault();saveVendor(${isNew?'null':v.id})">
+      ${panelHeader('Basic Information')}
+      <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="label">Vendor Name *</label><input id="f_name" class="input" required value="${escHtml(v?.name||'')}"/></div>
+        <div><label class="label">Project</label><input id="f_project" class="input" value="${escHtml(v?.project||'')}"/></div>
+        <div class="md:col-span-2"><label class="label">Website</label><input id="f_website" class="input" type="url" value="${escHtml(v?.website||'')}"/></div>
+        <div class="md:col-span-2"><label class="label">Mission Statement</label><textarea id="f_mission" class="input" rows="2">${escHtml(v?.mission_statement||'')}</textarea></div>
+      </div>
+      ${panelHeader('Contact')}
+      <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><label class="label">Contact Name</label><input id="f_contact_name" class="input" value="${escHtml(v?.contact_name||'')}"/></div>
+        <div><label class="label">Contact Email</label><input id="f_contact_email" class="input" type="email" value="${escHtml(v?.contact_email||'')}"/></div>
+        <div><label class="label">Contact Phone</label><input id="f_contact_phone" class="input" value="${escHtml(v?.contact_phone||'')}"/></div>
+      </div>
+      ${panelHeader('Social')}
+      <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><label class="label">LinkedIn</label><input id="f_social_linkedin" class="input" value="${escHtml(v?.social_linkedin||'')}"/></div>
+        <div><label class="label">Twitter / X</label><input id="f_social_twitter" class="input" value="${escHtml(v?.social_twitter||'')}"/></div>
+        <div><label class="label">Facebook</label><input id="f_social_facebook" class="input" value="${escHtml(v?.social_facebook||'')}"/></div>
+      </div>
+      ${panelHeader('Department Coverage')}
+      <div class="p-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          ${AF_SECTIONS.map(s=>`<label class="flex items-center gap-2 text-sm text-slate-700 p-2 rounded hover:bg-slate-50"><input type="checkbox" class="form-section-cb" value="${escHtml(s)}" ${initialSections.includes(s)?'checked':''}/>${escHtml(s)}</label>`).join('')}
+        </div>
+      </div>
+      ${panelHeader('Documents','<label for="f_docfiles" class="btn-ghost text-white/90 text-xs cursor-pointer hover:bg-white/10 px-2 py-1 rounded">+ Add Files</label>')}
+      <div class="p-5">
+        <input id="f_docfiles" type="file" multiple class="hidden" onchange="handleFormFiles(event)"/>
+        <div id="formDocsList"></div>
+        <label for="f_docfiles" class="mt-3 cursor-pointer flex flex-col items-center justify-center border-2 border-dashed border-slate-200 hover:border-blue-400 hover:bg-blue-50/30 rounded-lg p-6 transition-colors">
+          <svg class="w-8 h-8 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <div class="text-sm text-slate-600">Click to upload or drag files here</div>
+          <div class="text-[11px] text-slate-400 mt-1">PDF, Word, Excel, images &mdash; up to 5MB each</div>
+        </label>
+      </div>
+      ${panelHeader('Notes')}
+      <div class="p-5"><textarea id="f_notes" class="input" rows="3">${escHtml(v?.notes||'')}</textarea></div>
+      <div class="px-5 py-4 border-t border-slate-100 flex justify-end gap-2">
+        <button type="button" class="btn-secondary" onclick="navigate('vendors')">Cancel</button>
+        <button type="submit" class="btn-primary">${isNew?'Create Vendor':'Save Changes'}</button>
+      </div>
+    </form>`;
+  renderFormDocs();
+}
+function handleFormFiles(e){
+  const files=[...e.target.files];
+  let added=0,skipped=0;
+  files.forEach(f=>{
+    if(f.size>5*1024*1024){toast(`${f.name} skipped (over 5MB)`,'warn');skipped++;return;}
+    window.__formDocs.push({id:nextId(),name:f.name,size:f.size,type:f.type||'application/octet-stream',uploaded_at:new Date().toLocaleDateString()});
+    added++;
+  });
+  if(added)toast(`${added} file${added>1?'s':''} attached`,'success');
+  e.target.value='';
+  renderFormDocs();
+}
+function renderFormDocs(){
+  const list=document.getElementById('formDocsList');
+  if(!list)return;
+  const docs=window.__formDocs||[];
+  if(!docs.length){list.innerHTML='<div class="text-xs text-slate-400 text-center py-2">No documents attached yet</div>';return;}
+  list.innerHTML=docs.map((d,i)=>`<div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0"><div class="flex items-center gap-2"><span class="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center">&#128196;</span><div><div class="text-sm text-slate-800">${escHtml(d.name)}</div><div class="text-[11px] text-slate-400">${formatSize(d.size)} &middot; ${escHtml(d.type||'')}</div></div></div><button type="button" class="btn-ghost text-rose-600 hover:bg-rose-50" onclick="removeFormDoc(${i})">Remove</button></div>`).join('');
+}
+function removeFormDoc(i){window.__formDocs.splice(i,1);renderFormDocs();toast('Document removed');}
+function formatSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
+function saveVendor(id){
+  const sections=[...document.querySelectorAll('.form-section-cb:checked')].map(cb=>cb.value);
+  const data={name:document.getElementById('f_name').value.trim(),website:document.getElementById('f_website').value.trim(),social_linkedin:document.getElementById('f_social_linkedin').value.trim(),social_twitter:document.getElementById('f_social_twitter').value.trim(),social_facebook:document.getElementById('f_social_facebook').value.trim(),contact_name:document.getElementById('f_contact_name').value.trim(),contact_email:document.getElementById('f_contact_email').value.trim(),contact_phone:document.getElementById('f_contact_phone').value.trim(),mission_statement:document.getElementById('f_mission').value.trim(),project:document.getElementById('f_project').value.trim(),sections:JSON.stringify(sections),notes:document.getElementById('f_notes').value.trim(),updated_at:new Date().toISOString()};
+  if(!data.name){toast('Name is required','error');return;}
+  const docs=window.__formDocs||[];
+  if(id){
+    const v=store.vendors.find(x=>x.id===Number(id));
+    Object.assign(v,data);
+    store.documents[v.id]=docs;
+    saveStore();toast('Vendor updated','success');
+    window.__formDocs=[];navigate('vendor-detail',{id:v.id});
+  }else{
+    const v={id:nextId(),...data,created_at:new Date().toISOString()};
+    store.vendors.push(v);
+    if(docs.length)store.documents[v.id]=docs;
+    saveStore();
+    toast(`Vendor created${docs.length?' with '+docs.length+' document'+(docs.length>1?'s':''):''}`,'success');
+    pushNotif('New vendor added',v.name+(docs.length?` (${docs.length} document${docs.length>1?'s':''})`:''));
+    window.__formDocs=[];navigate('vendor-detail',{id:v.id});
+  }
+}
+
+function renderVendorDetail(id){
+  const v=store.vendors.find(x=>x.id===Number(id));
+  if(!v){document.getElementById('viewRoot').innerHTML=`<div class="card p-8 text-center text-slate-400">Vendor not found. <button class="text-blue-600 underline" onclick="navigate('vendors')">Back to vendors</button></div>`;return;}
+  const s=vendorSummary(v);
+  const sections=JSON.parse(v.sections||'[]');
+  const campaigns=store.campaigns.filter(c=>(c.vendorIds||[]).includes(v.id));
+  const actions=`
+    ${toolbarButton('&larr; Back','','navigate(\'vendors\')')}
+    ${toolbarButton('Edit','&#9998;','navigate(\'vendor-edit\',{id:'+v.id+'})')}
+    ${toolbarButton('Export','&#128229;','exportVendor('+v.id+')')}
+    <button class="btn-danger" onclick="deleteVendor(${v.id})">Delete</button>
+  `;
+  document.getElementById('viewRoot').innerHTML=pageHeader(v.name,v.project||'No project assigned',actions)+`
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 space-y-5">
+        <div class="card">
+          ${panelHeader('AI &amp; Personal Scoring')}
+          <div class="p-5">
+            <div class="grid grid-cols-2 gap-4 mb-5">
+              <div class="text-center p-4 rounded-lg border-2 border-indigo-200 bg-indigo-50">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">AI Score</div>
+                <div class="text-4xl font-bold text-indigo-700 mt-1">${s.aiScore}</div>
+                <div class="text-[11px] text-slate-500 mt-1">${s.scoreCount}/10 criteria</div>
+              </div>
+              <div class="text-center p-4 rounded-lg border-2 border-amber-200 bg-amber-50">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-amber-600">Personal Score</div>
+                <div class="text-4xl font-bold text-amber-700 mt-1">${s.personalScore}</div>
+                <div class="text-[11px] text-slate-500 mt-1">${s.personalCount}/10 criteria</div>
+              </div>
+            </div>
+            <div class="flex gap-2 mb-3 border-b border-slate-100">
+              <button class="tab active" onclick="switchScoringTab('ai',${v.id})" id="tab_ai">AI Scoring</button>
+              <button class="tab" onclick="switchScoringTab('personal',${v.id})" id="tab_personal">Personal Scoring</button>
+            </div>
+            <div id="scoringPane">${renderScoringPane(v.id,'ai')}</div>
+          </div>
+        </div>
+
+        <div class="card">
+          ${panelHeader('Buy / Build / Partner Analysis')}
+          <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-600 mb-2">AI Recommendation</div>
+              ${s.aiDecision?bbpAnalysis(s.aiDecision):'<div class="text-xs text-slate-400 p-6 text-center border border-dashed border-slate-200 rounded">Score 10 criteria to unlock</div>'}
+            </div>
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-2">Your Recommendation</div>
+              ${s.personalDecision?bbpAnalysis(s.personalDecision):'<div class="text-xs text-slate-400 p-6 text-center border border-dashed border-slate-200 rounded">Score 10 criteria to unlock</div>'}
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          ${panelHeader('Documents','<button class="btn-ghost text-white/80 text-xs" onclick="openUploadModal('+v.id+')">+ Upload</button>')}
+          <div class="p-5">
+            ${(store.documents[v.id]||[]).length?(store.documents[v.id]||[]).map(d=>`<div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0"><div class="flex items-center gap-2"><span class="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center">&#128196;</span><div><div class="text-sm text-slate-800">${escHtml(d.name)}</div><div class="text-[11px] text-slate-400">${d.size} bytes &middot; ${d.uploaded_at}</div></div></div><button class="btn-ghost text-rose-600" onclick="deleteDoc(${v.id},${d.id})">Remove</button></div>`).join(''):'<div class="text-center text-xs text-slate-400 py-4">No documents uploaded</div>'}
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <div class="card">
+          ${panelHeader('Vendor Info')}
+          <div class="p-5 space-y-3 text-sm">
+            ${infoRow('Website',v.website?`<a href="${escHtml(v.website)}" target="_blank" class="text-blue-600 hover:underline">${escHtml(v.website)}</a>`:'<span class="text-slate-400">Not set</span>')}
+            ${infoRow('LinkedIn',v.social_linkedin||'<span class="text-slate-400">Not set</span>')}
+            ${infoRow('Twitter',v.social_twitter||'<span class="text-slate-400">Not set</span>')}
+            ${infoRow('Facebook',v.social_facebook||'<span class="text-slate-400">Not set</span>')}
+          </div>
+        </div>
+
+        <div class="card">
+          ${panelHeader('Contact')}
+          <div class="p-5 space-y-3 text-sm">
+            ${infoRow('Name',escHtml(v.contact_name||'Not set'))}
+            ${infoRow('Email',v.contact_email?`<a href="mailto:${escHtml(v.contact_email)}" class="text-blue-600 hover:underline">${escHtml(v.contact_email)}</a>`:'<span class="text-slate-400">Not set</span>')}
+            ${infoRow('Phone',escHtml(v.contact_phone||'Not set'))}
+          </div>
+        </div>
+
+        <div class="card">
+          ${panelHeader('Department Coverage')}
+          <div class="p-5">${sections.length?sections.map(s=>`<span class="chip bg-blue-50 text-blue-700 mr-1 mb-1">${escHtml(s)}</span>`).join(''):'<span class="text-xs text-slate-400">No sections assigned</span>'}</div>
+        </div>
+
+        <div class="card">
+          ${panelHeader('Campaigns')}
+          <div class="p-5">${campaigns.length?campaigns.map(c=>`<div class="py-1"><button class="text-sm text-blue-600 hover:underline" onclick="navigate('campaign-detail',{id:${c.id}})">${escHtml(c.name)}</button></div>`).join(''):'<span class="text-xs text-slate-400">Not in any campaigns</span>'}</div>
+        </div>
+
+        <div class="card">
+          ${panelHeader('Notes')}
+          <div class="p-5 text-sm text-slate-600 whitespace-pre-wrap">${escHtml(v.notes||'No notes')}</div>
+        </div>
+      </div>
+    </div>`;
+}
+function infoRow(label,value){return `<div><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${label}</div><div class="mt-0.5">${value}</div></div>`;}
+function bbpAnalysis(d){return `<div class="mb-3 text-center"><span class="chip rec-${d.recommendation}" style="font-size:13px;padding:6px 14px;">${d.recommendation} &middot; ${d.confidence}% confidence</span></div>${['buy','build','partner'].map(k=>{const lbl={buy:'Buy',build:'Build',partner:'Partner'}[k];return `<div class="mb-2"><div class="flex justify-between text-[11px] text-slate-500 mb-1"><span>${lbl}</span><span class="font-medium">${d.scores[k]}%</span></div><div class="h-2 rounded bg-slate-100"><div class="h-full rounded bar-${k}" style="width:${d.scores[k]}%"></div></div></div>`;}).join('')}`;}
+function switchScoringTab(tab,vid){document.getElementById('tab_ai').classList.toggle('active',tab==='ai');document.getElementById('tab_personal').classList.toggle('active',tab==='personal');document.getElementById('scoringPane').innerHTML=renderScoringPane(vid,tab);}
+function renderScoringPane(vid,mode){const scores=mode==='ai'?getScores(vid):getPersonalScores(vid);const sm={};scores.forEach(s=>{sm[s.criterion]=s.score;});return SCORING_CRITERIA.map(c=>`<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0"><div class="text-sm font-medium text-slate-700">${c}</div><div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button class="star-btn ${sm[c]===n?(mode==='ai'?'filled-ai':'filled-personal'):'empty'}" onclick="handleScoreClick(${vid},'${c.replace(/'/g,"\\'")}',${n},'${mode}')">${n}</button>`).join('')}</div></div>`).join('');}
+function handleScoreClick(vid,crit,n,mode){setScore(vid,crit,n,mode==='personal');toast(`${mode==='personal'?'Personal':'AI'} score saved`);renderVendorDetail(vid);}
+
+function openUploadModal(vid){openModal(`
+  <div class="panel-header px-5 py-3 rounded-t-xl"><h3 class="font-semibold">Upload Document</h3></div>
+  <div class="p-5">
+    <label class="label">File name</label>
+    <input id="upload_name" class="input mb-3" placeholder="e.g. RFP-Response.pdf"/>
+    <label class="label">Description</label>
+    <input id="upload_desc" class="input" placeholder="Short description"/>
+  </div>
+  <div class="px-5 py-3 border-t flex justify-end gap-2"><button class="btn-secondary" onclick="closeModal()">Cancel</button><button class="btn-primary" onclick="saveDoc(${vid})">Upload</button></div>
+`);}
+function saveDoc(vid){const name=document.getElementById('upload_name').value.trim();if(!name){toast('Name required','error');return;}if(!store.documents[vid])store.documents[vid]=[];store.documents[vid].push({id:nextId(),name,size:Math.floor(Math.random()*50000)+1000,uploaded_at:new Date().toLocaleDateString()});saveStore();closeModal();toast('Document uploaded','success');renderVendorDetail(vid);}
+function deleteDoc(vid,did){store.documents[vid]=(store.documents[vid]||[]).filter(d=>d.id!==did);saveStore();toast('Document removed','success');renderVendorDetail(vid);}
+function exportVendor(id){const v=store.vendors.find(x=>x.id===id);if(!v)return;const s=vendorSummary(v);downloadCSV([{...v,ai_score:s.aiScore,personal_score:s.personalScore}],`vendor-${v.id}.csv`);}
+
+/* ============================================================
+   CAMPAIGNS
+   ============================================================ */
+function renderCampaigns(){
+  const actions=`${toolbarButton('Export','&#128229;','downloadCSV(store.campaigns.map(c=>({id:c.id,name:c.name,status:c.status,vendor_count:(c.vendorIds||[]).length})),\'campaigns.csv\')')}<button class="btn-primary" onclick="navigate('campaign-new')">+ New Campaign</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader('Campaigns','Organize vendor evaluations by initiative',actions)+`
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      ${store.campaigns.length?store.campaigns.map(c=>`
+        <div class="card p-5 cursor-pointer hover:shadow-md transition-shadow" onclick="navigate('campaign-detail',{id:${c.id}})">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1">
+              <div class="font-semibold text-slate-800">${escHtml(c.name)}</div>
+              <div class="text-[11px] text-slate-400 mt-0.5">${(c.vendorIds||[]).length} vendors</div>
+            </div>
+            <span class="chip ${c.status==='active'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${c.status}</span>
+          </div>
+          ${c.description?`<div class="text-sm text-slate-600 mb-3">${escHtml(c.description)}</div>`:''}
+          ${c.objective?`<div class="text-[11px] text-slate-500 border-l-2 border-blue-200 pl-2 mb-3">${escHtml(c.objective)}</div>`:''}
+          <div class="flex gap-2" onclick="event.stopPropagation()">
+            <button class="btn-ghost text-xs" onclick="navigate('campaign-edit',{id:${c.id}})">Edit</button>
+            <button class="btn-ghost text-xs text-rose-600" onclick="deleteCampaign(${c.id})">Delete</button>
+          </div>
+        </div>`).join(''):`<div class="col-span-full card p-12 text-center text-slate-400">No campaigns yet. <button class="text-blue-600 hover:underline" onclick="navigate('campaign-new')">Create the first</button></div>`}
+    </div>`;
+}
+function deleteCampaign(id){const c=store.campaigns.find(x=>x.id===id);if(!c)return;confirmModal('Delete campaign?',`Delete <strong>${escHtml(c.name)}</strong>?`,()=>{store.campaigns=store.campaigns.filter(x=>x.id!==id);saveStore();toast('Campaign deleted','success');render();});}
+function renderCampaignForm(id){
+  const c=id?store.campaigns.find(x=>x.id===Number(id)):null;
+  const isNew=!c;
+  document.getElementById('viewRoot').innerHTML=pageHeader(isNew?'New Campaign':'Edit Campaign',null,toolbarButton('Cancel','','navigate(\'campaigns\')'))+`
+    <form class="card" onsubmit="event.preventDefault();saveCampaign(${isNew?'null':c.id})">
+      ${panelHeader('Campaign Details')}
+      <div class="p-5 space-y-4">
+        <div><label class="label">Name *</label><input id="c_name" class="input" required value="${escHtml(c?.name||'')}"/></div>
+        <div><label class="label">Description</label><textarea id="c_desc" class="input" rows="3">${escHtml(c?.description||'')}</textarea></div>
+        <div><label class="label">Objective</label><textarea id="c_obj" class="input" rows="2">${escHtml(c?.objective||'')}</textarea></div>
+        <div><label class="label">Status</label><select id="c_status" class="input"><option ${c?.status==='active'?'selected':''}>active</option><option ${c?.status==='paused'?'selected':''}>paused</option><option ${c?.status==='closed'?'selected':''}>closed</option></select></div>
+      </div>
+      <div class="px-5 py-4 border-t flex justify-end gap-2">
+        <button type="button" class="btn-secondary" onclick="navigate('campaigns')">Cancel</button>
+        <button type="submit" class="btn-primary">${isNew?'Create':'Save'}</button>
+      </div>
+    </form>`;
+}
+function saveCampaign(id){
+  const data={name:document.getElementById('c_name').value.trim(),description:document.getElementById('c_desc').value.trim(),objective:document.getElementById('c_obj').value.trim(),status:document.getElementById('c_status').value};
+  if(!data.name){toast('Name required','error');return;}
+  if(id){const c=store.campaigns.find(x=>x.id===Number(id));Object.assign(c,data);toast('Campaign updated','success');saveStore();navigate('campaign-detail',{id:c.id});}
+  else{const c={id:nextId(),...data,vendorIds:[],created_at:new Date().toISOString()};store.campaigns.push(c);saveStore();toast('Campaign created','success');navigate('campaign-detail',{id:c.id});}
+}
+function renderCampaignDetail(id){
+  const c=store.campaigns.find(x=>x.id===Number(id));
+  if(!c){document.getElementById('viewRoot').innerHTML=`<div class="card p-8 text-center text-slate-400">Campaign not found</div>`;return;}
+  const vendorSummaries=(c.vendorIds||[]).map(vid=>store.vendors.find(v=>v.id===vid)).filter(Boolean).map(vendorSummary);
+  const available=store.vendors.filter(v=>!(c.vendorIds||[]).includes(v.id));
+  const actions=`${toolbarButton('&larr; Back','','navigate(\'campaigns\')')}${toolbarButton('Edit','&#9998;','navigate(\'campaign-edit\',{id:'+c.id+'})')}${toolbarButton('Export','&#128229;','exportCampaign('+c.id+')')}<button class="btn-danger" onclick="deleteCampaign(${c.id})">Delete</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader(c.name,c.description||null,actions)+`
+    ${c.objective?`<div class="card p-4 mb-4 border-l-4 border-blue-500"><div class="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">Objective</div><div class="text-sm text-slate-700">${escHtml(c.objective)}</div></div>`:''}
+    <div class="card mb-4">
+      ${panelHeader('Add Vendor')}
+      <div class="p-5 flex gap-2">
+        <select id="addVendorSelect" class="input flex-1"><option value="">Select vendor...</option>${available.map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('')}</select>
+        <button class="btn-primary" onclick="addVendorToCampaign(${c.id})">Add</button>
+      </div>
+    </div>
+    <div class="card">
+      ${panelHeader(`Vendor Comparison (${vendorSummaries.length})`)}
+      <div class="overflow-x-auto">
+        <table class="af w-full">
+          <thead><tr><th>Vendor</th><th>AI Score</th><th>Personal Score</th><th>AI Rec</th><th>Personal Rec</th><th>Buy %</th><th>Build %</th><th>Partner %</th><th></th></tr></thead>
+          <tbody>
+            ${vendorSummaries.length?vendorSummaries.map(s=>`<tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${s.vendor.id}})">
+              <td class="font-medium text-slate-800">${escHtml(s.vendor.name)}</td>
+              <td>${aiScorePill(s.aiScore)}</td>
+              <td>${personalScorePill(s.personalScore,s.personalCount>0)}</td>
+              <td>${s.aiDecision?`<span class="chip rec-${s.aiDecision.recommendation}">${s.aiDecision.recommendation}</span>`:'<span class="text-slate-300 text-xs">&mdash;</span>'}</td>
+              <td>${s.personalDecision?`<span class="chip rec-${s.personalDecision.recommendation}">${s.personalDecision.recommendation}</span>`:'<span class="text-slate-300 text-xs">&mdash;</span>'}</td>
+              <td class="text-center">${s.aiDecision?s.aiDecision.scores.buy+'%':'&mdash;'}</td>
+              <td class="text-center">${s.aiDecision?s.aiDecision.scores.build+'%':'&mdash;'}</td>
+              <td class="text-center">${s.aiDecision?s.aiDecision.scores.partner+'%':'&mdash;'}</td>
+              <td onclick="event.stopPropagation()"><button class="btn-ghost text-rose-600" onclick="removeVendorFromCampaign(${c.id},${s.vendor.id})">&times;</button></td>
+            </tr>`).join(''):'<tr><td colspan="9" class="text-center py-10 text-slate-400">No vendors. Add vendors above to compare.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function addVendorToCampaign(cid){const sel=document.getElementById('addVendorSelect');const vid=Number(sel.value);if(!vid){toast('Select a vendor','warn');return;}const c=store.campaigns.find(x=>x.id===cid);if(!c.vendorIds)c.vendorIds=[];if(!c.vendorIds.includes(vid))c.vendorIds.push(vid);saveStore();toast('Vendor added','success');renderCampaignDetail(cid);}
+function removeVendorFromCampaign(cid,vid){const c=store.campaigns.find(x=>x.id===cid);c.vendorIds=(c.vendorIds||[]).filter(x=>x!==vid);saveStore();toast('Removed','success');renderCampaignDetail(cid);}
+function exportCampaign(cid){const c=store.campaigns.find(x=>x.id===cid);const rows=(c.vendorIds||[]).map(vid=>{const v=store.vendors.find(x=>x.id===vid);const s=vendorSummary(v);return{campaign:c.name,vendor:v.name,ai_score:s.aiScore,personal_score:s.personalScore,ai_rec:s.aiDecision?.recommendation||'',personal_rec:s.personalDecision?.recommendation||''};});downloadCSV(rows,`campaign-${c.id}.csv`);}
+
+/* ============================================================
+   SCORING MATRIX
+   ============================================================ */
+let scoringState={vendorId:null,mode:'ai'};
+function renderScoring(){
+  const vs=store.vendors.map(vendorSummary);
+  if(!scoringState.vendorId&&vs.length)scoringState.vendorId=vs[0].vendor.id;
+  const selected=vs.find(v=>v.vendor.id===scoringState.vendorId);
+  const scores=scoringState.mode==='ai'?getScores(scoringState.vendorId):getPersonalScores(scoringState.vendorId);
+  const sm={};scores.forEach(s=>{sm[s.criterion]=s.score;});
+  const decision=scores.length>0?calculateDecision(scores):null;
+  const actions=`${toolbarButton('Export','&#128229;','exportScoringMatrix()')}`;
+  document.getElementById('viewRoot').innerHTML=pageHeader('Scoring Matrix',`Rate vendors on 10 criteria &mdash; AI &amp; Personal scores`,actions)+(vs.length===0?`<div class="card p-12 text-center text-slate-400">No vendors. <button class="text-blue-600 hover:underline" onclick="navigate('vendor-new')">Add one first</button></div>`:`
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="space-y-2">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">Select Vendor</div>
+        ${vs.map(v=>`<button class="w-full text-left p-3 rounded-lg border transition-all ${scoringState.vendorId===v.vendor.id?'bg-indigo-50 border-indigo-300':'bg-white border-slate-200 hover:border-slate-300'}" onclick="scoringState.vendorId=${v.vendor.id};renderScoring()">
+          <div class="flex items-center justify-between"><div class="text-sm font-medium text-slate-800">${escHtml(v.vendor.name)}</div>${dualScore(v)}</div>
+          <div class="text-[11px] text-slate-400 mt-1">${v.scoreCount}/10 AI &middot; ${v.personalCount}/10 personal</div>
+        </button>`).join('')}
+      </div>
+      <div class="lg:col-span-2 space-y-4">
+        <div class="card">
+          ${panelHeader(selected?escHtml(selected.vendor.name):'Select a vendor')}
+          <div class="p-5">
+            <div class="flex gap-2 mb-4 border-b border-slate-100">
+              <button class="tab ${scoringState.mode==='ai'?'active':''}" onclick="scoringState.mode='ai';renderScoring()">AI Scoring</button>
+              <button class="tab ${scoringState.mode==='personal'?'active':''}" onclick="scoringState.mode='personal';renderScoring()">Personal Scoring</button>
+            </div>
+            ${SCORING_CRITERIA.map(c=>`<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0"><div class="text-sm font-medium text-slate-700 flex-1">${c}</div><div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button class="star-btn ${sm[c]===n?(scoringState.mode==='ai'?'filled-ai':'filled-personal'):'empty'}" onclick="setScore(${scoringState.vendorId},'${c.replace(/'/g,"\\'")}',${n},${scoringState.mode==='personal'});toast('Score saved');renderScoring()">${n}</button>`).join('')}</div></div>`).join('')}
+          </div>
+        </div>
+        ${decision?`<div class="card">
+          ${panelHeader(`${scoringState.mode==='ai'?'AI':'Personal'} Decision Analysis`)}
+          <div class="p-5">
+            <div class="grid grid-cols-3 gap-4 mb-4">
+              ${[['Buy','buy','bar-buy'],['Build','build','bar-build'],['Partner','partner','bar-partner']].map(([lbl,k,cls])=>`<div class="text-center"><div class="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden"><div class="absolute bottom-0 w-full ${cls}" style="height:${decision.scores[k]}%"></div><div class="absolute inset-0 flex items-center justify-center"><span class="text-2xl font-bold text-slate-800">${decision.scores[k]}%</span></div></div><div class="text-sm font-medium text-slate-700 mt-2">${lbl}</div></div>`).join('')}
+            </div>
+            <div class="text-center p-4 bg-slate-50 rounded-lg"><span class="chip rec-${decision.recommendation}" style="font-size:14px;padding:8px 16px;">${decision.recommendation} &middot; ${decision.confidence}% confidence</span></div>
+          </div>
+        </div>`:''}
+      </div>
+    </div>`);
+}
+function exportScoringMatrix(){const rows=store.vendors.flatMap(v=>SCORING_CRITERIA.map(c=>{const ai=getScores(v.id).find(s=>s.criterion===c)?.score||'';const per=getPersonalScores(v.id).find(s=>s.criterion===c)?.score||'';return{vendor:v.name,criterion:c,ai_score:ai,personal_score:per};}));downloadCSV(rows,'scoring-matrix.csv');}
+
+/* ============================================================
+   DECISIONS
+   ============================================================ */
+let decisionsFilter={tab:'ALL',sort:'aiScore',mode:'ai'};
+function renderDecisions(){
+  const vs=store.vendors.map(vendorSummary);
+  const useDecision=v=>decisionsFilter.mode==='ai'?v.aiDecision:v.personalDecision;
+  const scored=vs.filter(v=>useDecision(v));
+  const unscored=vs.filter(v=>!useDecision(v));
+  let filtered=decisionsFilter.tab==='ALL'?scored:scored.filter(v=>useDecision(v).recommendation===decisionsFilter.tab);
+  filtered.sort((a,b)=>{if(decisionsFilter.sort==='aiScore')return decisionsFilter.mode==='ai'?b.aiScore-a.aiScore:b.personalScore-a.personalScore;if(decisionsFilter.sort==='confidence')return (useDecision(b)?.confidence||0)-(useDecision(a)?.confidence||0);if(decisionsFilter.sort==='name')return a.vendor.name.localeCompare(b.vendor.name);return 0;});
+  const counts={BUY:0,BUILD:0,PARTNER:0};scored.forEach(v=>counts[useDecision(v).recommendation]++);
+  const actions=`${toolbarButton('Export','&#128229;','exportDecisions()')}${toolbarButton('Save Layout','&#128190;','saveLayout()')}`;
+  document.getElementById('viewRoot').innerHTML=pageHeader('Decisions','Buy / Build / Partner recommendations',actions)+`
+    <div class="card mb-4 p-3 flex items-center gap-3">
+      <div class="text-xs font-medium text-slate-500">View:</div>
+      <button class="px-3 py-1 rounded text-xs ${decisionsFilter.mode==='ai'?'bg-indigo-600 text-white':'bg-slate-100 text-slate-600'}" onclick="decisionsFilter.mode='ai';renderDecisions()">AI Recommendations</button>
+      <button class="px-3 py-1 rounded text-xs ${decisionsFilter.mode==='personal'?'bg-amber-600 text-white':'bg-slate-100 text-slate-600'}" onclick="decisionsFilter.mode='personal';renderDecisions()">Personal Recommendations</button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+      ${[['BUY','Buy','Purchase the solution','bar-buy','emerald'],['BUILD','Build','Build in-house','bar-build','blue'],['PARTNER','Partner','Strategic partnership','bar-partner','purple']].map(([k,lbl,desc,bar,color])=>`<button class="card text-left p-4 border-2 transition-all ${decisionsFilter.tab===k?'border-'+color+'-400 bg-'+color+'-50/30':'border-transparent hover:shadow-md'}" onclick="decisionsFilter.tab=decisionsFilter.tab==='${k}'?'ALL':'${k}';renderDecisions()"><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${lbl}</div><div class="text-3xl font-bold text-slate-800 mt-1">${counts[k]}</div><div class="text-[11px] text-slate-400 mt-1">${desc}</div></button>`).join('')}
+    </div>
+
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex gap-1">
+        ${['ALL','BUY','BUILD','PARTNER'].map(f=>`<button class="px-3 py-1.5 rounded text-xs font-medium ${decisionsFilter.tab===f?'bg-slate-900 text-white':'bg-slate-100 text-slate-600 hover:bg-slate-200'}" onclick="decisionsFilter.tab='${f}';renderDecisions()">${f==='ALL'?`All (${scored.length})`:`${f} (${counts[f]})`}</button>`).join('')}
+      </div>
+      <select class="input w-auto" onchange="decisionsFilter.sort=this.value;renderDecisions()">
+        <option value="aiScore" ${decisionsFilter.sort==='aiScore'?'selected':''}>Sort by Score</option>
+        <option value="confidence" ${decisionsFilter.sort==='confidence'?'selected':''}>Sort by Confidence</option>
+        <option value="name" ${decisionsFilter.sort==='name'?'selected':''}>Sort by Name</option>
+      </select>
+    </div>
+
+    <div class="card overflow-x-auto">
+      <table class="af w-full">
+        <thead><tr><th>Rank</th><th>Vendor</th><th>Scores</th><th>Recommendation</th><th>Confidence</th><th>Breakdown</th></tr></thead>
+        <tbody>
+          ${filtered.length?filtered.map((v,i)=>{const d=useDecision(v);return `<tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><td><span class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">${i+1}</span></td><td><div class="font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'')}</div></td><td>${dualScore(v)}</td><td><span class="chip rec-${d.recommendation}">${d.recommendation}</span></td><td class="font-bold">${d.confidence}%</td><td><div class="flex gap-0.5 h-5 rounded overflow-hidden bg-slate-100 min-w-[200px]"><div class="bar-buy" style="width:${d.scores.buy}%" title="Buy ${d.scores.buy}%"></div><div class="bar-build" style="width:${d.scores.build}%" title="Build ${d.scores.build}%"></div><div class="bar-partner" style="width:${d.scores.partner}%" title="Partner ${d.scores.partner}%"></div></div><div class="flex gap-3 mt-1 text-[10px] text-slate-400"><span>B:${d.scores.buy}%</span><span>Bl:${d.scores.build}%</span><span>P:${d.scores.partner}%</span></div></td></tr>`;}).join(''):`<tr><td colspan="6" class="text-center py-12 text-slate-400">No vendors match this filter</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+
+    ${unscored.length?`<div class="card mt-5 p-5"><h3 class="font-semibold text-slate-800 mb-3">Unscored Vendors (${unscored.length})</h3><div class="flex flex-wrap gap-2">${unscored.map(v=>`<button class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full hover:bg-slate-200" onclick="navigate('vendor-detail',{id:${v.vendor.id}})">${escHtml(v.vendor.name)}</button>`).join('')}</div></div>`:''}`;
+}
+function exportDecisions(){const rows=store.vendors.map(vendorSummary).filter(v=>v.aiDecision||v.personalDecision).map(v=>({vendor:v.vendor.name,ai_score:v.aiScore,personal_score:v.personalScore,ai_rec:v.aiDecision?.recommendation||'',ai_confidence:v.aiDecision?.confidence||'',personal_rec:v.personalDecision?.recommendation||'',personal_confidence:v.personalDecision?.confidence||''}));downloadCSV(rows,'decisions.csv');}
+
+/* ============================================================
+   ENGAGEMENTS
+   ============================================================ */
+function renderEngagementCreate(){
+  document.getElementById('viewRoot').innerHTML=pageHeader('Create Engagement Matrix','Build a quarterly engagement plan',toolbarButton('Cancel','','navigate(\'engagements\')'))+`
+    <form class="card" onsubmit="event.preventDefault();saveEngagement()">
+      ${panelHeader('Engagement Details')}
+      <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="label">Name *</label><input id="e_name" class="input" required placeholder="Q3 Vendor Engagement"/></div>
+        <div><label class="label">Quarter</label><select id="e_quarter" class="input"><option>Q1 2026</option><option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option></select></div>
+        <div class="md:col-span-2"><label class="label">Objective</label><textarea id="e_objective" class="input" rows="2" placeholder="What does this engagement accomplish?"></textarea></div>
+        <div><label class="label">Owner</label><input id="e_owner" class="input" value="Test User" readonly/></div>
+        <div><label class="label">Target Close Date</label><input id="e_target" class="input" type="date"/></div>
+      </div>
+      ${panelHeader('Vendors to Engage')}
+      <div class="p-5">
+        <div class="text-xs text-slate-500 mb-2">Select vendors for this engagement:</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+          ${store.vendors.map(v=>`<label class="flex items-center gap-2 p-2 rounded hover:bg-slate-50"><input type="checkbox" class="eng-vendor-cb" value="${v.id}"/><div class="flex-1"><div class="text-sm text-slate-800">${escHtml(v.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.project||'')}</div></div></label>`).join('')}
+        </div>
+      </div>
+      ${panelHeader('Success Criteria')}
+      <div class="p-5">
+        <div id="criteriaList"></div>
+        <button type="button" class="btn-ghost mt-2" onclick="addCriterion()">+ Add criterion</button>
+      </div>
+      <div class="px-5 py-4 border-t flex justify-end gap-2">
+        <button type="button" class="btn-secondary" onclick="navigate('engagements')">Cancel</button>
+        <button type="submit" class="btn-primary">Create Engagement</button>
+      </div>
+    </form>`;
+  addCriterion();addCriterion();
+}
+function addCriterion(){const list=document.getElementById('criteriaList');const idx=list.children.length;const div=document.createElement('div');div.className='flex gap-2 mb-2';div.innerHTML=`<input class="input flex-1 crit-input" placeholder="e.g. Reduce manual review by 40%"/><button type="button" class="btn-ghost text-rose-600" onclick="this.parentElement.remove()">&times;</button>`;list.appendChild(div);}
+function saveEngagement(){const vendorIds=[...document.querySelectorAll('.eng-vendor-cb:checked')].map(cb=>Number(cb.value));const criteria=[...document.querySelectorAll('.crit-input')].map(i=>i.value.trim()).filter(Boolean);const e={id:nextId(),name:document.getElementById('e_name').value.trim(),quarter:document.getElementById('e_quarter').value,objective:document.getElementById('e_objective').value.trim(),owner:document.getElementById('e_owner').value,target:document.getElementById('e_target').value,vendorIds,criteria,status:'active',created_at:new Date().toISOString()};if(!e.name){toast('Name required','error');return;}store.engagements.push(e);saveStore();toast('Engagement created','success');pushNotif('New engagement',e.name);navigate('engagement-detail',{id:e.id});}
+function renderEngagements(){
+  const actions=`${toolbarButton('Export','&#128229;','downloadCSV(store.engagements,\'engagements.csv\')')}<button class="btn-primary" onclick="navigate('engagement-create')">+ Create Engagement</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader('My Engagements','Quarterly engagement matrices',actions)+`
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      ${store.engagements.length?store.engagements.map(e=>`<div class="card p-5 cursor-pointer hover:shadow-md" onclick="navigate('engagement-detail',{id:${e.id}})"><div class="flex items-start justify-between mb-2"><div><div class="font-semibold text-slate-800">${escHtml(e.name)}</div><div class="text-[11px] text-slate-400">${escHtml(e.quarter||'')}</div></div><span class="chip bg-emerald-50 text-emerald-700">${e.status}</span></div>${e.objective?`<div class="text-xs text-slate-600 mb-3">${escHtml(e.objective)}</div>`:''}<div class="flex gap-3 text-[11px] text-slate-500"><span>${(e.vendorIds||[]).length} vendors</span><span>${(e.criteria||[]).length} criteria</span></div></div>`).join(''):`<div class="col-span-full card p-12 text-center text-slate-400">No engagements yet. <button class="text-blue-600 hover:underline" onclick="navigate('engagement-create')">Create the first</button></div>`}
+    </div>`;
+}
+function renderEngagementDetail(id){
+  const e=store.engagements.find(x=>x.id===Number(id));
+  if(!e){document.getElementById('viewRoot').innerHTML=`<div class="card p-8 text-center text-slate-400">Engagement not found</div>`;return;}
+  const vs=(e.vendorIds||[]).map(vid=>store.vendors.find(v=>v.id===vid)).filter(Boolean).map(vendorSummary);
+  const actions=`${toolbarButton('&larr; Back','','navigate(\'engagements\')')}${toolbarButton('Export','&#128229;','downloadCSV([e],\'engagement-'+e.id+'.csv\')')}<button class="btn-danger" onclick="deleteEngagement(${e.id})">Delete</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader(e.name,`${e.quarter||''} &middot; Owner: ${escHtml(e.owner||'')}`,actions)+`
+    ${e.objective?`<div class="card p-4 mb-4 border-l-4 border-blue-500"><div class="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">Objective</div><div class="text-sm text-slate-700">${escHtml(e.objective)}</div></div>`:''}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div class="card">
+        ${panelHeader('Success Criteria')}
+        <div class="p-5">${(e.criteria||[]).length?(e.criteria||[]).map((c,i)=>`<div class="flex items-start gap-2 py-2 border-b border-slate-50 last:border-0"><span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">${i+1}</span><div class="text-sm text-slate-700">${escHtml(c)}</div></div>`).join(''):'<div class="text-xs text-slate-400">No criteria defined</div>'}</div>
+      </div>
+      <div class="card">
+        ${panelHeader('Engaged Vendors')}
+        <div class="p-5">${vs.length?vs.map(v=>`<div class="flex items-center justify-between py-2 border-b border-slate-50 last:border-0 cursor-pointer hover:bg-slate-50 rounded px-2" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><div><div class="text-sm font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'')}</div></div>${dualScore(v)}</div>`).join(''):'<div class="text-xs text-slate-400">No vendors</div>'}</div>
+      </div>
+    </div>`;
+}
+function deleteEngagement(id){confirmModal('Delete engagement?','This cannot be undone.',()=>{store.engagements=store.engagements.filter(x=>x.id!==id);saveStore();toast('Engagement deleted','success');navigate('engagements');});}
+
+/* ============================================================
+   SUPPORT: TICKETS + FEEDBACK
+   ============================================================ */
+let ticketsFilter={status:'',priority:''};
+function renderTickets(){
+  let list=[...store.tickets];
+  if(ticketsFilter.status)list=list.filter(t=>t.status===ticketsFilter.status);
+  if(ticketsFilter.priority)list=list.filter(t=>t.priority===ticketsFilter.priority);
+  const actions=`${toolbarButton('Export','&#128229;','downloadCSV(store.tickets,\'tickets.csv\')')}<button class="btn-primary" onclick="navigate('ticket-create')">+ New Ticket</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader('Support Tickets',`${list.length} of ${store.tickets.length} tickets`,actions)+`
+    <div class="card mb-4 p-3 flex gap-3 items-center">
+      <select class="input w-auto" onchange="ticketsFilter.status=this.value;renderTickets()">
+        <option value="">All Statuses</option><option>Open</option><option>In Progress</option><option>Resolved</option><option>Closed</option>
+      </select>
+      <select class="input w-auto" onchange="ticketsFilter.priority=this.value;renderTickets()">
+        <option value="">All Priorities</option><option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+      </select>
+      <button class="btn-ghost" onclick="ticketsFilter={status:'',priority:''};renderTickets()">Clear</button>
+    </div>
+    <div class="card overflow-x-auto">
+      <table class="af w-full">
+        <thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th><th></th></tr></thead>
+        <tbody>
+          ${list.length?list.map(t=>`<tr class="cursor-pointer" onclick="navigate('ticket-detail',{id:${t.id}})">
+            <td class="font-mono text-xs text-slate-500">#${t.id}</td>
+            <td class="font-medium text-slate-800">${escHtml(t.title)}</td>
+            <td>${escHtml(t.category)}</td>
+            <td><span class="chip ${t.priority==='Critical'?'bg-rose-50 text-rose-700':t.priority==='High'?'bg-orange-50 text-orange-700':t.priority==='Medium'?'bg-amber-50 text-amber-700':'bg-slate-100 text-slate-600'}">${escHtml(t.priority)}</span></td>
+            <td><span class="chip ${t.status==='Open'?'bg-blue-50 text-blue-700':t.status==='In Progress'?'bg-amber-50 text-amber-700':t.status==='Resolved'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${escHtml(t.status)}</span></td>
+            <td class="text-slate-500 text-xs">${new Date(t.created_at).toLocaleDateString()}</td>
+            <td onclick="event.stopPropagation()"><button class="btn-ghost text-rose-600" onclick="deleteTicket(${t.id})">&times;</button></td>
+          </tr>`).join(''):'<tr><td colspan="7" class="text-center py-12 text-slate-400">No tickets match</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+function renderTicketCreate(){document.getElementById('viewRoot').innerHTML=pageHeader('Create Support Ticket','File a bug, request a feature, or ask a question',toolbarButton('Cancel','','navigate(\'tickets\')'))+`
+    <form class="card" onsubmit="event.preventDefault();saveTicket()">
+      ${panelHeader('Ticket Details')}
+      <div class="p-5 space-y-4">
+        <div><label class="label">Title *</label><input id="t_title" class="input" required placeholder="Brief summary"/></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div><label class="label">Category</label><select id="t_cat" class="input"><option>Bug</option><option>Feature Request</option><option>Question</option><option>Account</option><option>Billing</option><option>Other</option></select></div>
+          <div><label class="label">Priority</label><select id="t_pri" class="input"><option>Low</option><option selected>Medium</option><option>High</option><option>Critical</option></select></div>
+          <div><label class="label">Related Vendor</label><select id="t_vendor" class="input"><option value="">None</option>${store.vendors.map(v=>`<option value="${v.id}">${escHtml(v.name)}</option>`).join('')}</select></div>
+        </div>
+        <div><label class="label">Description *</label><textarea id="t_desc" class="input" rows="5" required placeholder="Steps to reproduce, expected vs actual, screenshots..."></textarea></div>
+      </div>
+      <div class="px-5 py-4 border-t flex justify-end gap-2">
+        <button type="button" class="btn-secondary" onclick="navigate('tickets')">Cancel</button>
+        <button type="submit" class="btn-primary">Submit Ticket</button>
+      </div>
+    </form>`;}
+function saveTicket(){const t={id:nextId(),title:document.getElementById('t_title').value.trim(),category:document.getElementById('t_cat').value,priority:document.getElementById('t_pri').value,status:'Open',vendorId:document.getElementById('t_vendor').value?Number(document.getElementById('t_vendor').value):null,description:document.getElementById('t_desc').value.trim(),created_at:new Date().toISOString()};if(!t.title||!t.description){toast('Title and description required','error');return;}store.tickets.push(t);saveStore();pushNotif('New ticket',t.title);toast('Ticket submitted','success');navigate('ticket-detail',{id:t.id});}
+function renderTicketDetail(id){const t=store.tickets.find(x=>x.id===Number(id));if(!t){document.getElementById('viewRoot').innerHTML='<div class="card p-8 text-center text-slate-400">Ticket not found</div>';return;}const vendor=t.vendorId?store.vendors.find(v=>v.id===t.vendorId):null;document.getElementById('viewRoot').innerHTML=pageHeader(`#${t.id} &middot; ${escHtml(t.title)}`,null,`${toolbarButton('&larr; Back','','navigate(\'tickets\')')}<button class="btn-danger" onclick="deleteTicket(${t.id})">Delete</button>`)+`
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 card">
+        ${panelHeader('Description')}
+        <div class="p-5"><div class="text-sm text-slate-700 whitespace-pre-wrap">${escHtml(t.description)}</div></div>
+      </div>
+      <div class="space-y-4">
+        <div class="card">
+          ${panelHeader('Status')}
+          <div class="p-5 space-y-3 text-sm">
+            ${infoRow('Status',`<select class="input" onchange="store.tickets.find(x=>x.id===${t.id}).status=this.value;saveStore();toast('Status updated');renderTicketDetail(${t.id})">${['Open','In Progress','Resolved','Closed'].map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join('')}</select>`)}
+            ${infoRow('Category',escHtml(t.category))}
+            ${infoRow('Priority',`<span class="chip ${t.priority==='Critical'?'bg-rose-50 text-rose-700':'bg-amber-50 text-amber-700'}">${escHtml(t.priority)}</span>`)}
+            ${infoRow('Created',new Date(t.created_at).toLocaleString())}
+            ${vendor?infoRow('Related Vendor',`<button class="text-blue-600 hover:underline" onclick="navigate('vendor-detail',{id:${vendor.id}})">${escHtml(vendor.name)}</button>`):''}
+          </div>
+        </div>
+      </div>
+    </div>`;}
+function deleteTicket(id){confirmModal('Delete ticket?','',()=>{store.tickets=store.tickets.filter(x=>x.id!==id);saveStore();toast('Ticket deleted','success');navigate('tickets');});}
+
+function renderFeedback(){
+  document.getElementById('viewRoot').innerHTML=pageHeader('Feedback','Share your thoughts on the platform',null)+`
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <form class="card" onsubmit="event.preventDefault();saveFeedback()">
+        ${panelHeader('Submit Feedback')}
+        <div class="p-5 space-y-4">
+          <div>
+            <label class="label">Rating</label>
+            <div class="flex gap-1" id="ratingStars">${[1,2,3,4,5].map(n=>`<button type="button" class="star-btn empty" data-rating="${n}" onclick="selectRating(${n})">&starf;</button>`).join('')}</div>
+          </div>
+          <div><label class="label">Category</label><select id="fb_cat" class="input"><option>UI</option><option>Feature</option><option>Performance</option><option>Bug Report</option><option>Suggestion</option><option>Other</option></select></div>
+          <div><label class="label">Message *</label><textarea id="fb_msg" class="input" rows="5" required placeholder="Your thoughts..."></textarea></div>
+        </div>
+        <div class="px-5 py-4 border-t flex justify-end"><button type="submit" class="btn-primary">Submit Feedback</button></div>
+      </form>
+      <div class="card">
+        ${panelHeader('Recent Feedback')}
+        <div class="p-5 space-y-3 max-h-[500px] overflow-y-auto">
+          ${store.feedback.length?store.feedback.slice().reverse().map(f=>`<div class="p-3 bg-slate-50 rounded-lg"><div class="flex items-center justify-between mb-1"><span class="chip bg-amber-50 text-amber-700">${escHtml(f.category)}</span><span class="text-xs text-amber-500">${'\u2605'.repeat(f.rating||0)}</span></div><div class="text-sm text-slate-700">${escHtml(f.message)}</div></div>`).join(''):'<div class="text-xs text-slate-400 text-center py-8">No feedback yet</div>'}
+        </div>
+      </div>
+    </div>`;
+  window.__fbRating=0;
+}
+function selectRating(n){window.__fbRating=n;document.querySelectorAll('#ratingStars button').forEach((b,i)=>{b.classList.toggle('filled-ai',i<n);b.classList.toggle('empty',i>=n);});}
+function saveFeedback(){const msg=document.getElementById('fb_msg').value.trim();if(!msg){toast('Message required','error');return;}store.feedback.push({id:nextId(),rating:window.__fbRating||0,category:document.getElementById('fb_cat').value,message:msg,created_at:new Date().toISOString()});saveStore();toast('Thank you for your feedback!','success');renderFeedback();}
+
+/* ============================================================
+   MANAGEMENT SUB-PAGES
+   ============================================================ */
+function mgmtNav(active){const tabs=[['mgmt-account','Account'],['mgmt-users','Users'],['mgmt-apikeys','API Keys'],['mgmt-email','Email'],['mgmt-forms','Forms'],['mgmt-engagement-settings','Engagement'],['mgmt-audit','Audit Log']];return `<div class="card mb-4 px-3 flex gap-1 overflow-x-auto">${tabs.map(([id,lbl])=>`<button class="tab ${active===id?'active':''}" onclick="navigate('${id}')">${lbl}</button>`).join('')}</div>`;}
+function renderMgmtAccount(){
+  document.getElementById('viewRoot').innerHTML=pageHeader('Management','Configure your account and workspace',null)+mgmtNav('mgmt-account')+`
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <form class="card" onsubmit="event.preventDefault();saveAccount()">
+        ${panelHeader('Workspace Settings')}
+        <div class="p-5 space-y-4">
+          <div><label class="label">Company Name</label><input id="s_company" class="input" value="${escHtml(store.settings.companyName||'')}"/></div>
+          <div><label class="label">Default Scoring Mode</label><select id="s_mode" class="input"><option value="dual" ${store.settings.scoringMode==='dual'?'selected':''}>Dual (AI + Personal)</option><option value="ai" ${store.settings.scoringMode==='ai'?'selected':''}>AI Only</option><option value="personal" ${store.settings.scoringMode==='personal'?'selected':''}>Personal Only</option></select></div>
+          <div><label class="label">Default Personality</label><select id="s_pers" class="input"><option ${store.settings.defaultPersonality==='balanced'?'selected':''}>balanced</option><option ${store.settings.defaultPersonality==='innovator'?'selected':''}>innovator</option><option ${store.settings.defaultPersonality==='conservative'?'selected':''}>conservative</option></select></div>
+          <label class="flex items-center gap-2 text-sm text-slate-700"><input id="s_emails" type="checkbox" ${store.settings.emailNotifs?'checked':''}/> Send email notifications</label>
+        </div>
+        <div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Save Settings</button></div>
+      </form>
+      <div class="card">
+        ${panelHeader('Workspace Stats')}
+        <div class="p-5 grid grid-cols-2 gap-4">
+          ${[['Vendors',store.vendors.length],['Campaigns',store.campaigns.length],['Engagements',store.engagements.length],['Tickets',store.tickets.length],['Users',store.users.length],['API Keys',store.apiKeys.length]].map(([l,c])=>`<div class="p-3 rounded bg-slate-50"><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${l}</div><div class="text-2xl font-bold text-slate-800 mt-1">${c}</div></div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+function saveAccount(){store.settings.companyName=document.getElementById('s_company').value.trim();store.settings.scoringMode=document.getElementById('s_mode').value;store.settings.defaultPersonality=document.getElementById('s_pers').value;store.settings.emailNotifs=document.getElementById('s_emails').checked;saveStore();toast('Settings saved','success');}
+function renderMgmtUsers(){
+  document.getElementById('viewRoot').innerHTML=pageHeader('User Management','Manage workspace users and roles',`<button class="btn-primary" onclick="openUserModal()">+ Invite User</button>`)+mgmtNav('mgmt-users')+`
+    <div class="card overflow-x-auto">
+      <table class="af w-full">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>${store.users.map(u=>`<tr><td class="font-medium">${escHtml(u.name)}</td><td class="text-slate-600">${escHtml(u.email)}</td><td><span class="chip bg-blue-50 text-blue-700">${escHtml(u.role)}</span></td><td><span class="chip ${u.status==='Active'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}">${escHtml(u.status)}</span></td><td class="text-right"><button class="btn-ghost" onclick="openUserModal(${u.id})">Edit</button><button class="btn-ghost text-rose-600" onclick="deleteUser(${u.id})">Remove</button></td></tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+function openUserModal(id){const u=id?store.users.find(x=>x.id===id):null;openModal(`<div class="panel-header px-5 py-3 rounded-t-xl"><h3 class="font-semibold">${u?'Edit User':'Invite User'}</h3></div><div class="p-5 space-y-3"><div><label class="label">Name</label><input id="u_name" class="input" value="${escHtml(u?.name||'')}"/></div><div><label class="label">Email</label><input id="u_email" class="input" type="email" value="${escHtml(u?.email||'')}"/></div><div><label class="label">Role</label><select id="u_role" class="input"><option>Admin</option><option>Editor</option><option>Viewer</option></select></div></div><div class="px-5 py-3 border-t flex justify-end gap-2"><button class="btn-secondary" onclick="closeModal()">Cancel</button><button class="btn-primary" onclick="saveUser(${id||'null'})">${u?'Save':'Invite'}</button></div>`);if(u)document.getElementById('u_role').value=u.role;}
+function saveUser(id){const data={name:document.getElementById('u_name').value.trim(),email:document.getElementById('u_email').value.trim(),role:document.getElementById('u_role').value,status:'Active'};if(!data.name||!data.email){toast('Name and email required','error');return;}if(id){Object.assign(store.users.find(x=>x.id===id),data);toast('User updated','success');}else{store.users.push({id:nextId(),...data});toast('User invited','success');}saveStore();closeModal();renderMgmtUsers();}
+function deleteUser(id){confirmModal('Remove user?','',()=>{store.users=store.users.filter(x=>x.id!==id);saveStore();toast('User removed','success');renderMgmtUsers();});}
+
+function renderMgmtApiKeys(){document.getElementById('viewRoot').innerHTML=pageHeader('API Keys','Manage API access tokens',`<button class="btn-primary" onclick="createApiKey()">+ Create Key</button>`)+mgmtNav('mgmt-apikeys')+`
+    <div class="card overflow-x-auto">
+      <table class="af w-full">
+        <thead><tr><th>Name</th><th>Key</th><th>Created</th><th>Last Used</th><th></th></tr></thead>
+        <tbody>${store.apiKeys.map(k=>`<tr><td class="font-medium">${escHtml(k.name)}</td><td class="font-mono text-xs text-slate-600">${escHtml(k.key)}</td><td class="text-slate-500 text-xs">${new Date(k.created_at).toLocaleDateString()}</td><td class="text-slate-500 text-xs">${escHtml(k.lastUsed||'Never')}</td><td class="text-right"><button class="btn-ghost" onclick="copyApiKey('${k.key}')">Copy</button><button class="btn-ghost text-rose-600" onclick="revokeApiKey(${k.id})">Revoke</button></td></tr>`).join('')}</tbody>
+      </table>
+    </div>`;}
+function createApiKey(){const name=prompt('Key name:');if(!name)return;store.apiKeys.push({id:nextId(),name,key:'vm_test_'+Math.random().toString(36).substr(2,16),created_at:new Date().toISOString(),lastUsed:'Never'});saveStore();toast('Key created','success');renderMgmtApiKeys();}
+function copyApiKey(k){navigator.clipboard.writeText(k).then(()=>toast('Key copied','success'));}
+function revokeApiKey(id){confirmModal('Revoke API key?','This cannot be undone.',()=>{store.apiKeys=store.apiKeys.filter(x=>x.id!==id);saveStore();toast('Key revoked','success');renderMgmtApiKeys();});}
+
+function renderMgmtEmail(){document.getElementById('viewRoot').innerHTML=pageHeader('Email Templates','Customize notification templates',`<button class="btn-primary" onclick="openEmailModal()">+ New Template</button>`)+mgmtNav('mgmt-email')+`
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">${store.emailTemplates.map(t=>`<div class="card"><div class="panel-header px-4 py-2 rounded-t-lg flex justify-between"><span class="text-sm font-semibold">${escHtml(t.name)}</span><button class="text-white/80 text-xs" onclick="openEmailModal(${t.id})">Edit</button></div><div class="p-4 text-xs"><div class="text-slate-500 mb-1">Subject:</div><div class="font-medium text-slate-800 mb-3">${escHtml(t.subject)}</div><div class="text-slate-500 mb-1">Body:</div><div class="text-slate-600 whitespace-pre-wrap">${escHtml(t.body)}</div></div></div>`).join('')}</div>`;}
+function openEmailModal(id){const t=id?store.emailTemplates.find(x=>x.id===id):null;openModal(`<div class="panel-header px-5 py-3 rounded-t-xl"><h3 class="font-semibold">${t?'Edit':'New'} Email Template</h3></div><div class="p-5 space-y-3"><div><label class="label">Name</label><input id="et_name" class="input" value="${escHtml(t?.name||'')}"/></div><div><label class="label">Subject</label><input id="et_subj" class="input" value="${escHtml(t?.subject||'')}"/></div><div><label class="label">Body</label><textarea id="et_body" class="input" rows="6">${escHtml(t?.body||'')}</textarea><div class="text-[11px] text-slate-400 mt-1">Available: {{vendor_name}}, {{company_name}}, {{user_name}}</div></div></div><div class="px-5 py-3 border-t flex justify-end gap-2"><button class="btn-secondary" onclick="closeModal()">Cancel</button><button class="btn-primary" onclick="saveEmail(${id||'null'})">Save</button></div>`);}
+function saveEmail(id){const d={name:document.getElementById('et_name').value.trim(),subject:document.getElementById('et_subj').value.trim(),body:document.getElementById('et_body').value};if(id){Object.assign(store.emailTemplates.find(x=>x.id===id),d);}else{store.emailTemplates.push({id:nextId(),...d});}saveStore();closeModal();toast('Template saved','success');renderMgmtEmail();}
+
+function renderMgmtForms(){document.getElementById('viewRoot').innerHTML=pageHeader('Form Settings','Customize vendor form fields',null)+mgmtNav('mgmt-forms')+`
+    <div class="card">${panelHeader('Scoring Criteria')}<div class="p-5"><div class="text-xs text-slate-500 mb-3">The 10 criteria used for AI scoring:</div><div class="grid grid-cols-2 gap-2">${SCORING_CRITERIA.map(c=>`<div class="flex items-center gap-2 p-2 bg-slate-50 rounded"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span><span class="text-sm text-slate-700">${c}</span></div>`).join('')}</div></div></div>
+    <div class="card mt-4">${panelHeader('Department Sections')}<div class="p-5"><div class="text-xs text-slate-500 mb-3">Available department sections for vendor coverage:</div><div class="grid grid-cols-2 md:grid-cols-3 gap-2">${AF_SECTIONS.map(s=>`<div class="flex items-center gap-2 p-2 bg-slate-50 rounded"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span class="text-sm text-slate-700">${s}</span></div>`).join('')}</div></div></div>`;}
+
+function renderMgmtEngagementSettings(){document.getElementById('viewRoot').innerHTML=pageHeader('Engagement Settings','Default engagement configuration',null)+mgmtNav('mgmt-engagement-settings')+`
+    <form class="card" onsubmit="event.preventDefault();toast('Engagement settings saved','success')">${panelHeader('Defaults')}<div class="p-5 space-y-4">
+      <div><label class="label">Default Quarter</label><select class="input"><option>Q1 2026</option><option>Q2 2026</option><option>Q3 2026</option><option>Q4 2026</option></select></div>
+      <div><label class="label">Default Number of Success Criteria</label><input class="input" type="number" value="3" min="1" max="10"/></div>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked/> Auto-notify engaged vendors</label>
+      <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked/> Require executive approval for Critical engagements</label>
+    </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Save</button></div></form>`;}
+
+function renderMgmtAudit(){const evs=[{time:new Date(Date.now()-3600000).toLocaleString(),user:'Test User',action:'Updated vendor',target:'Test Vendor 1'},{time:new Date(Date.now()-7200000).toLocaleString(),user:'Test User',action:'Created campaign',target:'Test Campaign - Claims Modernization'},{time:new Date(Date.now()-86400000).toLocaleString(),user:'Test Viewer',action:'Viewed scoring matrix',target:''},{time:new Date(Date.now()-172800000).toLocaleString(),user:'Test User',action:'Exported CSV',target:'vendors.csv'}];document.getElementById('viewRoot').innerHTML=pageHeader('Audit Log','Track user activity',null)+mgmtNav('mgmt-audit')+`
+    <div class="card overflow-x-auto"><table class="af w-full"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th></tr></thead><tbody>${evs.map(e=>`<tr><td class="text-slate-500 text-xs">${e.time}</td><td class="font-medium">${escHtml(e.user)}</td><td>${escHtml(e.action)}</td><td class="text-slate-600">${escHtml(e.target)}</td></tr>`).join('')}</tbody></table></div>`;}
+
+/* ============================================================
+   PROFILE SUB-PAGES
+   ============================================================ */
+function profileNav(active){const tabs=[['profile-settings','Profile'],['profile-company','Company'],['profile-password','Password'],['profile-theme','Theme'],['profile-notifications','Notifications']];return `<div class="card mb-4 px-3 flex gap-1 overflow-x-auto">${tabs.map(([id,lbl])=>`<button class="tab ${active===id?'active':''}" onclick="navigate('${id}')">${lbl}</button>`).join('')}</div>`;}
+function renderProfileSettings(){document.getElementById('viewRoot').innerHTML=pageHeader('Profile Settings','Your personal information',null)+profileNav('profile-settings')+`
+    <form class="card" onsubmit="event.preventDefault();toast('Profile saved','success')">${panelHeader('Personal Info')}<div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><label class="label">Display Name</label><input class="input" value="Test User"/></div>
+      <div><label class="label">Email</label><input class="input" type="email" value="test.user@example.com"/></div>
+      <div><label class="label">Job Title</label><input class="input" placeholder="e.g. Procurement Manager"/></div>
+      <div><label class="label">Department</label><select class="input">${AF_SECTIONS.map(s=>`<option>${s}</option>`).join('')}</select></div>
+      <div class="md:col-span-2"><label class="label">Bio</label><textarea class="input" rows="3" placeholder="Brief description..."></textarea></div>
+    </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Save Profile</button></div></form>`;}
+function renderProfileCompany(){document.getElementById('viewRoot').innerHTML=pageHeader('Company Profile','Your organization details',null)+profileNav('profile-company')+`
+    <form class="card" onsubmit="event.preventDefault();toast('Company saved','success')">${panelHeader('Company')}<div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><label class="label">Company Name</label><input class="input" value="${escHtml(store.settings.companyName||'Test Company')}"/></div>
+      <div><label class="label">Industry</label><input class="input" value="Insurance"/></div>
+      <div><label class="label">Size</label><select class="input"><option>1-50</option><option>51-200</option><option>201-1000</option><option>1000+</option></select></div>
+      <div><label class="label">Website</label><input class="input" type="url" placeholder="https://..."/></div>
+      <div class="md:col-span-2"><label class="label">Address</label><textarea class="input" rows="2"></textarea></div>
+    </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Save Company</button></div></form>`;}
+function renderProfilePassword(){document.getElementById('viewRoot').innerHTML=pageHeader('Change Password','Update your password',null)+profileNav('profile-password')+`
+    <form class="card max-w-md" onsubmit="event.preventDefault();toast('Password updated','success')">${panelHeader('Change Password')}<div class="p-5 space-y-4">
+      <div><label class="label">Current Password</label><input class="input" type="password"/></div>
+      <div><label class="label">New Password</label><input class="input" type="password"/></div>
+      <div><label class="label">Confirm New Password</label><input class="input" type="password"/></div>
+      <div class="text-[11px] text-slate-500">Password must be at least 8 characters.</div>
+    </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Update Password</button></div></form>`;}
+function renderProfileTheme(){document.getElementById('viewRoot').innerHTML=pageHeader('Theme &amp; Display','Customize appearance',null)+profileNav('profile-theme')+`
+    <div class="card">${panelHeader('Theme')}<div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+      ${[['light','Light','bg-white'],['dark','Dark','bg-slate-900'],['auto','System','bg-gradient-to-br from-white to-slate-900']].map(([k,lbl,bg])=>`<button class="p-4 rounded-lg border-2 ${store.settings.theme===k?'border-blue-500':'border-slate-200'} hover:border-blue-300" onclick="store.settings.theme='${k}';saveStore();toast('Theme set: ${lbl}');renderProfileTheme()"><div class="w-full h-20 rounded ${bg} mb-2 border border-slate-200"></div><div class="text-sm font-medium text-slate-800">${lbl}</div></button>`).join('')}
+    </div></div>
+    <div class="card mt-4">${panelHeader('Density')}<div class="p-5 flex gap-3">${['Comfortable','Compact','Spacious'].map(d=>`<button class="btn-secondary">${d}</button>`).join('')}</div></div>`;}
+function renderProfileNotifications(){document.getElementById('viewRoot').innerHTML=pageHeader('Notification Preferences','Choose what you hear about',null)+profileNav('profile-notifications')+`
+    <form class="card" onsubmit="event.preventDefault();toast('Preferences saved','success')">${panelHeader('Email Notifications')}<div class="p-5 space-y-3">
+      ${[['New vendor added',true],['Vendor scores updated',true],['Campaign changes',true],['Engagement milestones',true],['Ticket updates',true],['Weekly digest',false],['Monthly report',false]].map(([l,v])=>`<label class="flex items-center justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-700">${l}</span><input type="checkbox" ${v?'checked':''}/></label>`).join('')}
+    </div>${panelHeader('In-App Notifications')}<div class="p-5 space-y-3">
+      ${[['Real-time vendor updates',true],['Score changes',true],['@mentions',true],['Announcements',false]].map(([l,v])=>`<label class="flex items-center justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-700">${l}</span><input type="checkbox" ${v?'checked':''}/></label>`).join('')}
+    </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Save Preferences</button></div></form>`;}
+
+/* ============================================================
+   BOOT - re-render after view functions defined
+   ============================================================ */
+render();
+</script>
+</body>
+</html>
