@@ -303,7 +303,9 @@ function seedData(){
   ];
   seeds.forEach((v,i)=>{
     const id=i+1;
-    store.vendors.push({id,name:v.name,website:v.website||'',social_linkedin:'',social_twitter:'',social_facebook:'',contact_name:`Test Contact ${id}`,contact_email:`contact${id}@test-vendor-${id}.example.com`,contact_phone:`555-01${String(id).padStart(2,'0')}`,mission_statement:`Test mission statement for Test Vendor ${id}. This vendor supports ${v.project.toLowerCase()}.`,project:v.project,sections:JSON.stringify(v.sections),notes:'',created_at:now,updated_at:now});
+    const primary={name:`Test Contact ${id}`,email:`contact${id}@test-vendor-${id}.example.com`,phone:`555-01${String(id).padStart(2,'0')}`,role:id%2===0?'Account Executive':'Sales Director'};
+    const contacts=id<=3?[primary,{name:`Test Secondary ${id}`,email:`secondary${id}@test-vendor-${id}.example.com`,phone:`555-02${String(id).padStart(2,'0')}`,role:'Technical Lead'}]:[primary];
+    store.vendors.push({id,name:v.name,website:v.website||'',social_linkedin:'',social_twitter:'',social_facebook:'',contact_name:primary.name,contact_email:primary.email,contact_phone:primary.phone,contacts,mission_statement:`Test mission statement for Test Vendor ${id}. This vendor supports ${v.project.toLowerCase()}.`,project:v.project,sections:JSON.stringify(v.sections),notes:'',created_at:now,updated_at:now});
     store.scores[id]=SCORING_CRITERIA.map(c=>({criterion:c,score:2+Math.floor(Math.random()*4)}));
     if(id<=5)store.personalScores[id]=SCORING_CRITERIA.map(c=>({criterion:c,score:2+Math.floor(Math.random()*4)}));
     store._seq=Math.max(store._seq||100,id);
@@ -398,7 +400,7 @@ function renderVendors(){
             <tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${s.vendor.id}})">
               <td><div class="font-medium text-slate-800">${escHtml(s.vendor.name)}</div><div class="text-[11px] text-slate-400">${s.scoreCount}/10 AI &middot; ${s.personalCount}/10 personal</div></td>
               <td class="text-slate-600">${escHtml(s.vendor.project||'&mdash;')}</td>
-              <td><div class="text-slate-700">${escHtml(s.vendor.contact_name||'&mdash;')}</div><div class="text-[11px] text-slate-400">${escHtml(s.vendor.contact_email||'')}</div></td>
+              <td><div class="text-slate-700">${escHtml(s.vendor.contact_name||'&mdash;')}</div><div class="text-[11px] text-slate-400">${escHtml(s.vendor.contact_email||'')}</div>${Array.isArray(s.vendor.contacts)&&s.vendor.contacts.length>1?`<div class="text-[10px] text-blue-600 font-medium mt-0.5">+${s.vendor.contacts.length-1} more</div>`:''}</td>
               <td>${dualScore(s)}</td>
               <td>${dualRec(s)}</td>
               <td class="text-right" onclick="event.stopPropagation()">
@@ -418,6 +420,7 @@ function renderVendorForm(id){
   const isNew=!v;
   const initialSections=v?JSON.parse(v.sections||'[]'):[];
   window.__formDocs=v?[...(store.documents[v.id]||[])]:[];
+  window.__formContacts=initFormContacts(v);
   const actions=`${toolbarButton('Cancel','','navigate(\'vendors\')')}`;
   document.getElementById('viewRoot').innerHTML=pageHeader(isNew?'New Vendor':'Edit Vendor',isNew?'Add a new vendor to the matrix':`Editing ${escHtml(v.name)}`,actions)+`
     <form class="card" onsubmit="event.preventDefault();saveVendor(${isNew?'null':v.id})">
@@ -428,11 +431,9 @@ function renderVendorForm(id){
         <div class="md:col-span-2"><label class="label">Website</label><input id="f_website" class="input" type="url" value="${escHtml(v?.website||'')}"/></div>
         <div class="md:col-span-2"><label class="label">Mission Statement</label><textarea id="f_mission" class="input" rows="2">${escHtml(v?.mission_statement||'')}</textarea></div>
       </div>
-      ${panelHeader('Contact')}
-      <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label class="label">Contact Name</label><input id="f_contact_name" class="input" value="${escHtml(v?.contact_name||'')}"/></div>
-        <div><label class="label">Contact Email</label><input id="f_contact_email" class="input" type="email" value="${escHtml(v?.contact_email||'')}"/></div>
-        <div><label class="label">Contact Phone</label><input id="f_contact_phone" class="input" value="${escHtml(v?.contact_phone||'')}"/></div>
+      ${panelHeader('Contacts','<button type="button" class="btn-ghost text-white/90 text-xs cursor-pointer hover:bg-white/10 px-2 py-1 rounded" onclick="addFormContact()">+ Add Contact</button>')}
+      <div class="p-5">
+        <div id="formContactsList"></div>
       </div>
       ${panelHeader('Social')}
       <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -464,6 +465,55 @@ function renderVendorForm(id){
       </div>
     </form>`;
   renderFormDocs();
+  renderFormContacts();
+}
+function initFormContacts(v){
+  if(!v)return [{name:'',email:'',phone:'',role:''}];
+  if(Array.isArray(v.contacts)&&v.contacts.length)return v.contacts.map(c=>({name:c.name||'',email:c.email||'',phone:c.phone||'',role:c.role||''}));
+  if(v.contact_name||v.contact_email||v.contact_phone)return [{name:v.contact_name||'',email:v.contact_email||'',phone:v.contact_phone||'',role:''}];
+  return [{name:'',email:'',phone:'',role:''}];
+}
+function renderFormContacts(){
+  const list=document.getElementById('formContactsList');
+  if(!list)return;
+  const contacts=window.__formContacts||[];
+  if(!contacts.length){list.innerHTML='<div class="text-xs text-slate-400 text-center py-2">No contacts added yet. Click + Add Contact.</div>';return;}
+  list.innerHTML=contacts.map((c,i)=>`
+    <div class="form-contact-row border border-slate-200 rounded-lg p-3 mb-3 bg-slate-50/40">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">${i===0?'Primary Contact':'Contact '+(i+1)}</div>
+        ${contacts.length>1?`<button type="button" class="btn-ghost text-rose-600 hover:bg-rose-50 text-xs px-2 py-1" onclick="removeFormContact(${i})">Remove</button>`:''}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div><label class="label">Name</label><input class="input form-contact-name" data-idx="${i}" oninput="window.__formContacts[${i}].name=this.value" value="${escHtml(c.name||'')}"/></div>
+        <div><label class="label">Role / Title</label><input class="input form-contact-role" data-idx="${i}" oninput="window.__formContacts[${i}].role=this.value" placeholder="e.g. Account Executive" value="${escHtml(c.role||'')}"/></div>
+        <div><label class="label">Email</label><input class="input form-contact-email" data-idx="${i}" type="email" oninput="window.__formContacts[${i}].email=this.value" value="${escHtml(c.email||'')}"/></div>
+        <div><label class="label">Phone</label><input class="input form-contact-phone" data-idx="${i}" oninput="window.__formContacts[${i}].phone=this.value" value="${escHtml(c.phone||'')}"/></div>
+      </div>
+    </div>`).join('');
+}
+function readFormContacts(){
+  document.querySelectorAll('.form-contact-row').forEach(row=>{
+    const nameEl=row.querySelector('.form-contact-name');
+    if(!nameEl)return;
+    const idx=Number(nameEl.dataset.idx);
+    if(!window.__formContacts[idx])return;
+    window.__formContacts[idx].name=nameEl.value;
+    window.__formContacts[idx].role=row.querySelector('.form-contact-role').value;
+    window.__formContacts[idx].email=row.querySelector('.form-contact-email').value;
+    window.__formContacts[idx].phone=row.querySelector('.form-contact-phone').value;
+  });
+}
+function addFormContact(){
+  readFormContacts();
+  window.__formContacts.push({name:'',email:'',phone:'',role:''});
+  renderFormContacts();
+}
+function removeFormContact(i){
+  readFormContacts();
+  if(window.__formContacts.length<=1){toast('At least one contact required','warn');return;}
+  window.__formContacts.splice(i,1);
+  renderFormContacts();
 }
 function handleFormFiles(e){
   const files=[...e.target.files];
@@ -488,7 +538,10 @@ function removeFormDoc(i){window.__formDocs.splice(i,1);renderFormDocs();toast('
 function formatSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(1)+' MB';}
 function saveVendor(id){
   const sections=[...document.querySelectorAll('.form-section-cb:checked')].map(cb=>cb.value);
-  const data={name:document.getElementById('f_name').value.trim(),website:document.getElementById('f_website').value.trim(),social_linkedin:document.getElementById('f_social_linkedin').value.trim(),social_twitter:document.getElementById('f_social_twitter').value.trim(),social_facebook:document.getElementById('f_social_facebook').value.trim(),contact_name:document.getElementById('f_contact_name').value.trim(),contact_email:document.getElementById('f_contact_email').value.trim(),contact_phone:document.getElementById('f_contact_phone').value.trim(),mission_statement:document.getElementById('f_mission').value.trim(),project:document.getElementById('f_project').value.trim(),sections:JSON.stringify(sections),notes:document.getElementById('f_notes').value.trim(),updated_at:new Date().toISOString()};
+  readFormContacts();
+  const contacts=(window.__formContacts||[]).filter(c=>c.name||c.email||c.phone).map(c=>({name:(c.name||'').trim(),email:(c.email||'').trim(),phone:(c.phone||'').trim(),role:(c.role||'').trim()}));
+  const primary=contacts[0]||{name:'',email:'',phone:''};
+  const data={name:document.getElementById('f_name').value.trim(),website:document.getElementById('f_website').value.trim(),social_linkedin:document.getElementById('f_social_linkedin').value.trim(),social_twitter:document.getElementById('f_social_twitter').value.trim(),social_facebook:document.getElementById('f_social_facebook').value.trim(),contact_name:primary.name,contact_email:primary.email,contact_phone:primary.phone,contacts,mission_statement:document.getElementById('f_mission').value.trim(),project:document.getElementById('f_project').value.trim(),sections:JSON.stringify(sections),notes:document.getElementById('f_notes').value.trim(),updated_at:new Date().toISOString()};
   if(!data.name){toast('Name is required','error');return;}
   const docs=window.__formDocs||[];
   if(id){
@@ -580,11 +633,15 @@ function renderVendorDetail(id){
         </div>
 
         <div class="card">
-          ${panelHeader('Contact')}
-          <div class="p-5 space-y-3 text-sm">
-            ${infoRow('Name',escHtml(v.contact_name||'Not set'))}
-            ${infoRow('Email',v.contact_email?`<a href="mailto:${escHtml(v.contact_email)}" class="text-blue-600 hover:underline">${escHtml(v.contact_email)}</a>`:'<span class="text-slate-400">Not set</span>')}
-            ${infoRow('Phone',escHtml(v.contact_phone||'Not set'))}
+          ${panelHeader('Contacts'+(getVendorContacts(v).length>1?' ('+getVendorContacts(v).length+')':''))}
+          <div class="p-5 space-y-4 text-sm">
+            ${getVendorContacts(v).length?getVendorContacts(v).map((c,i)=>`
+              <div class="${i>0?'pt-3 border-t border-slate-100':''}">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">${i===0?'Primary':'Contact '+(i+1)}${c.role?' &middot; '+escHtml(c.role):''}</div>
+                <div class="text-slate-800 font-medium">${escHtml(c.name||'Unnamed')}</div>
+                ${c.email?`<div class="mt-0.5"><a href="mailto:${escHtml(c.email)}" class="text-blue-600 hover:underline text-xs">${escHtml(c.email)}</a></div>`:''}
+                ${c.phone?`<div class="text-xs text-slate-500 mt-0.5">${escHtml(c.phone)}</div>`:''}
+              </div>`).join(''):'<div class="text-xs text-slate-400">No contacts</div>'}
           </div>
         </div>
 
@@ -606,6 +663,11 @@ function renderVendorDetail(id){
     </div>`;
 }
 function infoRow(label,value){return `<div><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${label}</div><div class="mt-0.5">${value}</div></div>`;}
+function getVendorContacts(v){
+  if(Array.isArray(v.contacts)&&v.contacts.length)return v.contacts;
+  if(v.contact_name||v.contact_email||v.contact_phone)return [{name:v.contact_name||'',email:v.contact_email||'',phone:v.contact_phone||'',role:''}];
+  return [];
+}
 function bbpAnalysis(d){return `<div class="mb-3 text-center"><span class="chip rec-${d.recommendation}" style="font-size:13px;padding:6px 14px;">${d.recommendation} &middot; ${d.confidence}% confidence</span></div>${['buy','build','partner'].map(k=>{const lbl={buy:'Buy',build:'Build',partner:'Partner'}[k];return `<div class="mb-2"><div class="flex justify-between text-[11px] text-slate-500 mb-1"><span>${lbl}</span><span class="font-medium">${d.scores[k]}%</span></div><div class="h-2 rounded bg-slate-100"><div class="h-full rounded bar-${k}" style="width:${d.scores[k]}%"></div></div></div>`;}).join('')}`;}
 function switchScoringTab(tab,vid){document.getElementById('tab_ai').classList.toggle('active',tab==='ai');document.getElementById('tab_personal').classList.toggle('active',tab==='personal');document.getElementById('scoringPane').innerHTML=renderScoringPane(vid,tab);}
 function renderScoringPane(vid,mode){const scores=mode==='ai'?getScores(vid):getPersonalScores(vid);const sm={};scores.forEach(s=>{sm[s.criterion]=s.score;});return SCORING_CRITERIA.map(c=>`<div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0"><div class="text-sm font-medium text-slate-700">${c}</div><div class="flex gap-1">${[1,2,3,4,5].map(n=>`<button class="star-btn ${sm[c]===n?(mode==='ai'?'filled-ai':'filled-personal'):'empty'}" onclick="handleScoreClick(${vid},'${c.replace(/'/g,"\\'")}',${n},'${mode}')">${n}</button>`).join('')}</div></div>`).join('');}
