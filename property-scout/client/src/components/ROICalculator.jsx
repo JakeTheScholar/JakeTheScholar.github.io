@@ -1,9 +1,17 @@
 import { useState, useMemo } from 'react';
 import { fullAnalysis, formatCurrency, formatPct, sensitivityAnalysis, monteCarloSimulation, wealthProjection, amortizationSchedule } from '../utils/mortgage';
 import { calculateNeighborhoodScore, getDefaultNeighborhoodData } from '../utils/neighborhood';
+import { strAnalysis, strLocationScore, defaultNightlyRate, estimateOccupancy, seasonalityFor, monthlyRevenueCurve, ltrBaseline, getMarketStats } from '../utils/str';
 import NeighborhoodBadge from './NeighborhoodBadge';
 
-export default function ROICalculator({ property, onClose }) {
+export default function ROICalculator({ property, onClose, mode = 'hack', location }) {
+  if (mode === 'str') {
+    return <STRCalculator property={property} onClose={onClose} location={location} />;
+  }
+  return <HackCalculator property={property} onClose={onClose} />;
+}
+
+function HackCalculator({ property, onClose }) {
   const [assumptions, setAssumptions] = useState({
     downPct: 3.5,
     rate: 6.75,
@@ -703,6 +711,296 @@ function ScenarioCard({ title, subtitle, cashFlow, coc, annual, color }) {
         <div className="flex justify-between">
           <span className="text-sm text-gray-400">Cash-on-Cash Return</span>
           <span className={`text-sm font-bold ${color === 'green' ? 'text-green-400' : 'text-blue-400'}`}>{formatPct(coc)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ======================================================================= */
+/* STR Calculator — Airbnb/short-term-rental ROI with Y1 cost-seg tax shield */
+/* ======================================================================= */
+
+function STRCalculator({ property, onClose, location }) {
+  const [a, setA] = useState({
+    nightlyRate: defaultNightlyRate(property, location),
+    occupancyPct: estimateOccupancy(location),
+    cleaningPerStay: 100,
+    avgStayDays: 4,
+    mgmtPct: 0,
+    suppliesUtilitiesAnnual: 4800,
+    strInsuranceAnnual: 2400,
+    strMaintenancePct: 8,
+    avgRate: 6.75,
+    downPct: 25,
+    closingCostPct: 3,
+    taxRatePct: 1.1,
+    marginalTaxRatePct: 35,
+    costSegBonusPct: 28,
+    landPct: 15,
+    furnishingCost: 25000,
+    activeIncome: 0,
+  });
+  const update = (k, v) => setA(prev => ({ ...prev, [k]: v }));
+
+  const r = useMemo(() => strAnalysis(property, a), [property, a]);
+  const locScore = useMemo(() => strLocationScore({ location, property }), [location, property]);
+  const stats = useMemo(() => getMarketStats(location), [location]);
+  const monthly = useMemo(() => monthlyRevenueCurve({
+    nightlyRate: a.nightlyRate,
+    occupancyPct: a.occupancyPct,
+    seasonality: seasonalityFor(location),
+  }), [a.nightlyRate, a.occupancyPct, location]);
+  const ltr = useMemo(() => ltrBaseline(property, a), [property, a]);
+  const strAdvantageY1 = r.cashFlowAnnual - ltr.cashFlowAnnual + r.taxShieldY1;
+  const maxMonthlyRev = Math.max(1, ...monthly.map(m => m.revenue));
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center overflow-y-auto p-4 animate-fade-in">
+      <div className="card max-w-4xl w-full my-8 shadow-2xl animate-scale-in">
+        <div className="flex items-start justify-between p-4 md:p-6 border-b border-gray-800">
+          <div className="min-w-0 flex-1 mr-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase tracking-wider text-purple-400 font-semibold">STR / Airbnb Analysis</span>
+              <NeighborhoodBadge badge={locScore.badge} score={locScore.overall} />
+            </div>
+            <h2 className="text-lg md:text-xl font-bold text-white truncate">{property.address}</h2>
+            <span className="text-2xl font-bold text-purple-400">{formatCurrency(property.price)}</span>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-all duration-200 hover:rotate-90">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="p-4 md:p-6 space-y-6">
+          {/* STR Assumptions */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">STR Assumptions</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Field label="Nightly Rate (ADR)" value={a.nightlyRate} onChange={v => update('nightlyRate', v)} prefix="$" step="5" />
+              <Field label="Occupancy %" value={a.occupancyPct} onChange={v => update('occupancyPct', v)} suffix="%" step="1" />
+              <Field label="Avg Stay (days)" value={a.avgStayDays} onChange={v => update('avgStayDays', v)} suffix="d" step="0.5" />
+              <Field label="Cleaning/stay" value={a.cleaningPerStay} onChange={v => update('cleaningPerStay', v)} prefix="$" step="5" />
+              <Field label="Mgmt Fee %" value={a.mgmtPct} onChange={v => update('mgmtPct', v)} suffix="%" step="1" />
+              <Field label="Maintenance %" value={a.strMaintenancePct} onChange={v => update('strMaintenancePct', v)} suffix="%" step="1" />
+              <Field label="Supplies+Util/yr" value={a.suppliesUtilitiesAnnual} onChange={v => update('suppliesUtilitiesAnnual', v)} prefix="$" step="100" />
+              <Field label="Insurance/yr" value={a.strInsuranceAnnual} onChange={v => update('strInsuranceAnnual', v)} prefix="$" step="100" />
+              <Field label="Down Payment %" value={a.downPct} onChange={v => update('downPct', v)} suffix="%" step="1" />
+              <Field label="Interest Rate" value={a.avgRate} onChange={v => update('avgRate', v)} suffix="%" step="0.125" />
+              <Field label="Marginal Tax %" value={a.marginalTaxRatePct} onChange={v => update('marginalTaxRatePct', v)} suffix="%" step="1" />
+              <Field label="Cost Seg Bonus %" value={a.costSegBonusPct} onChange={v => update('costSegBonusPct', v)} suffix="%" step="1" />
+              <Field label="Furnishing + Setup" value={a.furnishingCost} onChange={v => update('furnishingCost', v)} prefix="$" step="1000" />
+              <Field label="Active Income to Shelter" value={a.activeIncome} onChange={v => update('activeIncome', v)} prefix="$" step="5000" />
+            </div>
+            {stats && (
+              <p className="text-[11px] text-gray-600 mt-2">
+                ADR + occupancy defaults sourced from <span className="text-gray-400">{stats.source}</span>. These are market medians — override above with real nearby comps.
+              </p>
+            )}
+            {!stats && (
+              <p className="text-[11px] text-gray-600 mt-2">
+                No market stats for this location — ADR defaulted from a 0.18% heuristic. Enter a target STR market (e.g. Gatlinburg, Broken Bow, 30A) for medians + seasonality.
+              </p>
+            )}
+          </div>
+
+          {/* Hero metrics — the strategy in numbers */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className={`rounded-xl border p-4 ${r.cashFlowMonthly >= 0 ? 'border-green-600/30 bg-green-600/5' : 'border-red-600/30 bg-red-600/5'}`}>
+              <p className="text-[10px] text-gray-500 uppercase">Monthly Cash Flow</p>
+              <p className={`text-2xl font-bold ${r.cashFlowMonthly >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(r.cashFlowMonthly)}</p>
+              <p className="text-[10px] text-gray-500">before tax shield</p>
+            </div>
+            <div className="rounded-xl border border-purple-600/40 bg-purple-600/10 p-4">
+              <p className="text-[10px] text-gray-500 uppercase">Y1 Tax Shield</p>
+              <p className="text-2xl font-bold text-purple-400">{formatCurrency(r.taxShieldY1)}</p>
+              <p className="text-[10px] text-gray-500">cost seg @ {a.costSegBonusPct}% | tax @ {a.marginalTaxRatePct}%</p>
+            </div>
+            <div className="rounded-xl border border-blue-600/30 bg-blue-600/5 p-4">
+              <p className="text-[10px] text-gray-500 uppercase">CoC (w/ shield)</p>
+              <p className="text-2xl font-bold text-blue-400">{formatPct(r.cocWithShield)}</p>
+              <p className="text-[10px] text-gray-500">pure CoC: {formatPct(r.cocPure)}</p>
+            </div>
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-600/5 p-4">
+              <p className="text-[10px] text-gray-500 uppercase">Cap Rate</p>
+              <p className="text-2xl font-bold text-yellow-400">{formatPct(r.capRate)}</p>
+              <p className="text-[10px] text-gray-500">NOI / price</p>
+            </div>
+          </div>
+
+          {/* Revenue */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Annual Revenue</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricBox label="Nights Booked" value={`${r.nightsBookedAnnual} / 365`} sub={`${a.occupancyPct}% occupancy`} />
+              <MetricBox label="Stays / yr" value={r.stays.toString()} sub={`avg ${a.avgStayDays}d`} />
+              <MetricBox label="Lodging Revenue" value={formatCurrency(r.lodgingRevenue)} />
+              <MetricBox label="Gross Revenue" value={formatCurrency(r.grossRevenue)} highlight />
+            </div>
+          </div>
+
+          {/* Expenses */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Annual Operating Expenses</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricBox label="Mgmt Fee" value={formatCurrency(r.mgmtFee)} />
+              <MetricBox label="Cleaning" value={formatCurrency(r.cleaningCost)} />
+              <MetricBox label="Supplies+Util" value={formatCurrency(r.suppliesUtilitiesAnnual)} />
+              <MetricBox label="Insurance" value={formatCurrency(r.strInsuranceAnnual)} />
+              <MetricBox label="Property Tax" value={formatCurrency(r.propertyTaxAnnual)} />
+              <MetricBox label="Maintenance" value={formatCurrency(r.maintenance)} />
+              <MetricBox label="Total OpEx" value={formatCurrency(r.totalOpEx)} highlight />
+              <MetricBox label="NOI" value={formatCurrency(r.noi)} highlight />
+            </div>
+          </div>
+
+          {/* Debt & Investment */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Financing & Cash In</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <MetricBox label="Down Payment" value={formatCurrency(r.downPayment)} sub={`${a.downPct}%`} />
+              <MetricBox label="Closing Costs" value={formatCurrency(r.closingCosts)} sub={`${a.closingCostPct}%`} />
+              <MetricBox label="Furnishing" value={formatCurrency(r.furnishingCost)} sub="STR setup" />
+              <MetricBox label="Total Cash In" value={formatCurrency(r.totalInvested)} highlight />
+              <MetricBox label="Annual Debt Svc" value={formatCurrency(r.debtServiceAnnual)} sub={`PI @ ${a.avgRate}%`} />
+            </div>
+          </div>
+
+          {/* LTR vs STR — apples-to-apples same-property comparison */}
+          <div className="rounded-xl border border-gray-700 p-4">
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">LTR Baseline vs STR — same property</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricBox label="LTR Rent/mo" value={formatCurrency(ltr.rentMonthly)} sub="long-term tenant" />
+              <MetricBox label="LTR Cash Flow/yr" value={formatCurrency(ltr.cashFlowAnnual)} sub={`cap ${formatPct(ltr.capRate)}`} />
+              <MetricBox label="STR Cash Flow/yr" value={formatCurrency(r.cashFlowAnnual)} sub="no shield" />
+              <MetricBox label="STR Advantage Y1" value={formatCurrency(strAdvantageY1)} highlight sub="STR CF − LTR CF + Y1 shield" />
+            </div>
+            <p className="text-[11px] text-gray-500 mt-3">
+              LTR is a passive activity — depreciation is trapped against other passive income. STR's sub-7-day rule is what unlocks the shield against your active (W-2/business) income, so
+              &quot;STR advantage&quot; captures both the cash-flow delta and the Y1 tax shield.
+            </p>
+          </div>
+
+          {/* Cost-seg tax shield — the headline number */}
+          <div className="rounded-xl border border-purple-600/40 bg-gradient-to-br from-purple-600/10 to-purple-900/5 p-4">
+            <h3 className="text-sm font-semibold text-purple-300 uppercase mb-3">Year-1 Cost Seg Tax Shield (the reason to STR)</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <MetricBox label="Building Basis" value={formatCurrency(r.buildingBasis)} sub={`${100 - a.landPct}% of price`} />
+              <MetricBox label="Accel. Deprec Y1" value={formatCurrency(r.accelDepreciation)} sub={`${a.costSegBonusPct}% of basis`} />
+              <MetricBox label="Marginal Tax Rate" value={`${a.marginalTaxRatePct}%`} />
+              <MetricBox label="Tax Shield Y1" value={formatCurrency(r.taxShieldY1)} highlight />
+            </div>
+            <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+              Under IRS Reg 1.469-1T(e)(3)(ii)(A), when <strong className="text-purple-300">average guest stay is 7 days or fewer</strong> AND you
+              <strong className="text-purple-300"> materially participate</strong> ({'>'}100 hours/yr, more than anyone else), this is a non-passive
+              activity. Accelerated depreciation from cost segregation offsets ordinary income — W-2, business, or investment.
+            </p>
+          </div>
+
+          {/* Active-income shelter */}
+          {a.activeIncome > 0 && (
+            <div className="rounded-xl border border-indigo-600/40 bg-gradient-to-br from-indigo-600/10 to-indigo-900/5 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-indigo-300 uppercase">Active-Income Shelter</h3>
+                <span className={`text-xs font-bold ${r.shelterCoveragePct >= 100 ? 'text-green-400' : 'text-indigo-300'}`}>
+                  {r.shelterCoveragePct >= 100 ? 'Fully shelters this year' : `${r.shelterCoveragePct?.toFixed(0)}% covered`}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <MetricBox label="Active Income Target" value={formatCurrency(a.activeIncome)} />
+                <MetricBox label="Shielded Y1" value={formatCurrency(r.incomeShielded)} highlight sub="by this property alone" />
+                <MetricBox label="Remaining to Shield" value={formatCurrency(r.incomeRemaining)} sub={r.incomeRemaining > 0 ? 'uncovered' : 'fully covered'} />
+                <MetricBox label="Properties Needed" value={r.propertiesNeededForFullShelter?.toString() || '—'} sub="at this shield size" />
+              </div>
+              <div className="mt-3 w-full h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 transition-all duration-500" style={{ width: `${Math.min(100, r.shelterCoveragePct || 0)}%` }} />
+              </div>
+              <p className="text-[11px] text-gray-500 mt-2">
+                Shelter capacity = accelerated depreciation ({formatCurrency(r.accelDepreciation)}). Cash tax saved at your marginal rate = {formatCurrency(r.taxShieldY1)}.
+              </p>
+            </div>
+          )}
+
+          {/* Eligibility checklist */}
+          <div className="rounded-xl border border-gray-700 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase">Non-Passive Eligibility</h3>
+              <span className={`text-sm font-bold ${r.allEligibilityPass ? 'text-green-400' : 'text-yellow-400'}`}>
+                {r.allEligibilityPass ? 'All gates pass' : 'Review gates'}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {r.eligibility.map(gate => (
+                <div key={gate.label} className="flex items-start gap-2 text-sm">
+                  <span className={gate.pass ? 'text-green-400' : 'text-red-400'}>{gate.pass ? '\u2713' : '\u2717'}</span>
+                  <div className="flex-1">
+                    <p className="text-gray-300">{gate.label}</p>
+                    <p className="text-xs text-gray-500">{gate.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Monthly revenue projection — seasonality curve */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Monthly Revenue Projection (seasonality)</h3>
+            <div className="space-y-1">
+              {monthly.map(m => (
+                <div key={m.month} className="flex items-center gap-2 text-[11px]">
+                  <span className="w-8 text-gray-500">{m.month}</span>
+                  <div className="flex-1 h-5 bg-gray-800 rounded-sm overflow-hidden relative">
+                    <div
+                      className="h-full bg-purple-500/60 rounded-sm transition-all duration-700 ease-out"
+                      style={{ width: `${(m.revenue / maxMonthlyRev) * 100}%` }}
+                    />
+                    <span className="absolute right-1 top-0.5 text-[10px] text-purple-200">
+                      {formatCurrency(m.revenue)} | {m.nights}n @ ${m.adr}
+                    </span>
+                  </div>
+                  <span className="w-12 text-right text-gray-500">{m.occupancyPct}%</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-600 mt-2">
+              Yearly totals: {formatCurrency(monthly.reduce((s, m) => s + m.revenue, 0))} revenue across {monthly.reduce((s, m) => s + m.nights, 0)} booked nights.
+              Curve rescales monthly ADR + occupancy around your annual averages above.
+            </p>
+          </div>
+
+          {/* Market intel */}
+          <div className="rounded-xl border border-gray-700 p-4">
+            <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Market Intel</h3>
+            {locScore.location.kind === 'banned' && (
+              <div className="bg-red-600/10 border border-red-600/30 rounded-lg p-3 mb-3">
+                <p className="text-red-300 text-sm font-semibold">Regulatory blocker: {locScore.location.name}</p>
+                <p className="text-red-300/70 text-xs mt-0.5">{locScore.location.reason}</p>
+              </div>
+            )}
+            {locScore.location.kind === 'caution' && (
+              <div className="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-3 mb-3">
+                <p className="text-yellow-300 text-sm font-semibold">Permit / zoning caution: {locScore.location.name}</p>
+                <p className="text-yellow-300/70 text-xs mt-0.5">{locScore.location.reason}</p>
+                <p className="text-gray-500 text-[11px] mt-1">Not an outright ban — but confirm zoning, HOA docs, and permit availability before closing.</p>
+              </div>
+            )}
+            {locScore.location.kind === 'target' && (
+              <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-3 mb-3">
+                <p className="text-purple-300 text-sm font-semibold">Tier {locScore.location.tier} target market: {locScore.location.name}</p>
+                <p className="text-purple-300/70 text-xs mt-0.5">{locScore.location.theme}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-3 gap-3">
+              <MetricBox label="Market Score" value={`${locScore.scores.market}/10`} />
+              <MetricBox label="Property Fit" value={`${locScore.scores.propertyFit}/10`} sub="SFR/condo/cabin > multi" />
+              <MetricBox label="Price Band" value={`${locScore.scores.priceBand}/10`} sub="$250K-$550K sweet spot" />
+            </div>
+            <p className="text-[10px] text-gray-600 mt-3 leading-relaxed">
+              Regulation list is not exhaustive. Always verify with the local STR ordinance, HOA/POA deed restrictions, and any overlay zoning before making an offer.
+            </p>
+          </div>
         </div>
       </div>
     </div>

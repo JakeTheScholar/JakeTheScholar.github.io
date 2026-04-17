@@ -35,9 +35,12 @@ export async function searchProperties(query) {
     return { results: [], error: 'Please enter a valid location.' };
   }
 
+  const mode = query.mode === 'str' ? 'str' : 'hack';
+
   try {
     const data = await proxyFetch('/api/search', {
       location,
+      mode,
       minPrice: query.minPrice || '',
       maxPrice: query.maxPrice || '',
       minBeds: query.minBeds || '',
@@ -57,7 +60,7 @@ export async function searchProperties(query) {
 
     return { results: filtered };
   } catch (err) {
-    return { results: generateDemoProperties(location), error: err.message, demo: true };
+    return { results: generateDemoProperties(location, mode), error: err.message, demo: true };
   }
 }
 
@@ -96,19 +99,8 @@ function guessUnits(property) {
   return 2;
 }
 
-function generateDemoProperties(location) {
+function generateDemoProperties(location, mode = 'hack') {
   const loc = sanitizeLocation(location) || 'Demo City, ST';
-  const bases = [
-    { price: 165000, beds: 4, baths: 2, sqft: 1800, suffix: 'Oak St' },
-    { price: 189000, beds: 4, baths: 2, sqft: 2100, suffix: 'Elm Ave' },
-    { price: 145000, beds: 3, baths: 2, sqft: 1500, suffix: 'Pine Dr' },
-    { price: 210000, beds: 5, baths: 3, sqft: 2400, suffix: 'Maple Ln' },
-    { price: 175000, beds: 4, baths: 2, sqft: 1900, suffix: 'Cedar Ct' },
-    { price: 135000, beds: 3, baths: 2, sqft: 1400, suffix: 'Birch Way' },
-    { price: 225000, beds: 6, baths: 3, sqft: 2800, suffix: 'Walnut Blvd' },
-    { price: 155000, beds: 4, baths: 2, sqft: 1700, suffix: 'Spruce Rd' },
-    { price: 198000, beds: 4, baths: 2, sqft: 2000, suffix: 'Ash Ave' },
-  ];
 
   const demoImages = [
     'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&h=400&fit=crop',
@@ -120,6 +112,44 @@ function generateDemoProperties(location) {
     'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&h=400&fit=crop',
     'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop',
+  ];
+
+  if (mode === 'str') {
+    const strBases = [
+      { price: 425000, beds: 3, baths: 2, sqft: 1600, suffix: 'Smoky Ridge Cabin' },
+      { price: 389000, beds: 4, baths: 3, sqft: 1900, suffix: 'Hillside A-Frame' },
+      { price: 525000, beds: 4, baths: 3, sqft: 2200, suffix: 'Lakeview Cabin' },
+      { price: 295000, beds: 2, baths: 2, sqft: 1100, suffix: 'Forest Cottage' },
+      { price: 478000, beds: 5, baths: 4, sqft: 2600, suffix: 'Mountain View Lodge' },
+      { price: 349000, beds: 3, baths: 2, sqft: 1500, suffix: 'Creek Side Cabin' },
+      { price: 599000, beds: 5, baths: 4, sqft: 2900, suffix: 'Ridgetop Estate' },
+      { price: 265000, beds: 2, baths: 2, sqft: 1000, suffix: 'Trailhead Studio' },
+      { price: 449000, beds: 4, baths: 3, sqft: 2000, suffix: 'Pine Hollow' },
+    ];
+    return strBases.map((b, i) => ({
+      zpid: `str-demo-${i}`,
+      address: `${100 + i * 12} ${b.suffix}`,
+      price: b.price,
+      bedrooms: b.beds,
+      bathrooms: b.baths,
+      livingArea: b.sqft,
+      units: 1,
+      rentEstimate: null,
+      imgSrc: demoImages[i % demoImages.length],
+      propertyType: 'SingleFamily',
+    }));
+  }
+
+  const bases = [
+    { price: 165000, beds: 4, baths: 2, sqft: 1800, suffix: 'Oak St' },
+    { price: 189000, beds: 4, baths: 2, sqft: 2100, suffix: 'Elm Ave' },
+    { price: 145000, beds: 3, baths: 2, sqft: 1500, suffix: 'Pine Dr' },
+    { price: 210000, beds: 5, baths: 3, sqft: 2400, suffix: 'Maple Ln' },
+    { price: 175000, beds: 4, baths: 2, sqft: 1900, suffix: 'Cedar Ct' },
+    { price: 135000, beds: 3, baths: 2, sqft: 1400, suffix: 'Birch Way' },
+    { price: 225000, beds: 6, baths: 3, sqft: 2800, suffix: 'Walnut Blvd' },
+    { price: 155000, beds: 4, baths: 2, sqft: 1700, suffix: 'Spruce Rd' },
+    { price: 198000, beds: 4, baths: 2, sqft: 2000, suffix: 'Ash Ave' },
   ];
 
   return bases.map((b, i) => ({
@@ -147,10 +177,10 @@ export function getSavedProperties() {
   }
 }
 
-export function saveProperty(property) {
+export function saveProperty(property, mode = 'hack') {
   const saved = getSavedProperties();
   if (!saved.find(p => p.zpid === property.zpid)) {
-    saved.push({ ...property, savedAt: Date.now() });
+    saved.push({ ...property, savedAt: Date.now(), savedMode: mode });
     localStorage.setItem(SAVED_KEY, JSON.stringify(saved));
   }
   return saved;
