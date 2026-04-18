@@ -399,8 +399,8 @@ function renderVendors(){
           ${list.length?list.map(s=>`
             <tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${s.vendor.id}})">
               <td><div class="font-medium text-slate-800">${escHtml(s.vendor.name)}</div><div class="text-[11px] text-slate-400">${s.scoreCount}/10 AI &middot; ${s.personalCount}/10 personal</div></td>
-              <td class="text-slate-600">${escHtml(s.vendor.project||'&mdash;')}</td>
-              <td><div class="text-slate-700">${escHtml(s.vendor.contact_name||'&mdash;')}</div><div class="text-[11px] text-slate-400">${escHtml(s.vendor.contact_email||'')}</div>${Array.isArray(s.vendor.contacts)&&s.vendor.contacts.length>1?`<div class="text-[10px] text-blue-600 font-medium mt-0.5">+${s.vendor.contacts.length-1} more</div>`:''}</td>
+              <td class="text-slate-600">${escHtml(s.vendor.project||'—')}</td>
+              <td><div class="text-slate-700">${escHtml(s.vendor.contact_name||'—')}</div><div class="text-[11px] text-slate-400">${escHtml(s.vendor.contact_email||'')}</div>${Array.isArray(s.vendor.contacts)&&s.vendor.contacts.length>1?`<div class="text-[10px] text-blue-600 font-medium mt-0.5">+${s.vendor.contacts.length-1} more</div>`:''}</td>
               <td>${dualScore(s)}</td>
               <td>${dualRec(s)}</td>
               <td class="text-right" onclick="event.stopPropagation()">
@@ -568,7 +568,7 @@ function renderVendorDetail(id){
   const sections=JSON.parse(v.sections||'[]');
   const campaigns=store.campaigns.filter(c=>(c.vendorIds||[]).includes(v.id));
   const actions=`
-    ${toolbarButton('&larr; Back','','navigate(\'vendors\')')}
+    ${toolbarButton('← Back','','navigate(\'vendors\')')}
     ${toolbarButton('Edit','&#9998;','navigate(\'vendor-edit\',{id:'+v.id+'})')}
     ${toolbarButton('Export','&#128229;','exportVendor('+v.id+')')}
     <button class="btn-danger" onclick="deleteVendor(${v.id})">Delete</button>
@@ -577,7 +577,7 @@ function renderVendorDetail(id){
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div class="lg:col-span-2 space-y-5">
         <div class="card">
-          ${panelHeader('AI &amp; Personal Scoring')}
+          ${panelHeader('AI & Personal Scoring')}
           <div class="p-5">
             <div class="grid grid-cols-2 gap-4 mb-5">
               <div class="text-center p-4 rounded-lg border-2 border-indigo-200 bg-indigo-50">
@@ -742,7 +742,7 @@ function renderCampaignDetail(id){
   if(!c){document.getElementById('viewRoot').innerHTML=`<div class="card p-8 text-center text-slate-400">Campaign not found</div>`;return;}
   const vendorSummaries=(c.vendorIds||[]).map(vid=>store.vendors.find(v=>v.id===vid)).filter(Boolean).map(vendorSummary);
   const available=store.vendors.filter(v=>!(c.vendorIds||[]).includes(v.id));
-  const actions=`${toolbarButton('&larr; Back','','navigate(\'campaigns\')')}${toolbarButton('Edit','&#9998;','navigate(\'campaign-edit\',{id:'+c.id+'})')}${toolbarButton('Export','&#128229;','exportCampaign('+c.id+')')}<button class="btn-danger" onclick="deleteCampaign(${c.id})">Delete</button>`;
+  const actions=`${toolbarButton('← Back','','navigate(\'campaigns\')')}${toolbarButton('Edit','&#9998;','navigate(\'campaign-edit\',{id:'+c.id+'})')}${toolbarButton('Export','&#128229;','exportCampaign('+c.id+')')}<button class="btn-danger" onclick="deleteCampaign(${c.id})">Delete</button>`;
   document.getElementById('viewRoot').innerHTML=pageHeader(c.name,c.description||null,actions)+`
     ${c.objective?`<div class="card p-4 mb-4 border-l-4 border-blue-500"><div class="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">Objective</div><div class="text-sm text-slate-700">${escHtml(c.objective)}</div></div>`:''}
     <div class="card mb-4">
@@ -790,7 +790,7 @@ function renderScoring(){
   const sm={};scores.forEach(s=>{sm[s.criterion]=s.score;});
   const decision=scores.length>0?calculateDecision(scores):null;
   const actions=`${toolbarButton('Export','&#128229;','exportScoringMatrix()')}`;
-  document.getElementById('viewRoot').innerHTML=pageHeader('Scoring Matrix',`Rate vendors on 10 criteria &mdash; AI &amp; Personal scores`,actions)+(vs.length===0?`<div class="card p-12 text-center text-slate-400">No vendors. <button class="text-blue-600 hover:underline" onclick="navigate('vendor-new')">Add one first</button></div>`:`
+  document.getElementById('viewRoot').innerHTML=pageHeader('Scoring Matrix',`Rate vendors on 10 criteria — AI & Personal scores`,actions)+(vs.length===0?`<div class="card p-12 text-center text-slate-400">No vendors. <button class="text-blue-600 hover:underline" onclick="navigate('vendor-new')">Add one first</button></div>`:`
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div class="space-y-2">
         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2">Select Vendor</div>
@@ -918,8 +918,8 @@ function renderEngagementDetail(id){
   const e=store.engagements.find(x=>x.id===Number(id));
   if(!e){document.getElementById('viewRoot').innerHTML=`<div class="card p-8 text-center text-slate-400">Engagement not found</div>`;return;}
   const vs=(e.vendorIds||[]).map(vid=>store.vendors.find(v=>v.id===vid)).filter(Boolean).map(vendorSummary);
-  const actions=`${toolbarButton('&larr; Back','','navigate(\'engagements\')')}${toolbarButton('Export','&#128229;','downloadCSV([e],\'engagement-'+e.id+'.csv\')')}<button class="btn-danger" onclick="deleteEngagement(${e.id})">Delete</button>`;
-  document.getElementById('viewRoot').innerHTML=pageHeader(e.name,`${e.quarter||''} &middot; Owner: ${escHtml(e.owner||'')}`,actions)+`
+  const actions=`${toolbarButton('← Back','','navigate(\'engagements\')')}${toolbarButton('Export','&#128229;','downloadCSV([e],\'engagement-'+e.id+'.csv\')')}<button class="btn-danger" onclick="deleteEngagement(${e.id})">Delete</button>`;
+  document.getElementById('viewRoot').innerHTML=pageHeader(e.name,`${e.quarter||''} · Owner: ${escHtml(e.owner||'')}`,actions)+`
     ${e.objective?`<div class="card p-4 mb-4 border-l-4 border-blue-500"><div class="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-1">Objective</div><div class="text-sm text-slate-700">${escHtml(e.objective)}</div></div>`:''}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
       <div class="card">
@@ -988,7 +988,7 @@ function renderTicketCreate(){document.getElementById('viewRoot').innerHTML=page
       </div>
     </form>`;}
 function saveTicket(){const t={id:nextId(),title:document.getElementById('t_title').value.trim(),category:document.getElementById('t_cat').value,priority:document.getElementById('t_pri').value,status:'Open',vendorId:document.getElementById('t_vendor').value?Number(document.getElementById('t_vendor').value):null,description:document.getElementById('t_desc').value.trim(),created_at:new Date().toISOString()};if(!t.title||!t.description){toast('Title and description required','error');return;}store.tickets.push(t);saveStore();pushNotif('New ticket',t.title);toast('Ticket submitted','success');navigate('ticket-detail',{id:t.id});}
-function renderTicketDetail(id){const t=store.tickets.find(x=>x.id===Number(id));if(!t){document.getElementById('viewRoot').innerHTML='<div class="card p-8 text-center text-slate-400">Ticket not found</div>';return;}const vendor=t.vendorId?store.vendors.find(v=>v.id===t.vendorId):null;document.getElementById('viewRoot').innerHTML=pageHeader(`#${t.id} &middot; ${escHtml(t.title)}`,null,`${toolbarButton('&larr; Back','','navigate(\'tickets\')')}<button class="btn-danger" onclick="deleteTicket(${t.id})">Delete</button>`)+`
+function renderTicketDetail(id){const t=store.tickets.find(x=>x.id===Number(id));if(!t){document.getElementById('viewRoot').innerHTML='<div class="card p-8 text-center text-slate-400">Ticket not found</div>';return;}const vendor=t.vendorId?store.vendors.find(v=>v.id===t.vendorId):null;document.getElementById('viewRoot').innerHTML=pageHeader(`#${t.id} · ${escHtml(t.title)}`,null,`${toolbarButton('← Back','','navigate(\'tickets\')')}<button class="btn-danger" onclick="deleteTicket(${t.id})">Delete</button>`)+`
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
       <div class="lg:col-span-2 card">
         ${panelHeader('Description')}
@@ -1133,7 +1133,7 @@ function renderProfilePassword(){document.getElementById('viewRoot').innerHTML=p
       <div><label class="label">Confirm New Password</label><input class="input" type="password"/></div>
       <div class="text-[11px] text-slate-500">Password must be at least 8 characters.</div>
     </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Update Password</button></div></form>`;}
-function renderProfileTheme(){document.getElementById('viewRoot').innerHTML=pageHeader('Theme &amp; Display','Customize appearance',null)+profileNav('profile-theme')+`
+function renderProfileTheme(){document.getElementById('viewRoot').innerHTML=pageHeader('Theme & Display','Customize appearance',null)+profileNav('profile-theme')+`
     <div class="card">${panelHeader('Theme')}<div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
       ${[['light','Light','bg-white'],['dark','Dark','bg-slate-900'],['auto','System','bg-gradient-to-br from-white to-slate-900']].map(([k,lbl,bg])=>`<button class="p-4 rounded-lg border-2 ${store.settings.theme===k?'border-blue-500':'border-slate-200'} hover:border-blue-300" onclick="store.settings.theme='${k}';saveStore();toast('Theme set: ${lbl}');renderProfileTheme()"><div class="w-full h-20 rounded ${bg} mb-2 border border-slate-200"></div><div class="text-sm font-medium text-slate-800">${lbl}</div></button>`).join('')}
     </div></div>
