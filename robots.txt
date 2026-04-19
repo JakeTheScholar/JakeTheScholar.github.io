@@ -1,11 +1,12 @@
 User-agent: *
 Allow: /
-Allow: /projects.html
-
 Disallow: /agent-farm/
 Disallow: /trading-command-center/
 Disallow: /trading-dashboard/
 Disallow: /property-scout/
 Disallow: /vendor-comparison-matrix/
+Disallow: /threat-intel-dashboard/
+Disallow: /economic-indicators/
+Disallow: /franchise-command-center/
 
 Sitemap: https://jakemcgaha.com/sitemap.xml
