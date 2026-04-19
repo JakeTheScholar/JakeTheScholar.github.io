@@ -1808,38 +1808,28 @@
         const nav = document.querySelector('nav');
         const sections = document.querySelectorAll('section[id]');
         const navLinks = document.querySelectorAll('nav a');
+        const linkByHref = {};
+        navLinks.forEach(a => { linkByHref[a.getAttribute('href')] = a; });
 
-        const sectionOffsets = [];
-        function cacheOffsets() {
-            sectionOffsets.length = 0;
-            sections.forEach(s => sectionOffsets.push({ id: s.id, top: s.offsetTop }));
-        }
-        cacheOffsets();
-        window.addEventListener('load', cacheOffsets, { once: true });
-        window.addEventListener('resize', () => {
-            clearTimeout(window.__navResizeTimer);
-            window.__navResizeTimer = setTimeout(cacheOffsets, 150);
+        let scrolledState = false;
+        window.addEventListener('scroll', () => {
+            const shouldScroll = window.scrollY > 60;
+            if (shouldScroll !== scrolledState) {
+                scrolledState = shouldScroll;
+                nav.classList.toggle('scrolled', shouldScroll);
+            }
         }, { passive: true });
 
-        let navTicking = false;
-        function updateNav() {
-            if (navTicking) return;
-            navTicking = true;
-            requestAnimationFrame(() => {
-                const y = window.scrollY;
-                let current = '';
-                for (let i = 0; i < sectionOffsets.length; i++) {
-                    if (y >= sectionOffsets[i].top - 200) current = sectionOffsets[i].id;
+        const navObserver = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                if (e.isIntersecting) {
+                    const link = linkByHref['#' + e.target.id];
+                    navLinks.forEach(a => a.classList.remove('active'));
+                    if (link) link.classList.add('active');
                 }
-                nav.classList.toggle('scrolled', y > 60);
-                navLinks.forEach(a => {
-                    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
-                });
-                navTicking = false;
             });
-        }
-        window.addEventListener('scroll', updateNav, { passive: true });
-        updateNav();
+        }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+        sections.forEach(s => navObserver.observe(s));
 
         /* ═══ SCROLL REVEAL ═══ */
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
