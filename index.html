@@ -8,7 +8,7 @@
     <meta name="description" content="Jake McGaha — Economist, security analyst, and builder. Ferris State University '26. Economics meets security meets ambition.">
 
     <!-- Security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; base-uri 'self'; form-action https://api.web3forms.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; base-uri 'self'; form-action https://api.web3forms.com;">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -22,12 +22,31 @@
           type="image/webp"
           fetchpriority="high">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style"
-          href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
-          onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
+    <link rel="preload" as="font" type="font/woff2" href="fonts/dm-serif-display-regular.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="fonts/outfit-variable.woff2" crossorigin>
+    <style>
+    @font-face {
+        font-family: 'DM Serif Display';
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+        src: url('fonts/dm-serif-display-regular.woff2') format('woff2');
+    }
+    @font-face {
+        font-family: 'DM Serif Display';
+        font-style: italic;
+        font-weight: 400;
+        font-display: swap;
+        src: url('fonts/dm-serif-display-italic.woff2') format('woff2');
+    }
+    @font-face {
+        font-family: 'Outfit';
+        font-style: normal;
+        font-weight: 300 700;
+        font-display: swap;
+        src: url('fonts/outfit-variable.woff2') format('woff2');
+    }
+    </style>
 
     <style>
         /* ── Custom Properties ── */

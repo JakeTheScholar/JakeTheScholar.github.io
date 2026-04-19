@@ -30,6 +30,10 @@ jobs:
           cp -f headshot-320.jpg headshot-400.jpg headshot-600.jpg headshot-900.jpg _site/ 2>/dev/null || true
           cp -f headshot-320.webp headshot-400.webp headshot-600.webp headshot-900.webp _site/ 2>/dev/null || true
 
+          # Self-hosted fonts (DM Serif Display + Outfit variable)
+          mkdir -p _site/fonts
+          cp -f fonts/*.woff2 _site/fonts/ 2>/dev/null || true
+
           # Agent Farm — frontend only (no server/)
           mkdir -p _site/agent-farm/js
           cp agent-farm/index.html _site/agent-farm/
