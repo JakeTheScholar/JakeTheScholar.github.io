@@ -450,11 +450,19 @@
             z-index: 0;
             opacity: 0.5;
         }
-        .hero-photo {
+        .hero-photo-frame picture {
+            display: block;
             position: relative;
             z-index: 1;
             width: 100%;
             aspect-ratio: 4 / 5;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        .hero-photo {
+            display: block;
+            width: 100%;
+            height: 100%;
             border-radius: 18px;
             object-fit: cover;
             object-position: top center;
