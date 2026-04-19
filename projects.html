@@ -343,11 +343,14 @@
             opacity: 1;
         }
         .page-hero h1 .gold-accent {
-            background: linear-gradient(135deg, var(--gold), var(--gold-bright));
+            background: linear-gradient(90deg, var(--gold), var(--violet), var(--gold-bright));
+            background-size: 200% 100%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: shimmer 5s linear infinite;
         }
+        @keyframes shimmer { to { background-position: -200% 0; } }
 
         .page-hero p {
             font-size: 17px;
