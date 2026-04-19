@@ -26,9 +26,9 @@ jobs:
 
           # Root static files
           cp -f index.html projects.html services.html jake.html vendor-matrix.html favicon.svg headshot.jpg CNAME robots.txt sitemap.xml _site/ 2>/dev/null || true
-          # Responsive hero images (WebP + JPEG at 400/600/900w)
-          cp -f headshot-400.jpg headshot-600.jpg headshot-900.jpg _site/ 2>/dev/null || true
-          cp -f headshot-400.webp headshot-600.webp headshot-900.webp _site/ 2>/dev/null || true
+          # Responsive hero images (WebP + JPEG at 320/400/600/900w)
+          cp -f headshot-320.jpg headshot-400.jpg headshot-600.jpg headshot-900.jpg _site/ 2>/dev/null || true
+          cp -f headshot-320.webp headshot-400.webp headshot-600.webp headshot-900.webp _site/ 2>/dev/null || true
 
           # Agent Farm — frontend only (no server/)
           mkdir -p _site/agent-farm/js

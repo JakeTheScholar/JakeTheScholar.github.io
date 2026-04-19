@@ -16,9 +16,9 @@
 
     <!-- LCP image preload -->
     <link rel="preload" as="image"
-          href="headshot-600.webp"
-          imagesrcset="headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
-          imagesizes="(max-width: 768px) 240px, 300px"
+          href="headshot-400.webp"
+          imagesrcset="headshot-320.webp 320w, headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
+          imagesizes="(max-width: 768px) 180px, 300px"
           type="image/webp"
           fetchpriority="high">
 
@@ -106,46 +106,6 @@
             opacity: 0.03;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
         }
-
-        /* ── Loading Screen ── */
-        #loader {
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            background: var(--void);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            transition: opacity 0.5s var(--ease-smooth);
-            animation: loaderAutoHide 0.5s 1.2s ease forwards;
-        }
-        #loader.hidden { opacity: 0; pointer-events: none; }
-        @keyframes loaderAutoHide {
-            to { opacity: 0; }
-        }
-
-        .loader-text {
-            font-family: var(--font-display);
-            font-size: 14px;
-            font-weight: 400;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            color: var(--gold);
-            opacity: 0;
-            animation: loaderTextIn 0.6s 0.2s var(--ease-out) forwards;
-        }
-        .loader-line {
-            width: 180px;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--gold), transparent);
-            transform: scaleX(0);
-            transform-origin: center;
-            animation: loaderLineExpand 0.9s 0.3s var(--ease-out) forwards;
-        }
-        @keyframes loaderTextIn { to { opacity: 1; } }
-        @keyframes loaderLineExpand { to { transform: scaleX(1); } }
 
         /* ── Custom Cursor ── */
         #cursor {
@@ -1171,11 +1131,6 @@
 </head>
 <body>
 
-    <!-- Loading Screen -->
-    <div id="loader" role="status" aria-label="Loading">
-        <div class="loader-text">Jake McGaha</div>
-        <div class="loader-line"></div>
-    </div>
 
     <!-- Custom Cursor -->
     <div id="cursor"></div>
@@ -1235,12 +1190,12 @@
                     <div class="hero-photo-frame">
                         <picture>
                             <source type="image/webp"
-                                    srcset="headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
-                                    sizes="(max-width: 768px) 240px, 300px">
-                            <img src="headshot-600.jpg"
-                                 srcset="headshot-400.jpg 400w, headshot-600.jpg 600w, headshot-900.jpg 900w"
-                                 sizes="(max-width: 768px) 240px, 300px"
-                                 width="600" height="900"
+                                    srcset="headshot-320.webp 320w, headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
+                                    sizes="(max-width: 768px) 180px, 300px">
+                            <img src="headshot-400.jpg"
+                                 srcset="headshot-320.jpg 320w, headshot-400.jpg 400w, headshot-600.jpg 600w, headshot-900.jpg 900w"
+                                 sizes="(max-width: 768px) 180px, 300px"
+                                 width="400" height="600"
                                  alt="Jake McGaha" class="hero-photo"
                                  fetchpriority="high" decoding="async">
                         </picture>
@@ -1849,32 +1804,38 @@
             });
         }
 
-        /* ═══ LOADER ═══ */
-        const loader = document.getElementById('loader');
-        if (loader) {
-            const hideLoader = () => loader.classList.add('hidden');
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                setTimeout(hideLoader, 400);
-            } else {
-                document.addEventListener('DOMContentLoaded', () => setTimeout(hideLoader, 400), { once: true });
-            }
-            setTimeout(hideLoader, 1500);
-        }
-
         /* ═══ NAV SCROLL STATE ═══ */
         const nav = document.querySelector('nav');
         const sections = document.querySelectorAll('section[id]');
         const navLinks = document.querySelectorAll('nav a');
 
-        function updateNav() {
-            nav.classList.toggle('scrolled', window.scrollY > 60);
+        const sectionOffsets = [];
+        function cacheOffsets() {
+            sectionOffsets.length = 0;
+            sections.forEach(s => sectionOffsets.push({ id: s.id, top: s.offsetTop }));
+        }
+        cacheOffsets();
+        window.addEventListener('load', cacheOffsets, { once: true });
+        window.addEventListener('resize', () => {
+            clearTimeout(window.__navResizeTimer);
+            window.__navResizeTimer = setTimeout(cacheOffsets, 150);
+        }, { passive: true });
 
-            let current = '';
-            sections.forEach(s => {
-                if (window.scrollY >= s.offsetTop - 200) current = s.id;
-            });
-            navLinks.forEach(a => {
-                a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+        let navTicking = false;
+        function updateNav() {
+            if (navTicking) return;
+            navTicking = true;
+            requestAnimationFrame(() => {
+                const y = window.scrollY;
+                let current = '';
+                for (let i = 0; i < sectionOffsets.length; i++) {
+                    if (y >= sectionOffsets[i].top - 200) current = sectionOffsets[i].id;
+                }
+                nav.classList.toggle('scrolled', y > 60);
+                navLinks.forEach(a => {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+                });
+                navTicking = false;
             });
         }
         window.addEventListener('scroll', updateNav, { passive: true });
