@@ -34,7 +34,7 @@
             --emerald: #10b981;
             --text-primary: #ede8e0;
             --text-secondary: #9a94a8;
-            --text-muted: #5a5468;
+            --text-muted: #8e8899;
             --glass-bg: rgba(255, 255, 255, 0.025);
             --glass-border: rgba(255, 255, 255, 0.06);
             --glass-hover: rgba(255, 255, 255, 0.05);
@@ -96,43 +96,6 @@
             opacity: 0.03;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
         }
-
-        /* ── Loading Screen ── */
-        #loader {
-            position: fixed;
-            inset: 0;
-            z-index: 10000;
-            background: var(--void);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 20px;
-            transition: opacity 0.8s var(--ease-smooth), visibility 0.8s;
-            animation: loaderAutoHide 0.8s 2s ease forwards;
-        }
-        #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        @keyframes loaderAutoHide {
-            to { opacity: 0; visibility: hidden; pointer-events: none; }
-        }
-        .loader-text {
-            font-family: var(--font-display);
-            font-size: 14px;
-            font-weight: 400;
-            letter-spacing: 0.25em;
-            text-transform: uppercase;
-            color: var(--gold);
-            opacity: 0;
-            animation: loaderTextIn 0.6s 0.2s var(--ease-out) forwards;
-        }
-        .loader-line {
-            width: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--gold), transparent);
-            animation: loaderLineExpand 1.2s 0.4s var(--ease-out) forwards;
-        }
-        @keyframes loaderTextIn { to { opacity: 1; } }
-        @keyframes loaderLineExpand { to { width: 180px; } }
 
         /* ── Custom Cursor ── */
         #cursor {
@@ -312,8 +275,7 @@
             color: var(--text-muted);
             margin-bottom: 40px;
             transition: color 0.3s;
-            opacity: 0;
-            animation: fadeUp 0.6s 1.4s var(--ease-out) forwards;
+            animation: fadeUp 0.6s var(--ease-out) both;
         }
         .page-hero .back-link:hover { color: var(--gold); }
         .page-hero .back-link svg {
@@ -339,8 +301,7 @@
             align-items: center;
             justify-content: center;
             gap: 12px;
-            opacity: 0;
-            animation: fadeUp 0.7s 1.5s var(--ease-out) forwards;
+            animation: fadeUp 0.7s 0.05s var(--ease-out) both;
         }
         .page-hero .hero-label::before,
         .page-hero .hero-label::after {
@@ -357,8 +318,7 @@
             line-height: 1.08;
             letter-spacing: -0.02em;
             margin-bottom: 24px;
-            opacity: 0;
-            animation: fadeUp 0.8s 1.6s var(--ease-out) forwards;
+            opacity: 1;
         }
         .page-hero h1 .gold-accent {
             background: linear-gradient(135deg, var(--gold), var(--gold-bright));
@@ -374,8 +334,7 @@
             color: var(--text-secondary);
             max-width: 520px;
             margin: 0 auto 32px;
-            opacity: 0;
-            animation: fadeUp 0.8s 1.8s var(--ease-out) forwards;
+            animation: fadeUp 0.8s 0.1s var(--ease-out) both;
         }
 
         .hero-stat-row {
@@ -383,8 +342,7 @@
             align-items: center;
             justify-content: center;
             gap: 40px;
-            opacity: 0;
-            animation: fadeUp 0.8s 2s var(--ease-out) forwards;
+            animation: fadeUp 0.8s 0.2s var(--ease-out) both;
         }
         .hero-stat {
             text-align: center;
@@ -990,12 +948,6 @@
 </head>
 <body>
 
-    <!-- Loading Screen -->
-    <div id="loader" role="status" aria-label="Loading">
-        <div class="loader-text">Projects</div>
-        <div class="loader-line"></div>
-    </div>
-
     <!-- Custom Cursor -->
     <div id="cursor"></div>
     <div id="cursor-dot"></div>
@@ -1383,20 +1335,25 @@
 
         /* ═══ PARTICLE SYSTEM ═══ */
         const canvas = document.getElementById('particles');
-        const ctx = canvas.getContext('2d');
+        const isMobileOrTouch = window.matchMedia('(max-width: 768px), (hover: none), (pointer: coarse)').matches;
+        const particlesEnabled = !!canvas && !isMobileOrTouch
+            && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const ctx = particlesEnabled ? canvas.getContext('2d') : null;
         let particles = [];
         let mouseX = -1000, mouseY = -1000;
+        let canvasW = 0, canvasH = 0;
 
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvasW = window.innerWidth;
+            canvasH = window.innerHeight;
+            if (canvas) { canvas.width = canvasW; canvas.height = canvasH; }
         }
 
         class Particle {
             constructor() { this.reset(); }
             reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
+                this.x = Math.random() * canvasW;
+                this.y = Math.random() * canvasH;
                 this.vx = (Math.random() - 0.5) * CONFIG.particles.baseSpeed * 2;
                 this.vy = (Math.random() - 0.5) * CONFIG.particles.baseSpeed * 2;
                 this.size = Math.random() * 2 + 0.5;
@@ -1421,10 +1378,10 @@
                 this.y += this.vy;
                 this.vx *= 0.995;
                 this.vy *= 0.995;
-                if (this.x < -10) this.x = canvas.width + 10;
-                if (this.x > canvas.width + 10) this.x = -10;
-                if (this.y < -10) this.y = canvas.height + 10;
-                if (this.y > canvas.height + 10) this.y = -10;
+                if (this.x < -10) this.x = canvasW + 10;
+                if (this.x > canvasW + 10) this.x = -10;
+                if (this.y < -10) this.y = canvasH + 10;
+                if (this.y > canvasH + 10) this.y = -10;
             }
             draw() {
                 const c = this.isGold ? CONFIG.colors.gold : CONFIG.colors.white;
@@ -1438,8 +1395,7 @@
 
         function initParticles() {
             particles = [];
-            const isMobile = window.innerWidth < 768;
-            const count = isMobile ? Math.floor(CONFIG.particles.count * 0.5) : CONFIG.particles.count;
+            const count = CONFIG.particles.count;
             for (let i = 0; i < count; i++) particles.push(new Particle());
         }
 
@@ -1476,22 +1432,33 @@
         }
 
         function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvasW, canvasH);
             drawMouseGlow();
             drawConnections();
             for (const p of particles) { p.update(); p.draw(); }
             requestAnimationFrame(animate);
         }
 
-        resizeCanvas();
-        initParticles();
-        animate();
+        if (particlesEnabled) {
+            const startParticles = () => {
+                resizeCanvas();
+                initParticles();
+                animate();
+            };
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(startParticles, { timeout: 1500 });
+            } else {
+                setTimeout(startParticles, 400);
+            }
 
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
-        });
+            let resizeTimer;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
+            }, { passive: true });
+        } else if (canvas) {
+            canvas.style.display = 'none';
+        }
 
         /* ═══ CUSTOM CURSOR ═══ */
         const cursor = document.getElementById('cursor');
@@ -1533,15 +1500,6 @@
             el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
             el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
         });
-
-        /* ═══ LOADER ═══ */
-        const loader = document.getElementById('loader');
-        if (loader) {
-            window.addEventListener('load', () => {
-                setTimeout(() => loader.classList.add('hidden'), 1000);
-            });
-            setTimeout(() => loader.classList.add('hidden'), 2500);
-        }
 
         /* ═══ SCROLL REVEAL ═══ */
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
