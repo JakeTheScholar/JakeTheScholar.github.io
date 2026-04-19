@@ -8,7 +8,7 @@
     <meta name="description" content="Configure a custom website in minutes. Pick your business theme, choose your features, and get a free mockup from Jake McGaha in 48 hours.">
 
     <!-- Security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://formspree.io; object-src 'none'; frame-ancestors 'none'; base-uri 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self';">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -1328,14 +1328,26 @@
             setTimeout(() => toastError.classList.remove('show'), 6000);
         }
 
-        /* ─── Submit → Formspree (multipart w/ files) ─── */
-        // TODO: replace with your Formspree form ID (free tier, supports file uploads)
-        const FORMSPREE_ENDPOINT = 'https://formspree.io/f/YOUR_FORM_ID';
+        /* ─── Submit → Web3Forms ─── */
+        const WEB3FORMS_ENDPOINT = 'https://api.web3forms.com/submit';
+        const WEB3FORMS_ACCESS_KEY = 'bf840fa7-6ed5-4c4f-90cc-c2c89686603f';
         const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         const form = document.getElementById('delivery-form');
         const submitBtn = document.getElementById('submit-btn');
         const originalBtnText = submitBtn.textContent;
+
+        function buildMessage({ business, theme, features, seo, referenceUrl, referenceText, notes }) {
+            const lines = [];
+            if (business) lines.push(`Business: ${business}`);
+            lines.push(`Theme: ${theme}`);
+            if (features) lines.push(`Features: ${features}`);
+            if (seo) lines.push(`SEO add-ons: ${seo}`);
+            if (referenceUrl) lines.push(`Reference URL: ${referenceUrl}`);
+            if (referenceText) lines.push(`\nReference text:\n${referenceText}`);
+            if (notes) lines.push(`\nNotes:\n${notes}`);
+            return lines.join('\n');
+        }
 
         form.addEventListener('submit', async e => {
             e.preventDefault();
@@ -1352,24 +1364,31 @@
             if (!name) { showError('Please add your name.'); return; }
             if (!EMAIL_RE.test(email)) { showError('Please enter a valid email address.'); return; }
 
+            const themeLabel = state.theme ? THEME_LABELS[state.theme] : '(custom)';
+            const features = state.features.size ? [...state.features].map(k => FEATURE_LABELS[k]).join(', ') : '';
+            const seo = state.seo.size ? [...state.seo].map(k => SEO_LABELS[k]).join(', ') : '';
+
             const payload = {
+                access_key: WEB3FORMS_ACCESS_KEY,
+                subject: `New free-mockup request — ${name}${business ? ' / ' + business : ''}`,
                 name,
                 email,
-                business: business || undefined,
-                theme: state.theme ? THEME_LABELS[state.theme] : '(custom)',
-                reference_url: state.referenceUrl || undefined,
-                reference_text: state.referenceText || undefined,
-                features: state.features.size ? [...state.features].map(k => FEATURE_LABELS[k]).join(', ') : undefined,
-                seo_addons: state.seo.size ? [...state.seo].map(k => SEO_LABELS[k]).join(', ') : undefined,
-                notes: state.notes || undefined,
-                _subject: `New free-mockup request — ${name}${business ? ' / ' + business : ''}`
+                message: buildMessage({
+                    business,
+                    theme: themeLabel,
+                    features,
+                    seo,
+                    referenceUrl: state.referenceUrl,
+                    referenceText: state.referenceText,
+                    notes: state.notes
+                })
             };
 
             submitBtn.disabled = true;
             submitBtn.textContent = 'Sending…';
 
             try {
-                const res = await fetch(FORMSPREE_ENDPOINT, {
+                const res = await fetch(WEB3FORMS_ENDPOINT, {
                     method: 'POST',
                     body: JSON.stringify(payload),
                     headers: {
@@ -1379,7 +1398,7 @@
                 });
                 if (!res.ok) {
                     const data = await res.json().catch(() => ({}));
-                    throw new Error(data.error || 'Submission failed');
+                    throw new Error(data.message || 'Submission failed');
                 }
                 form.reset();
                 showSuccess();
