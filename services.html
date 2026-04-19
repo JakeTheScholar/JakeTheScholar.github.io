@@ -8,7 +8,7 @@
     <meta name="description" content="Configure a custom website in minutes. Pick your business theme, choose your features, and get a free mockup from Jake McGaha in 48 hours.">
 
     <!-- Security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; base-uri 'self';">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
@@ -684,6 +684,93 @@
         .toast.show { transform: translate(-50%, 0); }
         .toast strong { color: var(--emerald); }
 
+        /* ── Entrance animations ── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero .hero-eyebrow,
+        .hero h1,
+        .hero p,
+        .hero .free-pill,
+        .stepper {
+            opacity: 0;
+            animation: fadeUp 0.7s var(--ease-out) forwards;
+        }
+        .hero .hero-eyebrow { animation-delay: 0.08s; }
+        .hero h1            { animation-delay: 0.20s; }
+        .hero p             { animation-delay: 0.32s; }
+        .hero .free-pill    { animation-delay: 0.44s; }
+        .stepper            { animation-delay: 0.56s; }
+
+        .panel.reveal {
+            opacity: 0;
+            transform: translateY(36px) scale(0.985);
+            transition: opacity 0.75s var(--ease-out), transform 0.75s var(--ease-out);
+            will-change: opacity, transform;
+        }
+        .panel.reveal.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .panel .theme-card,
+        .panel .feature-card,
+        .panel .seo-card,
+        .panel .reference-block,
+        .panel .notes-block,
+        .panel .summary-grid,
+        .panel .submit-row {
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity 0.55s var(--ease-out), transform 0.55s var(--ease-out);
+        }
+        .panel.visible .theme-card,
+        .panel.visible .feature-card,
+        .panel.visible .seo-card,
+        .panel.visible .reference-block,
+        .panel.visible .notes-block,
+        .panel.visible .summary-grid,
+        .panel.visible .submit-row {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .panel.visible .theme-card:nth-child(n+1),
+        .panel.visible .feature-card:nth-child(n+1),
+        .panel.visible .seo-card:nth-child(n+1)   { transition-delay: 0.10s; }
+        .panel.visible .theme-card:nth-child(n+2),
+        .panel.visible .feature-card:nth-child(n+2),
+        .panel.visible .seo-card:nth-child(n+2)   { transition-delay: 0.14s; }
+        .panel.visible .theme-card:nth-child(n+3),
+        .panel.visible .feature-card:nth-child(n+3),
+        .panel.visible .seo-card:nth-child(n+3)   { transition-delay: 0.18s; }
+        .panel.visible .theme-card:nth-child(n+4),
+        .panel.visible .feature-card:nth-child(n+4),
+        .panel.visible .seo-card:nth-child(n+4)   { transition-delay: 0.22s; }
+        .panel.visible .theme-card:nth-child(n+5),
+        .panel.visible .feature-card:nth-child(n+5),
+        .panel.visible .seo-card:nth-child(n+5)   { transition-delay: 0.26s; }
+        .panel.visible .theme-card:nth-child(n+6),
+        .panel.visible .feature-card:nth-child(n+6),
+        .panel.visible .seo-card:nth-child(n+6)   { transition-delay: 0.30s; }
+        .panel.visible .theme-card:nth-child(n+7),
+        .panel.visible .feature-card:nth-child(n+7)  { transition-delay: 0.34s; }
+        .panel.visible .theme-card:nth-child(n+8),
+        .panel.visible .feature-card:nth-child(n+8)  { transition-delay: 0.38s; }
+        .panel.visible .theme-card:nth-child(n+9),
+        .panel.visible .feature-card:nth-child(n+9)  { transition-delay: 0.42s; }
+        .panel.visible .theme-card:nth-child(n+10),
+        .panel.visible .feature-card:nth-child(n+10) { transition-delay: 0.46s; }
+        .panel.visible .theme-card:nth-child(n+11),
+        .panel.visible .feature-card:nth-child(n+11) { transition-delay: 0.50s; }
+        .panel.visible .theme-card:nth-child(n+12),
+        .panel.visible .feature-card:nth-child(n+12) { transition-delay: 0.54s; }
+        .panel.visible .theme-card:nth-child(n+13)   { transition-delay: 0.58s; }
+        .panel.visible .theme-card:nth-child(n+14)   { transition-delay: 0.62s; }
+        .panel.visible .theme-card:nth-child(n+15)   { transition-delay: 0.66s; }
+        .panel.visible .theme-card:nth-child(n+16)   { transition-delay: 0.70s; }
+
         /* ── Responsive ── */
         @media (max-width: 900px) {
             .summary-grid { grid-template-columns: 1fr; }
@@ -801,7 +888,7 @@
             </div>
 
             <!-- ═══ STEP 1: THEME ═══ -->
-            <section class="panel" id="panel-theme">
+            <section class="panel reveal" id="panel-theme">
                 <div class="panel-header">
                     <div class="panel-label">Step 01 — Pick a theme</div>
                     <h2>What kind of business is this for?</h2>
@@ -922,7 +1009,7 @@
             </section>
 
             <!-- ═══ STEP 2: FEATURES ═══ -->
-            <section class="panel" id="panel-features">
+            <section class="panel reveal" id="panel-features">
                 <div class="panel-header">
                     <div class="panel-label">Step 02 — Build the feature set</div>
                     <h2>What do you want your site to do?</h2>
@@ -987,7 +1074,7 @@
             </section>
 
             <!-- ═══ STEP 3: SEO ═══ -->
-            <section class="panel" id="panel-seo">
+            <section class="panel reveal" id="panel-seo">
                 <div class="panel-header">
                     <div class="seo-header">
                         <div class="panel-label" style="margin-bottom: 0;">Step 03 — Recommended</div>
@@ -1050,7 +1137,7 @@
             </section>
 
             <!-- ═══ STEP 4: SUMMARY + DELIVERY ═══ -->
-            <section class="panel" id="panel-summary">
+            <section class="panel reveal" id="panel-summary">
                 <div class="panel-header">
                     <div class="panel-label">Step 04 — Claim it</div>
                     <h2>Your free mockup, made to order</h2>
@@ -1067,15 +1154,15 @@
                         <div class="summary-row"><span class="key">Notes</span><span class="val empty" id="sum-notes">None</span></div>
                     </div>
 
-                    <form class="delivery-form" id="delivery-form" autocomplete="off" novalidate>
+                    <form class="delivery-form" id="delivery-form" novalidate>
                         <label for="name">Your name</label>
-                        <input type="text" id="name" name="name" placeholder="Jane Doe" required />
+                        <input type="text" id="name" name="name" autocomplete="name" placeholder="Jane Doe" required />
 
                         <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="you@business.com" required />
+                        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@business.com" required />
 
                         <label for="business">Business name (optional)</label>
-                        <input type="text" id="business" name="business" placeholder="Joe's Pizza Co." />
+                        <input type="text" id="business" name="business" autocomplete="organization" placeholder="Joe's Pizza Co." />
 
                         <div class="submit-row">
                             <button type="submit" class="btn-primary" id="submit-btn">Send My Free Mockup →</button>
@@ -1588,6 +1675,24 @@
             el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
             el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
         });
+
+        /* ═══ REVEAL ON SCROLL ═══ */
+        const revealTargets = document.querySelectorAll('.reveal');
+        if (revealTargets.length) {
+            if ('IntersectionObserver' in window) {
+                const io = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            observer.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+                revealTargets.forEach(el => io.observe(el));
+            } else {
+                revealTargets.forEach(el => el.classList.add('visible'));
+            }
+        }
     })();
     </script>
 
