@@ -18,7 +18,7 @@
     <link rel="preload" as="image"
           href="headshot-600.webp"
           imagesrcset="headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
-          imagesizes="(max-width: 900px) 240px, 300px"
+          imagesizes="(max-width: 768px) 240px, 300px"
           type="image/webp"
           fetchpriority="high">
 
@@ -118,12 +118,12 @@
             align-items: center;
             justify-content: center;
             gap: 20px;
-            transition: opacity 0.5s var(--ease-smooth), visibility 0.5s;
+            transition: opacity 0.5s var(--ease-smooth);
             animation: loaderAutoHide 0.5s 1.2s ease forwards;
         }
-        #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        #loader.hidden { opacity: 0; pointer-events: none; }
         @keyframes loaderAutoHide {
-            to { opacity: 0; visibility: hidden; pointer-events: none; }
+            to { opacity: 0; }
         }
 
         .loader-text {
@@ -1236,10 +1236,10 @@
                         <picture>
                             <source type="image/webp"
                                     srcset="headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
-                                    sizes="(max-width: 900px) 240px, 300px">
+                                    sizes="(max-width: 768px) 240px, 300px">
                             <img src="headshot-600.jpg"
                                  srcset="headshot-400.jpg 400w, headshot-600.jpg 600w, headshot-900.jpg 900w"
-                                 sizes="(max-width: 900px) 240px, 300px"
+                                 sizes="(max-width: 768px) 240px, 300px"
                                  width="600" height="900"
                                  alt="Jake McGaha" class="hero-photo"
                                  fetchpriority="high" decoding="async">
@@ -1682,17 +1682,25 @@
         let particles = [];
         let mouseX = -1000, mouseY = -1000;
 
+        const isMobileOrTouch = window.matchMedia('(max-width: 768px), (hover: none), (pointer: coarse)').matches;
+        const particlesEnabled = !!canvas && !isMobileOrTouch
+            && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        let canvasW = 0, canvasH = 0;
         function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            canvasW = w; canvasH = h;
+            canvas.width = w;
+            canvas.height = h;
         }
 
         class Particle {
             constructor() { this.reset(); }
 
             reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
+                this.x = Math.random() * canvasW;
+                this.y = Math.random() * canvasH;
                 this.vx = (Math.random() - 0.5) * CONFIG.particles.baseSpeed * 2;
                 this.vy = (Math.random() - 0.5) * CONFIG.particles.baseSpeed * 2;
                 this.size = Math.random() * 2 + 0.5;
@@ -1718,10 +1726,10 @@
                 this.y += this.vy;
                 this.vx *= 0.995;
                 this.vy *= 0.995;
-                if (this.x < -10) this.x = canvas.width + 10;
-                if (this.x > canvas.width + 10) this.x = -10;
-                if (this.y < -10) this.y = canvas.height + 10;
-                if (this.y > canvas.height + 10) this.y = -10;
+                if (this.x < -10) this.x = canvasW + 10;
+                if (this.x > canvasW + 10) this.x = -10;
+                if (this.y < -10) this.y = canvasH + 10;
+                if (this.y > canvasH + 10) this.y = -10;
             }
 
             draw() {
@@ -1736,9 +1744,7 @@
 
         function initParticles() {
             particles = [];
-            const isMobile = window.innerWidth < 768;
-            const count = isMobile ? Math.floor(CONFIG.particles.count * 0.5) : CONFIG.particles.count;
-            for (let i = 0; i < count; i++) particles.push(new Particle());
+            for (let i = 0; i < CONFIG.particles.count; i++) particles.push(new Particle());
         }
 
         function drawConnections() {
@@ -1774,22 +1780,32 @@
         }
 
         function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvasW, canvasH);
             drawMouseGlow();
             drawConnections();
             for (const p of particles) { p.update(); p.draw(); }
             requestAnimationFrame(animate);
         }
 
-        resizeCanvas();
-        initParticles();
-        animate();
-
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
-        });
+        if (particlesEnabled) {
+            const start = () => {
+                resizeCanvas();
+                initParticles();
+                animate();
+                let resizeTimer;
+                window.addEventListener('resize', () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => { resizeCanvas(); initParticles(); }, 200);
+                });
+            };
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(start, { timeout: 2000 });
+            } else {
+                setTimeout(start, 200);
+            }
+        } else if (canvas) {
+            canvas.style.display = 'none';
+        }
 
         /* ═══ CUSTOM CURSOR ═══ */
         const cursor = document.getElementById('cursor');
@@ -1824,13 +1840,14 @@
             cursorDot.style.top = dotY + 'px';
             requestAnimationFrame(updateCursor);
         }
-        updateCursor();
-
-        const hoverTargets = 'a, button, .skill-item, .interest-card, .exp-card, .form-submit, .btn-linkedin, .btn-ghost';
-        document.querySelectorAll(hoverTargets).forEach(el => {
-            el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-            el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-        });
+        if (enableCustomCursor) {
+            updateCursor();
+            const hoverTargets = 'a, button, .skill-item, .interest-card, .exp-card, .form-submit, .btn-linkedin, .btn-ghost';
+            document.querySelectorAll(hoverTargets).forEach(el => {
+                el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+                el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            });
+        }
 
         /* ═══ LOADER ═══ */
         const loader = document.getElementById('loader');
