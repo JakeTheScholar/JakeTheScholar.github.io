@@ -8,15 +8,26 @@
     <meta name="description" content="Jake McGaha — Economist, security analyst, and builder. Ferris State University '26. Economics meets security meets ambition.">
 
     <!-- Security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action https://api.web3forms.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'; connect-src https://api.web3forms.com; object-src 'none'; base-uri 'self'; form-action https://api.web3forms.com;">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
     <link rel="icon" type="image/svg+xml" href="favicon.svg?v=2">
 
+    <!-- LCP image preload -->
+    <link rel="preload" as="image"
+          href="headshot-600.webp"
+          imagesrcset="headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
+          imagesizes="(max-width: 900px) 240px, 300px"
+          type="image/webp"
+          fetchpriority="high">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin>
+    <link rel="preload" as="style"
+          href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap"
+          onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
     <style>
         /* ── Custom Properties ── */
@@ -33,7 +44,7 @@
             --rose: #ec6d8c;
             --text-primary: #ede8e0;
             --text-secondary: #9a94a8;
-            --text-muted: #5a5468;
+            --text-muted: #8e8899;
             --glass-bg: rgba(255, 255, 255, 0.025);
             --glass-border: rgba(255, 255, 255, 0.06);
             --glass-hover: rgba(255, 255, 255, 0.05);
@@ -107,8 +118,8 @@
             align-items: center;
             justify-content: center;
             gap: 20px;
-            transition: opacity 0.8s var(--ease-smooth), visibility 0.8s;
-            animation: loaderAutoHide 0.8s 2.5s ease forwards;
+            transition: opacity 0.5s var(--ease-smooth), visibility 0.5s;
+            animation: loaderAutoHide 0.5s 1.2s ease forwards;
         }
         #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
         @keyframes loaderAutoHide {
@@ -126,13 +137,15 @@
             animation: loaderTextIn 0.6s 0.2s var(--ease-out) forwards;
         }
         .loader-line {
-            width: 0;
+            width: 180px;
             height: 1px;
             background: linear-gradient(90deg, transparent, var(--gold), transparent);
-            animation: loaderLineExpand 1.2s 0.4s var(--ease-out) forwards;
+            transform: scaleX(0);
+            transform-origin: center;
+            animation: loaderLineExpand 0.9s 0.3s var(--ease-out) forwards;
         }
         @keyframes loaderTextIn { to { opacity: 1; } }
-        @keyframes loaderLineExpand { to { width: 180px; } }
+        @keyframes loaderLineExpand { to { transform: scaleX(1); } }
 
         /* ── Custom Cursor ── */
         #cursor {
@@ -192,7 +205,7 @@
             transition: background 0.5s var(--ease-smooth), border-color 0.5s,
                         backdrop-filter 0.5s;
             opacity: 0;
-            animation: navFadeIn 0.8s 2.2s var(--ease-out) forwards;
+            animation: navFadeIn 0.6s 1.2s var(--ease-out) forwards;
         }
         nav.scrolled {
             background: rgba(7, 6, 11, 0.85);
@@ -312,7 +325,7 @@
         .hero-content {
             text-align: left;
             opacity: 0;
-            animation: fadeUp 0.8s 1.6s var(--ease-out) forwards;
+            animation: fadeUp 0.7s 0.9s var(--ease-out) forwards;
         }
 
         .hero-credential {
@@ -420,7 +433,7 @@
 
         .hero-photo-wrap {
             opacity: 0;
-            animation: fadeUp 0.8s 1.8s var(--ease-out) forwards;
+            animation: fadeUp 0.7s 1.1s var(--ease-out) forwards;
         }
 
         .hero-photo-frame {
@@ -547,7 +560,7 @@
             margin: 0 auto;
         }
 
-        .skill-category h4 {
+        .skill-category h3 {
             font-family: var(--font-body);
             font-size: 13px;
             font-weight: 600;
@@ -558,9 +571,9 @@
             border-bottom: 1px solid var(--glass-border);
             text-align: center;
         }
-        .skill-category.finance h4 { color: var(--gold); border-color: rgba(201, 169, 110, 0.2); }
-        .skill-category.tech h4 { color: var(--violet); border-color: rgba(139, 92, 246, 0.2); }
-        .skill-category.security h4 { color: var(--rose); border-color: rgba(236, 109, 140, 0.2); }
+        .skill-category.finance h3 { color: var(--gold); border-color: rgba(201, 169, 110, 0.2); }
+        .skill-category.tech h3 { color: var(--violet); border-color: rgba(139, 92, 246, 0.2); }
+        .skill-category.security h3 { color: var(--rose); border-color: rgba(236, 109, 140, 0.2); }
 
         .skill-list {
             list-style: none;
@@ -646,7 +659,7 @@
             margin-left: auto;
             margin-right: auto;
         }
-        .interest-card h4 {
+        .interest-card h3 {
             font-family: var(--font-display);
             font-size: 1.3rem;
             font-weight: 400;
@@ -783,7 +796,7 @@
         .linkedin-badge svg { width: 40px; height: 40px; fill: var(--void); }
 
         .linkedin-content { flex: 1; text-align: left; }
-        .linkedin-content h3 {
+        .linkedin-content h2 {
             font-family: var(--font-display);
             font-size: clamp(1.8rem, 3vw, 2.4rem);
             font-weight: 400;
@@ -1081,7 +1094,7 @@
                 flex-direction: column;
                 text-align: center;
             }
-            .linkedin-content h3 { text-align: center; }
+            .linkedin-content h2 { text-align: center; }
             .linkedin-content p { max-width: 100%; text-align: center; }
             .linkedin-buttons {
                 justify-content: center;
@@ -1212,7 +1225,17 @@
                 </div>
                 <div class="hero-photo-wrap">
                     <div class="hero-photo-frame">
-                        <img src="headshot.jpg" alt="Jake McGaha" class="hero-photo" loading="eager">
+                        <picture>
+                            <source type="image/webp"
+                                    srcset="headshot-400.webp 400w, headshot-600.webp 600w, headshot-900.webp 900w"
+                                    sizes="(max-width: 900px) 240px, 300px">
+                            <img src="headshot-600.jpg"
+                                 srcset="headshot-400.jpg 400w, headshot-600.jpg 600w, headshot-900.jpg 900w"
+                                 sizes="(max-width: 900px) 240px, 300px"
+                                 width="600" height="900"
+                                 alt="Jake McGaha" class="hero-photo"
+                                 fetchpriority="high" decoding="async">
+                        </picture>
                     </div>
                 </div>
             </div>
@@ -1255,7 +1278,7 @@
 
                 <div class="skills-grid">
                     <div class="skill-category finance reveal reveal-delay-2">
-                        <h4>Markets &amp; Finance</h4>
+                        <h3>Markets &amp; Finance</h3>
                         <ul class="skill-list">
                             <li class="skill-item">Economics &amp; Econometrics</li>
                             <li class="skill-item">DCF &amp; Financial Modeling</li>
@@ -1265,7 +1288,7 @@
                         </ul>
                     </div>
                     <div class="skill-category tech reveal reveal-delay-3">
-                        <h4>Technology</h4>
+                        <h3>Technology</h3>
                         <ul class="skill-list">
                             <li class="skill-item">Python &amp; JavaScript</li>
                             <li class="skill-item">React &amp; Vite</li>
@@ -1275,7 +1298,7 @@
                         </ul>
                     </div>
                     <div class="skill-category security reveal reveal-delay-4">
-                        <h4>Security &amp; Intelligence</h4>
+                        <h3>Security &amp; Intelligence</h3>
                         <ul class="skill-list">
                             <li class="skill-item">Network Security</li>
                             <li class="skill-item">Digital Forensics</li>
@@ -1303,21 +1326,21 @@
                         <div class="interest-icon gold">
                             <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="14.31" y1="8" x2="20.05" y2="17.94"/><line x1="9.69" y1="8" x2="21.17" y2="8"/><line x1="7.38" y1="12" x2="13.12" y2="2.06"/><line x1="9.69" y1="16" x2="3.95" y2="6.06"/><line x1="14.31" y1="16" x2="2.83" y2="16"/><line x1="16.62" y1="12" x2="10.88" y2="21.94"/></svg>
                         </div>
-                        <h4>Modeling</h4>
+                        <h3>Modeling</h3>
                         <p>Commercial, editorial, brand work &mdash; I enjoy the creative process and the discipline it takes to present well in front of a camera. Always open to new opportunities.</p>
                     </div>
                     <div class="interest-card reveal reveal-delay-3">
                         <div class="interest-icon violet">
                             <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                         </div>
-                        <h4>Building</h4>
+                        <h3>Building</h3>
                         <p>I like making things &mdash; tools, systems, strategies, websites. If there&rsquo;s a problem and a way to build a solution, that&rsquo;s where I want to be. The best ideas are the ones that actually ship.</p>
                     </div>
                     <div class="interest-card reveal reveal-delay-4">
                         <div class="interest-icon" style="background:rgba(236,109,140,0.1);border:1px solid rgba(236,109,140,0.15);color:var(--rose);">
                             <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
                         </div>
-                        <h4>Fitness</h4>
+                        <h3>Fitness</h3>
                         <p>The gym isn&rsquo;t optional &mdash; it&rsquo;s where I reset. Discipline in training carries over to everything else. Consistency beats motivation, in the gym and everywhere else.</p>
                     </div>
                 </div>
@@ -1454,7 +1477,7 @@
                         </svg>
                     </div>
                     <div class="linkedin-content">
-                        <h3>Let&rsquo;s connect on LinkedIn</h3>
+                        <h2>Let&rsquo;s connect on LinkedIn</h2>
                         <p>Follow along for insights on economics, security, and what I&rsquo;m building next &mdash; or reach out directly if you&rsquo;re hiring, collaborating, or just want to talk shop.</p>
                         <div class="linkedin-buttons">
                             <a href="https://www.linkedin.com/in/jakemcgaha/" class="btn-linkedin" target="_blank" rel="noopener noreferrer">
@@ -1804,11 +1827,13 @@
         /* ═══ LOADER ═══ */
         const loader = document.getElementById('loader');
         if (loader) {
-            window.addEventListener('load', () => {
-                setTimeout(() => loader.classList.add('hidden'), 1400);
-            });
-            // Fallback: hide loader after 3s no matter what
-            setTimeout(() => loader.classList.add('hidden'), 3000);
+            const hideLoader = () => loader.classList.add('hidden');
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                setTimeout(hideLoader, 400);
+            } else {
+                document.addEventListener('DOMContentLoaded', () => setTimeout(hideLoader, 400), { once: true });
+            }
+            setTimeout(hideLoader, 1500);
         }
 
         /* ═══ NAV SCROLL STATE ═══ */
