@@ -846,26 +846,47 @@ function exportScoringMatrix(){const rows=store.vendors.flatMap(v=>SCORING_CRITE
 /* ============================================================
    DECISIONS
    ============================================================ */
-let decisionsFilter={tab:'ALL',sort:'aiScore',mode:'ai'};
+let decisionsFilter={tab:'ALL',sort:'aiScore'};
 function renderDecisions(){
   const vs=store.vendors.map(vendorSummary);
-  const useDecision=v=>decisionsFilter.mode==='ai'?v.aiDecision:v.personalDecision;
-  const scored=vs.filter(v=>useDecision(v));
-  const unscored=vs.filter(v=>!useDecision(v));
-  let filtered=decisionsFilter.tab==='ALL'?scored:scored.filter(v=>useDecision(v).recommendation===decisionsFilter.tab);
-  filtered.sort((a,b)=>{if(decisionsFilter.sort==='aiScore')return decisionsFilter.mode==='ai'?b.aiScore-a.aiScore:b.personalScore-a.personalScore;if(decisionsFilter.sort==='confidence')return (useDecision(b)?.confidence||0)-(useDecision(a)?.confidence||0);if(decisionsFilter.sort==='name')return a.vendor.name.localeCompare(b.vendor.name);return 0;});
-  const counts={BUY:0,BUILD:0,PARTNER:0};scored.forEach(v=>counts[useDecision(v).recommendation]++);
+  const scored=vs.filter(v=>v.aiDecision||v.personalDecision||v.userDecision);
+  const unscored=vs.filter(v=>!v.aiDecision&&!v.personalDecision&&!v.userDecision);
+  const matchesTab=v=>decisionsFilter.tab==='ALL'||(v.aiDecision&&v.aiDecision.recommendation===decisionsFilter.tab)||(v.personalDecision&&v.personalDecision.recommendation===decisionsFilter.tab)||(v.userDecision===decisionsFilter.tab);
+  let filtered=scored.filter(matchesTab);
+  filtered.sort((a,b)=>{if(decisionsFilter.sort==='aiScore')return b.aiScore-a.aiScore;if(decisionsFilter.sort==='confidence')return (b.aiDecision?.confidence||0)-(a.aiDecision?.confidence||0);if(decisionsFilter.sort==='name')return a.vendor.name.localeCompare(b.vendor.name);return 0;});
+  const counts={BUY:0,BUILD:0,PARTNER:0};
+  const userCounts={BUY:0,BUILD:0,PARTNER:0};
+  const personalCounts={BUY:0,BUILD:0,PARTNER:0};
+  scored.forEach(v=>{
+    if(v.aiDecision)counts[v.aiDecision.recommendation]++;
+    if(v.personalDecision)personalCounts[v.personalDecision.recommendation]++;
+    if(v.userDecision)userCounts[v.userDecision]++;
+  });
+  const userPickTotal=userCounts.BUY+userCounts.BUILD+userCounts.PARTNER;
   const actions=`${toolbarButton('Export','&#128229;','exportDecisions()')}${toolbarButton('Save Layout','&#128190;','saveLayout()')}`;
-  document.getElementById('viewRoot').innerHTML=pageHeader('Decisions','Buy / Build / Partner recommendations',actions)+`
-    <div class="card mb-4 p-3 flex items-center gap-3">
-      <div class="text-xs font-medium text-slate-500">View:</div>
-      <button class="px-3 py-1 rounded text-xs ${decisionsFilter.mode==='ai'?'bg-indigo-600 text-white':'bg-slate-100 text-slate-600'}" onclick="decisionsFilter.mode='ai';renderDecisions()">AI Recommendations</button>
-      <button class="px-3 py-1 rounded text-xs ${decisionsFilter.mode==='personal'?'bg-amber-600 text-white':'bg-slate-100 text-slate-600'}" onclick="decisionsFilter.mode='personal';renderDecisions()">Personal Recommendations</button>
+  document.getElementById('viewRoot').innerHTML=pageHeader('Decisions','Three views per vendor: AI auto-rec (from AI scores) · Personal auto-rec (from your 1-5 ratings) · Your final pick (manual override)',actions)+`
+    <div class="card mb-5 p-3 text-[11px] text-slate-600 bg-slate-50/60 border border-slate-100">
+      <div class="flex flex-wrap gap-x-5 gap-y-1">
+        <span><span class="inline-block w-2 h-2 rounded-full bg-indigo-500 mr-1.5 align-middle"></span><strong>AI</strong> — framework recommendation computed from the AI-assigned 1-5 scores.</span>
+        <span><span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5 align-middle"></span><strong>Personal</strong> — same framework, but computed from <em>your</em> 1-5 ratings on each criterion.</span>
+        <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5 align-middle"></span><strong>Your Pick</strong> — your final manual call, overrides both auto-recs.</span>
+      </div>
     </div>
-
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-      ${[['BUY','Buy','Purchase the solution','bar-buy','emerald'],['BUILD','Build','Build in-house','bar-build','blue'],['PARTNER','Partner','Strategic partnership','bar-partner','purple']].map(([k,lbl,desc,bar,color])=>`<button class="card text-left p-4 border-2 transition-all ${decisionsFilter.tab===k?'border-'+color+'-400 bg-'+color+'-50/30':'border-transparent hover:shadow-md'}" onclick="decisionsFilter.tab=decisionsFilter.tab==='${k}'?'ALL':'${k}';renderDecisions()"><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${lbl}</div><div class="text-3xl font-bold text-slate-800 mt-1">${counts[k]}</div><div class="text-[11px] text-slate-400 mt-1">${desc}</div></button>`).join('')}
+      ${[['BUY','Buy','Purchase the solution','emerald'],['BUILD','Build','Build in-house','blue'],['PARTNER','Partner','Strategic partnership','purple']].map(([k,lbl,desc,color])=>`<button class="card text-left p-4 border-2 transition-all ${decisionsFilter.tab===k?'border-'+color+'-400 bg-'+color+'-50/30':'border-transparent hover:shadow-md'}" onclick="decisionsFilter.tab=decisionsFilter.tab==='${k}'?'ALL':'${k}';renderDecisions()">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${lbl}</div>
+        <div class="flex items-end gap-2 mt-1">
+          <div class="text-3xl font-bold text-slate-800">${userCounts[k]}</div>
+          <div class="text-[10px] text-slate-400 mb-1">your final pick${userCounts[k]===1?'':'s'}</div>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-0.5">${desc}</div>
+        <div class="flex gap-3 mt-2 pt-2 border-t border-slate-100 text-[11px]" title="Auto-recommendations computed from 1-5 criterion scores">
+          <span><span class="text-indigo-500 font-semibold">AI auto:</span> <span class="font-bold text-slate-700">${counts[k]}</span></span>
+          <span><span class="text-amber-600 font-semibold">Personal auto:</span> <span class="font-bold text-slate-700">${personalCounts[k]}</span></span>
+        </div>
+      </button>`).join('')}
     </div>
+    ${userPickTotal>0?'':`<div class="card mb-5 p-3 text-[11px] text-slate-500 bg-amber-50/40 border-amber-100">Tip: click <strong>BUY / BUILD / PARTNER</strong> in the <em>Your Pick</em> column below to record your own calls — those counts will fill in at the top.</div>`}
 
     <div class="flex items-center justify-between mb-4">
       <div class="flex gap-1">
@@ -880,9 +901,9 @@ function renderDecisions(){
 
     <div class="card overflow-x-auto">
       <table class="af w-full">
-        <thead><tr><th>Rank</th><th>Vendor</th><th>Scores</th><th>Recommendation</th><th>Your Pick</th><th>Confidence</th><th>Breakdown</th></tr></thead>
+        <thead><tr><th>Rank</th><th>Vendor</th><th>Scores</th><th title="Auto-recommendation from AI scores">AI Rec <span class="text-[9px] font-normal text-slate-400 block">from AI scores</span></th><th title="Auto-recommendation from your 1-5 ratings">Personal Rec <span class="text-[9px] font-normal text-slate-400 block">from your ratings</span></th><th title="Your manual final call — overrides both auto-recs">Your Pick <span class="text-[9px] font-normal text-slate-400 block">final call</span></th><th>Breakdown (AI)</th></tr></thead>
         <tbody>
-          ${filtered.length?filtered.map((v,i)=>{const d=useDecision(v);const pick=v.userDecision;const aligned=pick?(pick===d.recommendation?`<div class="text-[10px] text-emerald-600 font-semibold mt-1">Aligned</div>`:`<div class="text-[10px] text-amber-600 font-semibold mt-1">Differs</div>`):'';return `<tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><td><span class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">${i+1}</span></td><td><div class="font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'')}</div></td><td>${dualScore(v)}</td><td><span class="chip rec-${d.recommendation}">${d.recommendation}</span></td><td onclick="event.stopPropagation()"><div class="flex gap-1 flex-wrap">${['BUY','BUILD','PARTNER'].map(c=>userDecisionButton(v.vendor.id,c,pick,'renderDecisions()')).join('')}${pick?`<button class="chip bg-white text-slate-500 hover:bg-slate-100" style="font-size:11px;padding:4px 8px;cursor:pointer;" onclick="event.stopPropagation();clearUserDecision(${v.vendor.id});renderDecisions()" title="Clear">&times;</button>`:''}</div>${aligned}</td><td class="font-bold">${d.confidence}%</td><td><div class="flex gap-0.5 h-5 rounded overflow-hidden bg-slate-100 min-w-[200px]"><div class="bar-buy" style="width:${d.scores.buy}%" title="Buy ${d.scores.buy}%"></div><div class="bar-build" style="width:${d.scores.build}%" title="Build ${d.scores.build}%"></div><div class="bar-partner" style="width:${d.scores.partner}%" title="Partner ${d.scores.partner}%"></div></div><div class="flex gap-3 mt-1 text-[10px] text-slate-400"><span>B:${d.scores.buy}%</span><span>Bl:${d.scores.build}%</span><span>P:${d.scores.partner}%</span></div></td></tr>`;}).join(''):`<tr><td colspan="7" class="text-center py-12 text-slate-400">No vendors match this filter</td></tr>`}
+          ${filtered.length?filtered.map((v,i)=>{const ai=v.aiDecision,per=v.personalDecision,pick=v.userDecision;const d=ai||per;const aiCell=ai?`<span class="chip rec-${ai.recommendation}">${ai.recommendation}</span><div class="text-[10px] text-slate-400 mt-1">${ai.confidence}% conf</div>`:'<span class="text-xs text-slate-300">Not scored</span>';const perCell=per?`<span class="chip rec-${per.recommendation}">${per.recommendation}</span><div class="text-[10px] text-slate-400 mt-1">${per.confidence}% conf</div>`:'<span class="text-xs text-slate-300">Not scored</span>';return `<tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><td><span class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">${i+1}</span></td><td><div class="font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'')}</div></td><td>${dualScore(v)}</td><td>${aiCell}</td><td>${perCell}</td><td onclick="event.stopPropagation()"><div class="flex gap-1 flex-wrap">${['BUY','BUILD','PARTNER'].map(c=>userDecisionButton(v.vendor.id,c,pick,'renderDecisions()')).join('')}${pick?`<button class="chip bg-white text-slate-500 hover:bg-slate-100" style="font-size:11px;padding:4px 8px;cursor:pointer;" onclick="event.stopPropagation();clearUserDecision(${v.vendor.id});renderDecisions()" title="Clear">&times;</button>`:''}</div>${pick&&ai?(pick===ai.recommendation?`<div class="text-[10px] text-emerald-600 font-semibold mt-1">Aligned w/ AI</div>`:`<div class="text-[10px] text-amber-600 font-semibold mt-1">Differs from AI</div>`):''}</td><td>${d?`<div class="flex gap-0.5 h-5 rounded overflow-hidden bg-slate-100 min-w-[200px]"><div class="bar-buy" style="width:${d.scores.buy}%" title="Buy ${d.scores.buy}%"></div><div class="bar-build" style="width:${d.scores.build}%" title="Build ${d.scores.build}%"></div><div class="bar-partner" style="width:${d.scores.partner}%" title="Partner ${d.scores.partner}%"></div></div><div class="flex gap-3 mt-1 text-[10px] text-slate-400"><span>B:${d.scores.buy}%</span><span>Bl:${d.scores.build}%</span><span>P:${d.scores.partner}%</span></div>`:'<span class="text-xs text-slate-300">—</span>'}</td></tr>`;}).join(''):`<tr><td colspan="7" class="text-center py-12 text-slate-400">No vendors match this filter</td></tr>`}
         </tbody>
       </table>
     </div>
