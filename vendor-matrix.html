@@ -178,7 +178,7 @@ const STORAGE_KEY='vm_store_v2';
 const SCORING_CRITERIA=['Cost Effectiveness','Technical Fit','Integration Complexity','Vendor Stability','Support Quality','Security & Compliance','Scalability','Innovation','Implementation Timeline','Cultural Fit'];
 const AF_SECTIONS=['Claims','Underwriting','IT / Technology','Marketing','Human Resources','Finance / Accounting','Legal / Compliance','Customer Service','Risk Management','Sales','Operations','Actuarial','Loss Control','Executive Leadership'];
 
-const defaultStore={vendors:[],campaigns:[],scores:{},personalScores:{},tickets:[],engagements:[],feedback:[],documents:{},notifications:[],apiKeys:[],users:[],emailTemplates:[],settings:{companyName:'Test Company',theme:'light',scoringMode:'dual',emailNotifs:true,defaultPersonality:'balanced'},_seq:100};
+const defaultStore={vendors:[],campaigns:[],scores:{},personalScores:{},userDecisions:{},tickets:[],engagements:[],feedback:[],documents:{},notifications:[],apiKeys:[],users:[],emailTemplates:[],settings:{companyName:'Test Company',theme:'light',scoringMode:'dual',emailNotifs:true,defaultPersonality:'balanced'},_seq:100};
 
 let store=loadStore();
 
@@ -192,7 +192,11 @@ function calculateDecision(scoreArr){const m={};scoreArr.forEach(s=>{m[s.criteri
 function getScores(id){return store.scores[id]||[];}
 function getPersonalScores(id){return store.personalScores[id]||[];}
 function setScore(id,criterion,score,personal=false){const b=personal?store.personalScores:store.scores;if(!b[id])b[id]=[];const ex=b[id].find(s=>s.criterion===criterion);if(ex)ex.score=score;else b[id].push({criterion,score});saveStore();}
-function vendorSummary(v){const ai=getScores(v.id),per=getPersonalScores(v.id);return{vendor:v,aiScore:calculateAIScore(v,ai),personalScore:calculateAIScore(v,per),aiDecision:ai.length>0?calculateDecision(ai):null,personalDecision:per.length>0?calculateDecision(per):null,scoreCount:ai.length,personalCount:per.length};}
+function getUserDecision(id){if(!store.userDecisions)store.userDecisions={};return store.userDecisions[id]||null;}
+function setUserDecision(id,choice){if(!store.userDecisions)store.userDecisions={};store.userDecisions[id]=choice;saveStore();}
+function clearUserDecision(id){if(!store.userDecisions)store.userDecisions={};delete store.userDecisions[id];saveStore();}
+function toggleUserDecision(id,choice){const cur=getUserDecision(id);if(cur===choice)clearUserDecision(id);else setUserDecision(id,choice);}
+function vendorSummary(v){const ai=getScores(v.id),per=getPersonalScores(v.id);return{vendor:v,aiScore:calculateAIScore(v,ai),personalScore:calculateAIScore(v,per),aiDecision:ai.length>0?calculateDecision(ai):null,personalDecision:per.length>0?calculateDecision(per):null,scoreCount:ai.length,personalCount:per.length,userDecision:getUserDecision(v.id)};}
 function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function toast(msg,type='info'){const el=document.createElement('div');el.className='toast';const colors={info:'#0B2A4A',success:'#047857',error:'#C8384E',warn:'#B45309'};el.style.background=colors[type]||colors.info;el.textContent=msg;document.getElementById('toastRoot').appendChild(el);setTimeout(()=>el.remove(),2800);}
@@ -229,7 +233,16 @@ function aiScorePill(score){return `<span class="score-pill score-ai" title="AI 
 function personalScorePill(score,hasScores=true){if(!hasScores)return `<span class="score-pill" style="background:#F1F5F9;color:#94A3B8;border:1px solid #E2E8F0;"><span>YOU</span><span>&ndash;</span></span>`;return `<span class="score-pill score-personal" title="Personal Score"><span>YOU</span><span>${score}</span></span>`;}
 function dualScore(s){return `<div class="flex items-center gap-1.5">${aiScorePill(s.aiScore)}${personalScorePill(s.personalScore,s.personalCount>0)}</div>`;}
 function recPill(rec,confidence){if(!rec)return '<span class="text-xs text-slate-300">Not scored</span>';return `<span class="chip rec-${rec}">${rec} &middot; ${confidence}%</span>`;}
-function dualRec(s){return `<div class="flex flex-col gap-1">${s.aiDecision?`<div class="text-[10px] text-slate-500">AI: ${recPill(s.aiDecision.recommendation,s.aiDecision.confidence)}</div>`:'<div class="text-[10px] text-slate-300">AI: not scored</div>'}${s.personalDecision?`<div class="text-[10px] text-slate-500">You: ${recPill(s.personalDecision.recommendation,s.personalDecision.confidence)}</div>`:'<div class="text-[10px] text-slate-300">You: not scored</div>'}</div>`;}
+function dualRec(s){return `<div class="flex flex-col gap-1">${s.aiDecision?`<div class="text-[10px] text-slate-500">AI: ${recPill(s.aiDecision.recommendation,s.aiDecision.confidence)}</div>`:'<div class="text-[10px] text-slate-300">AI: not scored</div>'}${s.personalDecision?`<div class="text-[10px] text-slate-500">You: ${recPill(s.personalDecision.recommendation,s.personalDecision.confidence)}</div>`:'<div class="text-[10px] text-slate-300">You: not scored</div>'}${s.userDecision?`<div class="text-[10px] text-slate-500">Pick: <span class="chip rec-${s.userDecision}">${s.userDecision}</span></div>`:''}</div>`;}
+function userDecisionButton(vid,choice,activeChoice,rerenderExpr){const active=activeChoice===choice;const base=active?`rec-${choice}`:'bg-slate-100 text-slate-600 hover:bg-slate-200';const ring=active?`box-shadow:0 0 0 2px rgba(59,130,246,0.25);`:'';return `<button class="chip ${base}" style="font-size:12px;padding:6px 12px;cursor:pointer;${ring}" onclick="event.stopPropagation();toggleUserDecision(${vid},'${choice}');${rerenderExpr}">${choice}</button>`;}
+function renderUserDecisionPicker(vid,aiRec,rerenderExpr){const pick=getUserDecision(vid);const aligned=pick&&aiRec?(pick===aiRec?`<div class="text-[11px] mt-2 font-semibold text-emerald-600">Aligned with recommendation</div>`:`<div class="text-[11px] mt-2 font-semibold text-amber-600">Differs from recommendation</div>`):`<div class="text-[11px] mt-2 text-slate-400">Pick your own call — overrides for reporting</div>`;return `<div class="text-center p-4 rounded-lg flex flex-col justify-center" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #fcd34d;">
+  <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1.5">Your Decision</div>
+  <div class="flex gap-1.5 justify-center flex-wrap">
+    ${['BUY','BUILD','PARTNER'].map(c=>userDecisionButton(vid,c,pick,rerenderExpr)).join('')}
+    ${pick?`<button class="chip bg-white text-slate-500 hover:bg-slate-100" style="font-size:12px;padding:6px 10px;cursor:pointer;" onclick="event.stopPropagation();clearUserDecision(${vid});${rerenderExpr}" title="Clear your decision">&times;</button>`:''}
+  </div>
+  ${aligned}
+</div>`;}
 
 function renderDashboard(){
   const vs=store.vendors.map(vendorSummary);
@@ -356,7 +369,7 @@ function renderProfileNotifications(){document.getElementById('viewRoot').innerH
 
 seedData();
 render();
-window.store=store;window.navigate=navigate;
+window.store=store;window.navigate=navigate;window.toggleUserDecision=toggleUserDecision;window.setUserDecision=setUserDecision;window.clearUserDecision=clearUserDecision;window.getUserDecision=getUserDecision;
 </script>
 <script>
 /* ============================================================
@@ -816,7 +829,13 @@ function renderScoring(){
             <div class="grid grid-cols-3 gap-4 mb-4">
               ${[['Buy','buy','bar-buy'],['Build','build','bar-build'],['Partner','partner','bar-partner']].map(([lbl,k,cls])=>`<div class="text-center"><div class="relative w-full h-32 bg-slate-100 rounded-lg overflow-hidden"><div class="absolute bottom-0 w-full ${cls}" style="height:${decision.scores[k]}%"></div><div class="absolute inset-0 flex items-center justify-center"><span class="text-2xl font-bold text-slate-800">${decision.scores[k]}%</span></div></div><div class="text-sm font-medium text-slate-700 mt-2">${lbl}</div></div>`).join('')}
             </div>
-            <div class="text-center p-4 bg-slate-50 rounded-lg"><span class="chip rec-${decision.recommendation}" style="font-size:14px;padding:8px 16px;">${decision.recommendation} &middot; ${decision.confidence}% confidence</span></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div class="text-center p-4 bg-slate-50 rounded-lg flex flex-col justify-center">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">${scoringState.mode==='ai'?'AI Recommends':'Personal Recommends'}</div>
+                <div><span class="chip rec-${decision.recommendation}" style="font-size:14px;padding:8px 16px;">${decision.recommendation} &middot; ${decision.confidence}% confidence</span></div>
+              </div>
+              ${renderUserDecisionPicker(scoringState.vendorId,decision.recommendation,'renderScoring()')}
+            </div>
           </div>
         </div>`:''}
       </div>
@@ -861,16 +880,16 @@ function renderDecisions(){
 
     <div class="card overflow-x-auto">
       <table class="af w-full">
-        <thead><tr><th>Rank</th><th>Vendor</th><th>Scores</th><th>Recommendation</th><th>Confidence</th><th>Breakdown</th></tr></thead>
+        <thead><tr><th>Rank</th><th>Vendor</th><th>Scores</th><th>Recommendation</th><th>Your Pick</th><th>Confidence</th><th>Breakdown</th></tr></thead>
         <tbody>
-          ${filtered.length?filtered.map((v,i)=>{const d=useDecision(v);return `<tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><td><span class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">${i+1}</span></td><td><div class="font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'')}</div></td><td>${dualScore(v)}</td><td><span class="chip rec-${d.recommendation}">${d.recommendation}</span></td><td class="font-bold">${d.confidence}%</td><td><div class="flex gap-0.5 h-5 rounded overflow-hidden bg-slate-100 min-w-[200px]"><div class="bar-buy" style="width:${d.scores.buy}%" title="Buy ${d.scores.buy}%"></div><div class="bar-build" style="width:${d.scores.build}%" title="Build ${d.scores.build}%"></div><div class="bar-partner" style="width:${d.scores.partner}%" title="Partner ${d.scores.partner}%"></div></div><div class="flex gap-3 mt-1 text-[10px] text-slate-400"><span>B:${d.scores.buy}%</span><span>Bl:${d.scores.build}%</span><span>P:${d.scores.partner}%</span></div></td></tr>`;}).join(''):`<tr><td colspan="6" class="text-center py-12 text-slate-400">No vendors match this filter</td></tr>`}
+          ${filtered.length?filtered.map((v,i)=>{const d=useDecision(v);const pick=v.userDecision;const aligned=pick?(pick===d.recommendation?`<div class="text-[10px] text-emerald-600 font-semibold mt-1">Aligned</div>`:`<div class="text-[10px] text-amber-600 font-semibold mt-1">Differs</div>`):'';return `<tr class="cursor-pointer" onclick="navigate('vendor-detail',{id:${v.vendor.id}})"><td><span class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-bold">${i+1}</span></td><td><div class="font-medium text-slate-800">${escHtml(v.vendor.name)}</div><div class="text-[11px] text-slate-400">${escHtml(v.vendor.project||'')}</div></td><td>${dualScore(v)}</td><td><span class="chip rec-${d.recommendation}">${d.recommendation}</span></td><td onclick="event.stopPropagation()"><div class="flex gap-1 flex-wrap">${['BUY','BUILD','PARTNER'].map(c=>userDecisionButton(v.vendor.id,c,pick,'renderDecisions()')).join('')}${pick?`<button class="chip bg-white text-slate-500 hover:bg-slate-100" style="font-size:11px;padding:4px 8px;cursor:pointer;" onclick="event.stopPropagation();clearUserDecision(${v.vendor.id});renderDecisions()" title="Clear">&times;</button>`:''}</div>${aligned}</td><td class="font-bold">${d.confidence}%</td><td><div class="flex gap-0.5 h-5 rounded overflow-hidden bg-slate-100 min-w-[200px]"><div class="bar-buy" style="width:${d.scores.buy}%" title="Buy ${d.scores.buy}%"></div><div class="bar-build" style="width:${d.scores.build}%" title="Build ${d.scores.build}%"></div><div class="bar-partner" style="width:${d.scores.partner}%" title="Partner ${d.scores.partner}%"></div></div><div class="flex gap-3 mt-1 text-[10px] text-slate-400"><span>B:${d.scores.buy}%</span><span>Bl:${d.scores.build}%</span><span>P:${d.scores.partner}%</span></div></td></tr>`;}).join(''):`<tr><td colspan="7" class="text-center py-12 text-slate-400">No vendors match this filter</td></tr>`}
         </tbody>
       </table>
     </div>
 
     ${unscored.length?`<div class="card mt-5 p-5"><h3 class="font-semibold text-slate-800 mb-3">Unscored Vendors (${unscored.length})</h3><div class="flex flex-wrap gap-2">${unscored.map(v=>`<button class="text-xs bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full hover:bg-slate-200" onclick="navigate('vendor-detail',{id:${v.vendor.id}})">${escHtml(v.vendor.name)}</button>`).join('')}</div></div>`:''}`;
 }
-function exportDecisions(){const rows=store.vendors.map(vendorSummary).filter(v=>v.aiDecision||v.personalDecision).map(v=>({vendor:v.vendor.name,ai_score:v.aiScore,personal_score:v.personalScore,ai_rec:v.aiDecision?.recommendation||'',ai_confidence:v.aiDecision?.confidence||'',personal_rec:v.personalDecision?.recommendation||'',personal_confidence:v.personalDecision?.confidence||''}));downloadCSV(rows,'decisions.csv');}
+function exportDecisions(){const rows=store.vendors.map(vendorSummary).filter(v=>v.aiDecision||v.personalDecision||v.userDecision).map(v=>({vendor:v.vendor.name,ai_score:v.aiScore,personal_score:v.personalScore,ai_rec:v.aiDecision?.recommendation||'',ai_confidence:v.aiDecision?.confidence||'',personal_rec:v.personalDecision?.recommendation||'',personal_confidence:v.personalDecision?.confidence||'',your_pick:v.userDecision||''}));downloadCSV(rows,'decisions.csv');}
 
 /* ============================================================
    ENGAGEMENTS
