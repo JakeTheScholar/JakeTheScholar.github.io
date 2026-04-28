@@ -245,97 +245,16 @@
 const STORAGE_KEY='vm_store_v2';
 const SCORING_CRITERIA=['Cost Effectiveness','Technical Fit','Integration Complexity','Vendor Stability','Support Quality','Security & Compliance','Scalability','Innovation','Implementation Timeline','Cultural Fit'];
 const AF_SECTIONS=['Claims','Underwriting','IT / Technology','Marketing','Human Resources','Finance / Accounting','Legal / Compliance','Customer Service','Risk Management','Sales','Operations','Actuarial','Loss Control','Executive Leadership'];
-/* Social platforms — keep keys stable; legacy: linkedin/twitter/facebook map to social_linkedin/social_twitter/social_facebook */
+/* Social platforms — relevant ones for B2B vendor evaluation. Custom platforms go in customSocials via the +Other box. */
 const SOCIAL_PLATFORMS=[
   {key:'linkedin',label:'LinkedIn',placeholder:'https://linkedin.com/company/...'},
   {key:'twitter',label:'Twitter / X',placeholder:'https://x.com/...'},
-  {key:'facebook',label:'Facebook',placeholder:'https://facebook.com/...'},
-  {key:'instagram',label:'Instagram',placeholder:'https://instagram.com/...'},
-  {key:'tiktok',label:'TikTok',placeholder:'https://tiktok.com/@...'},
   {key:'youtube',label:'YouTube',placeholder:'https://youtube.com/@...'},
-  {key:'pinterest',label:'Pinterest',placeholder:'https://pinterest.com/...'},
-  {key:'snapchat',label:'Snapchat',placeholder:'https://snapchat.com/add/...'},
-  {key:'reddit',label:'Reddit',placeholder:'https://reddit.com/r/... or /u/...'},
-  {key:'threads',label:'Threads',placeholder:'https://threads.net/@...'},
-  {key:'mastodon',label:'Mastodon',placeholder:'https://mastodon.social/@...'},
-  {key:'bluesky',label:'Bluesky',placeholder:'https://bsky.app/profile/...'},
-  {key:'tumblr',label:'Tumblr',placeholder:'https://....tumblr.com'},
-  {key:'twitch',label:'Twitch',placeholder:'https://twitch.tv/...'},
-  {key:'kick',label:'Kick',placeholder:'https://kick.com/...'},
-  {key:'rumble',label:'Rumble',placeholder:'https://rumble.com/c/...'},
-  {key:'vimeo',label:'Vimeo',placeholder:'https://vimeo.com/...'},
-  {key:'medium',label:'Medium',placeholder:'https://medium.com/@...'},
-  {key:'substack',label:'Substack',placeholder:'https://....substack.com'},
+  {key:'instagram',label:'Instagram',placeholder:'https://instagram.com/...'},
+  {key:'facebook',label:'Facebook',placeholder:'https://facebook.com/...'},
+  {key:'tiktok',label:'TikTok',placeholder:'https://tiktok.com/@...'},
   {key:'github',label:'GitHub',placeholder:'https://github.com/...'},
-  {key:'gitlab',label:'GitLab',placeholder:'https://gitlab.com/...'},
-  {key:'bitbucket',label:'Bitbucket',placeholder:'https://bitbucket.org/...'},
-  {key:'stackoverflow',label:'Stack Overflow',placeholder:'https://stackoverflow.com/users/...'},
-  {key:'devto',label:'Dev.to',placeholder:'https://dev.to/...'},
-  {key:'hashnode',label:'Hashnode',placeholder:'https://....hashnode.dev'},
-  {key:'producthunt',label:'Product Hunt',placeholder:'https://producthunt.com/@...'},
-  {key:'angellist',label:'AngelList / Wellfound',placeholder:'https://wellfound.com/company/...'},
   {key:'crunchbase',label:'Crunchbase',placeholder:'https://crunchbase.com/organization/...'},
-  {key:'glassdoor',label:'Glassdoor',placeholder:'https://glassdoor.com/...'},
-  {key:'indeed',label:'Indeed',placeholder:'https://indeed.com/cmp/...'},
-  {key:'discord',label:'Discord',placeholder:'https://discord.gg/... or server URL'},
-  {key:'slack',label:'Slack Community',placeholder:'https://....slack.com'},
-  {key:'telegram',label:'Telegram',placeholder:'https://t.me/...'},
-  {key:'whatsapp',label:'WhatsApp',placeholder:'https://wa.me/... or business URL'},
-  {key:'wechat',label:'WeChat',placeholder:'WeChat ID or QR URL'},
-  {key:'line',label:'LINE',placeholder:'LINE ID or https://line.me/...'},
-  {key:'kakaotalk',label:'KakaoTalk',placeholder:'KakaoTalk channel URL'},
-  {key:'viber',label:'Viber',placeholder:'Viber channel URL'},
-  {key:'signal',label:'Signal',placeholder:'https://signal.me/...'},
-  {key:'weibo',label:'Weibo',placeholder:'https://weibo.com/...'},
-  {key:'douyin',label:'Douyin',placeholder:'https://douyin.com/...'},
-  {key:'xiaohongshu',label:'Xiaohongshu (RED)',placeholder:'Xiaohongshu profile URL'},
-  {key:'qq',label:'QQ',placeholder:'QQ number or group URL'},
-  {key:'vk',label:'VK',placeholder:'https://vk.com/...'},
-  {key:'ok',label:'Odnoklassniki',placeholder:'https://ok.ru/...'},
-  {key:'tenor',label:'Tenor',placeholder:'https://tenor.com/users/...'},
-  {key:'flickr',label:'Flickr',placeholder:'https://flickr.com/photos/...'},
-  {key:'behance',label:'Behance',placeholder:'https://behance.net/...'},
-  {key:'dribbble',label:'Dribbble',placeholder:'https://dribbble.com/...'},
-  {key:'deviantart',label:'DeviantArt',placeholder:'https://deviantart.com/...'},
-  {key:'artstation',label:'ArtStation',placeholder:'https://artstation.com/...'},
-  {key:'500px',label:'500px',placeholder:'https://500px.com/p/...'},
-  {key:'unsplash',label:'Unsplash',placeholder:'https://unsplash.com/@...'},
-  {key:'soundcloud',label:'SoundCloud',placeholder:'https://soundcloud.com/...'},
-  {key:'spotify',label:'Spotify',placeholder:'https://open.spotify.com/artist/...'},
-  {key:'applemusic',label:'Apple Music',placeholder:'https://music.apple.com/...'},
-  {key:'bandcamp',label:'Bandcamp',placeholder:'https://....bandcamp.com'},
-  {key:'mixcloud',label:'Mixcloud',placeholder:'https://mixcloud.com/...'},
-  {key:'audius',label:'Audius',placeholder:'https://audius.co/...'},
-  {key:'goodreads',label:'Goodreads',placeholder:'https://goodreads.com/author/...'},
-  {key:'letterboxd',label:'Letterboxd',placeholder:'https://letterboxd.com/...'},
-  {key:'imdb',label:'IMDb',placeholder:'https://imdb.com/name/...'},
-  {key:'patreon',label:'Patreon',placeholder:'https://patreon.com/...'},
-  {key:'kofi',label:'Ko-fi',placeholder:'https://ko-fi.com/...'},
-  {key:'buymeacoffee',label:'Buy Me a Coffee',placeholder:'https://buymeacoffee.com/...'},
-  {key:'onlyfans',label:'OnlyFans',placeholder:'https://onlyfans.com/...'},
-  {key:'fansly',label:'Fansly',placeholder:'https://fansly.com/...'},
-  {key:'mighty',label:'Mighty Networks',placeholder:'Mighty Networks URL'},
-  {key:'circle',label:'Circle',placeholder:'Circle community URL'},
-  {key:'meetup',label:'Meetup',placeholder:'https://meetup.com/...'},
-  {key:'eventbrite',label:'Eventbrite',placeholder:'https://eventbrite.com/o/...'},
-  {key:'mastermind',label:'Mastermind / Skool',placeholder:'https://skool.com/...'},
-  {key:'clubhouse',label:'Clubhouse',placeholder:'https://clubhouse.com/@...'},
-  {key:'spaces',label:'X / Twitter Spaces',placeholder:'Twitter Spaces URL'},
-  {key:'nostr',label:'Nostr',placeholder:'npub... or relay URL'},
-  {key:'farcaster',label:'Farcaster',placeholder:'https://warpcast.com/...'},
-  {key:'lens',label:'Lens Protocol',placeholder:'https://lenster.xyz/u/...'},
-  {key:'minds',label:'Minds',placeholder:'https://minds.com/...'},
-  {key:'gab',label:'Gab',placeholder:'https://gab.com/...'},
-  {key:'truthsocial',label:'Truth Social',placeholder:'https://truthsocial.com/@...'},
-  {key:'parler',label:'Parler',placeholder:'https://parler.com/...'},
-  {key:'gettr',label:'GETTR',placeholder:'https://gettr.com/user/...'},
-  {key:'mewe',label:'MeWe',placeholder:'https://mewe.com/...'},
-  {key:'quora',label:'Quora',placeholder:'https://quora.com/profile/...'},
-  {key:'kwai',label:'Kwai',placeholder:'Kwai profile URL'},
-  {key:'likee',label:'Likee',placeholder:'Likee profile URL'},
-  {key:'bigo',label:'BIGO LIVE',placeholder:'BIGO profile URL'},
-  {key:'podcasts',label:'Apple Podcasts',placeholder:'https://podcasts.apple.com/...'},
-  {key:'googlepodcasts',label:'Google Podcasts',placeholder:'Google Podcasts URL'},
 ];
 const SOCIAL_KEY_SET=new Set(SOCIAL_PLATFORMS.map(p=>p.key));
 
@@ -1571,12 +1490,36 @@ function renderProfileTheme(){
       ${[['light','Light','linear-gradient(135deg,#F8FAFC,#E2E8F0)','#1F2937','Bright, clean interface'],['dark','Dark','linear-gradient(135deg,#0F172A,#1E293B)','#F1F5F9','Easy on the eyes'],['auto','System','linear-gradient(135deg,#F8FAFC 50%,#0F172A 50%)','#475569','Match OS preference']].map(([k,lbl,bg,fg,sub])=>`<button class="p-4 rounded-lg border-2 ${curTheme===k?'border-blue-500 ring-2 ring-blue-200':'border-slate-200'} hover:border-blue-300 transition-all text-left" onclick="setTheme('${k}')"><div class="w-full h-20 rounded mb-2 border border-slate-200 flex items-center justify-center" style="background:${bg} !important;color:${fg} !important;font-weight:600;">${lbl}</div><div class="text-sm font-medium text-slate-800">${lbl}${curTheme===k?' &middot; Active':''}</div><div class="text-[11px] text-slate-500 mt-0.5">${sub}</div></button>`).join('')}
     </div></div>
     <div class="card mt-4">${panelHeader('Density')}<div class="p-5 flex gap-3 flex-wrap">${['Comfortable','Compact','Spacious'].map(d=>{const k=d.toLowerCase();const active=curDensity===k;return `<button class="${active?'btn-primary':'btn-secondary'}" onclick="setDensity('${k}')">${d}${active?' ✓':''}</button>`;}).join('')}</div></div>
-    <div class="card mt-4">${panelHeader('Preview')}<div class="p-5 space-y-3">
-      <div class="flex items-center gap-3"><span class="chip rec-BUY">BUY</span><span class="chip rec-BUILD">BUILD</span><span class="chip rec-PARTNER">PARTNER</span></div>
-      <input class="input" placeholder="Sample input field"/>
-      <div class="flex gap-2"><button class="btn-primary">Primary Button</button><button class="btn-secondary">Secondary</button><button class="btn-ghost">Ghost</button></div>
-      <div class="text-sm text-slate-700">Sample body text — the quick brown fox jumps over the lazy dog.</div>
-      <div class="text-[11px] text-slate-400">This is muted secondary text used for hints and metadata.</div>
+    <div class="card mt-4">${panelHeader('Style Preview')}<div class="p-5 space-y-4">
+      <div class="text-[11px] text-slate-500">These are visual samples showing how each element looks in the current theme. The buttons below are <strong>preview-only</strong> — they don't trigger any action.</div>
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Recommendation Chips</div>
+        <div class="flex items-center gap-2 flex-wrap"><span class="chip rec-BUY">BUY</span><span class="chip rec-BUILD">BUILD</span><span class="chip rec-PARTNER">PARTNER</span></div>
+      </div>
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Input Field</div>
+        <input class="input" placeholder="Sample input field"/>
+      </div>
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Button Styles (preview only)</div>
+        <div class="flex gap-2 flex-wrap items-center">
+          <button type="button" class="btn-primary" onclick="toast('That was a preview button — does nothing','info');return false;" title="Used for the main action on a page (e.g. Save, Create)">Primary</button>
+          <button type="button" class="btn-secondary" onclick="toast('That was a preview button — does nothing','info');return false;" title="Used for cancel / less-prominent actions">Secondary</button>
+          <button type="button" class="btn-ghost" onclick="toast('That was a preview button — does nothing','info');return false;" title="Minimal style for inline / toolbar actions">Ghost</button>
+          <button type="button" class="btn-danger" onclick="toast('That was a preview button — does nothing','info');return false;" title="Destructive actions like Delete">Danger</button>
+        </div>
+        <div class="text-[11px] text-slate-500 mt-2">
+          <strong>Primary</strong> = main action on a page (Save, Create, Submit). &nbsp;
+          <strong>Secondary</strong> = cancel / less-prominent actions. &nbsp;
+          <strong>Ghost</strong> = minimal toolbar/inline buttons. &nbsp;
+          <strong>Danger</strong> = destructive actions like Delete.
+        </div>
+      </div>
+      <div>
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Typography</div>
+        <div class="text-sm text-slate-700">Sample body text — the quick brown fox jumps over the lazy dog.</div>
+        <div class="text-[11px] text-slate-400 mt-1">This is muted secondary text used for hints and metadata.</div>
+      </div>
     </div></div>`;}
 function setTheme(k){store.settings.theme=k;saveStore();applyTheme();toast('Theme set: '+k.charAt(0).toUpperCase()+k.slice(1),'success');renderProfileTheme();}
 function setDensity(k){store.settings.density=k;saveStore();applyTheme();toast('Density: '+k.charAt(0).toUpperCase()+k.slice(1),'success');renderProfileTheme();}
