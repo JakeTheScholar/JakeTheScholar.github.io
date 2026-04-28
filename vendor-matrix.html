@@ -258,12 +258,82 @@ const SOCIAL_PLATFORMS=[
 ];
 const SOCIAL_KEY_SET=new Set(SOCIAL_PLATFORMS.map(p=>p.key));
 
+const EMAIL_TEMPLATE_VERSION=2;
+const DEFAULT_EMAIL_TEMPLATES=[
+  {name:'Vendor Welcome',subject:'Welcome to our vendor evaluation program',body:`Hi there,
+
+Thanks for joining our vendor evaluation program. Your workspace is set up and you can now:
+
+  • Upload required documentation (security, SOC 2, references)
+  • Schedule a discovery call with our procurement team
+  • Respond to our scoring questionnaire
+
+Over the next few weeks we'll evaluate fit across cost, technical, security, scalability, and cultural criteria. We'll keep you posted on next steps.
+
+If anything's unclear, just reply to this email.
+
+Best regards,
+The Procurement Team`},
+  {name:'Scoring Complete',subject:'Vendor evaluation results are ready',body:`Hi team,
+
+Scoring for the latest vendor evaluation is finalized. Inside the Vendor VIP Zone you can now see:
+
+  • AI and Personal scores across all 10 criteria
+  • Buy / Build / Partner recommendation with confidence %
+  • Side-by-side comparison against other shortlisted vendors
+
+Next step: review the recommendation and either approve it or override with your own decision before the next portfolio review.`},
+  {name:'Document Request',subject:'Documents needed to continue your evaluation',body:`Hi there,
+
+To finish your evaluation we need a few additional documents:
+
+  • SOC 2 Type II report (most recent)
+  • Sample MSA / DPA
+  • 2-3 customer references in our industry
+  • Pricing schedule for the proposed scope
+
+You can upload these directly in your vendor portal under Documents. Target date: end of next week.
+
+Thanks,
+The Procurement Team`},
+  {name:'Vendor Declined',subject:'Update on your evaluation',body:`Hi there,
+
+Thank you for the time and effort your team invested in our evaluation process. After reviewing all shortlisted vendors against our criteria, we've decided to move forward with a different partner for this initiative.
+
+This decision was specific to fit for the current scope and is not a reflection of the quality of your offering. We'd welcome the chance to revisit a partnership for future projects.
+
+Wishing you continued success.`},
+  {name:'Engagement Kickoff',subject:'Kickoff scheduled for our engagement',body:`Hi there,
+
+Congratulations — you've been selected to move forward with our team. Here's how the engagement begins:
+
+  • Kickoff call with the project team and exec sponsor
+  • Shared Slack/Teams channel for day-to-day collaboration
+  • Quarterly success-criteria review tied to our objectives
+  • A single point of contact on each side
+
+Calendar invite incoming. Looking forward to the work ahead.`},
+];
+
 const defaultStore={vendors:[],campaigns:[],scores:{},personalScores:{},userDecisions:{},tickets:[],engagements:[],feedback:[],documents:{},notifications:[],apiKeys:[],users:[],emailTemplates:[],settings:{companyName:'Test Company',theme:'light',scoringMode:'dual',emailNotifs:true,defaultPersonality:'balanced'},_seq:100};
 
 let store=loadStore();
+migrateEmailTemplates();
 
 function loadStore(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultStore);return {...structuredClone(defaultStore),...JSON.parse(raw)};}catch(e){return structuredClone(defaultStore);}}
 function saveStore(){localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}
+function migrateEmailTemplates(){
+  const cur=store.settings&&store.settings.emailTemplatesVersion||0;
+  if(cur>=EMAIL_TEMPLATE_VERSION)return;
+  const oldStubs=new Set(['Welcome to our vendor program','Scoring complete for {{vendor_name}}']);
+  const isCustomized=store.emailTemplates&&store.emailTemplates.some(t=>!oldStubs.has(t.subject)&&!DEFAULT_EMAIL_TEMPLATES.some(d=>d.subject===t.subject));
+  if(!isCustomized){
+    store.emailTemplates=DEFAULT_EMAIL_TEMPLATES.map(t=>{store._seq=(store._seq||100)+1;return {id:store._seq,...t};});
+  }
+  if(!store.settings)store.settings={};
+  store.settings.emailTemplatesVersion=EMAIL_TEMPLATE_VERSION;
+  saveStore();
+}
 
 function applyTheme(){
   const t=(store.settings&&store.settings.theme)||'light';
@@ -576,69 +646,7 @@ function seedData(){
   store.users.push({id:nextId(),name:'Test User',email:'test.user@example.com',role:'Admin',status:'Active'});
   store.users.push({id:nextId(),name:'Test Viewer',email:'viewer@example.com',role:'Viewer',status:'Active'});
   store.apiKeys.push({id:nextId(),name:'Default API Key',key:'vm_test_****1234',created_at:now,lastUsed:'Never'});
-  store.emailTemplates.push({id:nextId(),name:'Vendor Welcome',subject:'Welcome to the {{company_name}} vendor evaluation program',body:`Hi {{vendor_name}} team,
-
-Thanks for joining the {{company_name}} vendor evaluation program. Your workspace is set up and you can now:
-
-  • Upload required documentation (security, SOC 2, references)
-  • Schedule a discovery call with our procurement team
-  • Respond to our scoring questionnaire
-
-Over the next few weeks we'll evaluate fit across cost, technical, security, scalability, and cultural criteria. We'll keep you posted on next steps.
-
-If anything's unclear, just reply to this email.
-
-Best,
-{{user_name}}
-{{company_name}}`});
-  store.emailTemplates.push({id:nextId(),name:'Scoring Complete',subject:'Scoring complete — {{vendor_name}} evaluation results',body:`Hi team,
-
-Scoring for {{vendor_name}} is finalized. Inside the Vendor VIP Zone you can now see:
-
-  • AI and Personal scores across all 10 criteria
-  • Buy / Build / Partner recommendation with confidence %
-  • Side-by-side comparison against other shortlisted vendors
-
-Next step: review the recommendation and either approve it or override with your own decision before the next portfolio review.
-
-— {{user_name}}
-{{company_name}}`});
-  store.emailTemplates.push({id:nextId(),name:'Document Request',subject:'Action needed — documents requested for {{vendor_name}}',body:`Hi {{vendor_name}} team,
-
-To finish your evaluation, we need a few additional documents:
-
-  • SOC 2 Type II report (most recent)
-  • Sample MSA / DPA
-  • 2-3 customer references in our industry
-  • Pricing schedule for the proposed scope
-
-You can upload these directly in your vendor portal under Documents. Target date: end of next week.
-
-Thanks,
-{{user_name}}
-{{company_name}}`});
-  store.emailTemplates.push({id:nextId(),name:'Vendor Declined',subject:'Update on your evaluation with {{company_name}}',body:`Hi {{vendor_name}} team,
-
-Thank you for the time and effort your team invested in our evaluation process. After reviewing all shortlisted vendors against our criteria, we've decided to move forward with a different partner for this initiative.
-
-This decision was specific to fit for the current scope and is not a reflection of the quality of your offering. We'd welcome the chance to revisit a partnership for future projects.
-
-Wishing you continued success,
-{{user_name}}
-{{company_name}}`});
-  store.emailTemplates.push({id:nextId(),name:'Engagement Kickoff',subject:'Kickoff scheduled — {{vendor_name}} engagement',body:`Hi {{vendor_name}} team,
-
-Congratulations — you've been selected to move forward with {{company_name}}. Here's how the engagement begins:
-
-  • Kickoff call with the project team and exec sponsor
-  • Shared Slack/Teams channel for day-to-day collaboration
-  • Quarterly success-criteria review tied to our objectives
-  • A single point of contact on each side
-
-Calendar invite incoming. Looking forward to the work ahead.
-
-— {{user_name}}
-{{company_name}}`});
+  DEFAULT_EMAIL_TEMPLATES.forEach(t=>store.emailTemplates.push({id:nextId(),...t}));
   saveStore();
 }
 
