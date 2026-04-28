@@ -314,20 +314,20 @@ const TOUR_STEPS=[
   {target:'#profileDD',altTarget:'header [onclick*="profileDD"]',route:'dashboard',title:'Your Profile',body:'Profile, Company, Password, Theme & Display, and Notification Preferences. Sign out is at the bottom.',placement:'bottom',openMenu:'profileDD'},
   {target:'#viewRoot .grid.grid-cols-1.md\\:grid-cols-4',route:'dashboard',title:'Dashboard KPIs',body:'Total vendors, active campaigns, average AI score, and average Personal score — your portfolio at a glance.',placement:'bottom'},
   {target:'#viewRoot .grid.grid-cols-1.md\\:grid-cols-3',route:'dashboard',title:'Buy / Build / Partner Counts',body:'Click any card to see all vendors with that recommendation. Counts update live as you score.',placement:'top'},
-  {target:'#viewRoot',route:'vendors',title:'Vendors List',body:'Your vendor roster. Search, filter by department or recommendation, click any row for the detail page, or +Add Vendor to onboard a new one.',placement:'top'},
-  {target:'#viewRoot form',route:'vendor-new',title:'Add / Edit Vendor',body:'Capture vendor name, project, website, mission, multiple contacts, full social media presence (with custom platforms via +Other), department coverage, documents, and notes.',placement:'top'},
-  {target:'#viewRoot',route:'scoring',title:'Scoring Matrix',body:'Score each vendor 1-5 across 10 criteria — Cost, Tech Fit, Stability, Support, Security, Scalability, Innovation, Timeline, Cultural Fit, and Integration Complexity. Toggle AI vs Personal scoring.',placement:'top'},
-  {target:'#viewRoot',route:'decisions',title:'Decisions Engine',body:'Auto-generated Buy/Build/Partner recommendations based on your scores, with a confidence percentage and the option to override with your own decision.',placement:'top'},
-  {target:'#viewRoot',route:'campaigns',title:'Campaigns',body:'Bundle vendors into evaluation initiatives — e.g. "Claims Modernization Q3" — to compare them side-by-side with shared objectives.',placement:'top'},
-  {target:'#viewRoot',route:'engagement-create',title:'Create Engagement',body:'Set up a quarterly engagement plan with success criteria, milestones, and stakeholders. Tied to objectives so you can track outcomes.',placement:'top'},
-  {target:'#viewRoot',route:'tickets',title:'Support Tickets',body:'Internal ticket tracker for issues with vendors or the platform. Categories, priority, and status. Filter by open/closed.',placement:'top'},
-  {target:'#viewRoot',route:'feedback',title:'Feedback',body:'Capture thoughts and suggestions about vendors or the platform. 5-star rating + free text — perfect for retros.',placement:'top'},
-  {target:'#viewRoot',route:'mgmt-account',title:'Workspace Settings',body:'Company name, default scoring mode (Dual / AI-only / Personal-only), default personality (balanced/innovator/conservative), and email notification toggle.',placement:'top'},
-  {target:'#viewRoot',route:'mgmt-users',title:'User Management',body:'Invite teammates, assign roles (Admin, Editor, Viewer), and remove members. Roles control what each person can edit.',placement:'top'},
-  {target:'#viewRoot',route:'mgmt-apikeys',title:'API Keys',body:'Generate keys for programmatic access. Copy or revoke any key. Use these for integrations or scripting bulk vendor imports.',placement:'top'},
-  {target:'#viewRoot',route:'mgmt-email',title:'Email Templates',body:'Customize the messages sent for vendor welcomes, scoring completion, and other events. Variables: {{vendor_name}}, {{company_name}}, {{user_name}}.',placement:'top'},
-  {target:'#viewRoot',route:'mgmt-audit',title:'Audit Log',body:'Every workspace action is logged here — who did what, when, on which target. Compliance-friendly trail.',placement:'top'},
-  {target:'#viewRoot',route:'profile-theme',title:'Theme & Display',body:'Light, Dark, or System (auto-match OS). Pick a density (Comfortable / Compact / Spacious). Changes apply instantly across the whole VIP.',placement:'top'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'vendors',title:'Vendors List',body:'Your vendor roster. Search, filter by department or recommendation, click any row for the detail page, or +Add Vendor to onboard a new one.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'vendor-new',title:'Add / Edit Vendor',body:'Where you onboard a new vendor or edit an existing one. Captures everything from contacts and socials to department coverage and documents — scroll the form to see all sections.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'scoring',title:'Scoring Matrix',body:'Rate vendors 1-5 across 10 criteria — Cost, Tech Fit, Stability, Support, Security, Scalability, Innovation, Timeline, Cultural Fit, and Integration Complexity. Toggle between AI and Personal scoring at the top.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'decisions',title:'Decisions Engine',body:'Auto-generated Buy/Build/Partner recommendations based on your scores, with a confidence percentage and the option to override with your own decision.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'campaigns',title:'Campaigns',body:'Bundle vendors into evaluation initiatives — e.g. "Claims Modernization Q3" — to compare them side-by-side with shared objectives.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'engagement-create',title:'Create Engagement',body:'Set up a quarterly engagement plan with success criteria, milestones, and stakeholders. Tied to objectives so you can track outcomes.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'tickets',title:'Support Tickets',body:'Internal ticket tracker for issues with vendors or the platform. Categories, priority, and status. Filter by open/closed.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'feedback',title:'Feedback',body:'Capture thoughts and suggestions about vendors or the platform. 5-star rating + free text — perfect for retros.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'mgmt-account',title:'Workspace Settings',body:'High-level controls for your workspace — company info, defaults, and notification preferences. Changes here apply globally across the VIP.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'mgmt-users',title:'User Management',body:'Invite teammates, assign roles (Admin, Editor, Viewer), and remove members. Roles control what each person can edit.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'mgmt-apikeys',title:'API Keys',body:'Generate keys for programmatic access. Copy or revoke any key. Use these for integrations or scripting bulk vendor imports.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'mgmt-email',title:'Email Templates',body:'Customize the messages sent for vendor welcomes, scoring completion, and other events. Click Edit on any template to tweak the subject, body, and merge fields.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'mgmt-audit',title:'Audit Log',body:'Every workspace action is logged here — who did what, when, on which target. Compliance-friendly trail.',placement:'bottom'},
+  {target:'#viewRoot > div.mb-5',altTarget:'#viewRoot h1',route:'profile-theme',title:'Theme & Display',body:'Light, Dark, or System (auto-match OS). Pick a density (Comfortable / Compact / Spacious). Changes apply instantly across the whole VIP.',placement:'bottom'},
   {target:null,route:'dashboard',title:"You're all set!",body:"That's the full tour. Replay it anytime via the Take a Tour button at the top. Now go score some vendors."},
 ];
 let __tourState={idx:0,active:false};
@@ -385,9 +385,11 @@ function showTourStep(){
   const needNav=step.route&&current.route!==step.route;
   if(needNav){navigate(step.route,{});}
   setTimeout(()=>{
+    const vr=document.getElementById('viewRoot');
+    if(vr)vr.scrollTop=0;
     if(step.openMenu){const dd=document.getElementById(step.openMenu);if(dd)dd.classList.remove('hidden');}
     placeTourTarget(step);
-  },needNav?180:30);
+  },needNav?200:30);
 }
 function placeTourTarget(step){
   const hl=document.getElementById('tourHighlight');
@@ -405,7 +407,7 @@ function placeTourTarget(step){
     const mask=document.getElementById('tourMask');
     const x=r.left-pad,y=r.top-pad,w=r.width+pad*2,h=r.height+pad*2;
     mask.style.clipPath=`polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 ${y}px, ${x}px ${y}px, ${x}px ${y+h}px, ${x+w}px ${y+h}px, ${x+w}px ${y}px, 0 ${y}px)`;
-    try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+    try{el.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){}
   }else{
     hl.style.display='none';
     document.getElementById('tourMask').style.clipPath='';
