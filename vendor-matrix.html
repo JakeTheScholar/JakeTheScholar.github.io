@@ -13,8 +13,58 @@
   :root{
     --af-navy:#0B2A4A; --af-blue:#1A5A8E; --af-sky:#4A90C9; --af-ice:#E8F1FA;
     --af-gold:#E9A53A; --af-green:#2E8B57; --af-red:#C8384E; --af-purple:#6B46C1;
+    --bg-app:#F3F5F8; --bg-surface:#ffffff; --bg-soft:#F8FAFC; --bg-soft-2:#F1F5F9;
+    --text-strong:#1F2937; --text-mid:#334155; --text-soft:#64748B; --text-muted:#94A3B8;
+    --border-soft:#E2E8F0; --border-mid:#CBD5E1; --hover-bg:#F1F5F9;
+    --sidebar-bg:#ffffff; --sidebar-text:#374151; --sidebar-active-bg:#E8F1FA;
+    --header-bg:#ffffff; --input-bg:#ffffff; --row-hover:#F8FAFC;
   }
-  html,body{font-family:'Inter',system-ui,sans-serif;background:#F3F5F8;color:#1F2937;}
+  body[data-theme="dark"]{
+    --bg-app:#0B1220; --bg-surface:#111827; --bg-soft:#1F2937; --bg-soft-2:#283449;
+    --text-strong:#F1F5F9; --text-mid:#CBD5E1; --text-soft:#94A3B8; --text-muted:#64748B;
+    --border-soft:#1F2937; --border-mid:#334155; --hover-bg:#1F2937;
+    --sidebar-bg:#0F172A; --sidebar-text:#CBD5E1; --sidebar-active-bg:#1E293B;
+    --header-bg:#0F172A; --input-bg:#1F2937; --row-hover:#1F2937;
+  }
+  body[data-theme="dark"] .bg-white{background:var(--bg-surface)!important;}
+  body[data-theme="dark"] .bg-slate-50,body[data-theme="dark"] .bg-slate-100{background:var(--bg-soft)!important;}
+  body[data-theme="dark"] .bg-slate-50\/40,body[data-theme="dark"] .bg-slate-50\/30{background:var(--bg-soft)!important;}
+  body[data-theme="dark"] .text-slate-700,body[data-theme="dark"] .text-slate-800,body[data-theme="dark"] .text-slate-900{color:var(--text-strong)!important;}
+  body[data-theme="dark"] .text-slate-500,body[data-theme="dark"] .text-slate-600{color:var(--text-mid)!important;}
+  body[data-theme="dark"] .text-slate-400{color:var(--text-soft)!important;}
+  body[data-theme="dark"] .text-slate-300{color:var(--text-muted)!important;}
+  body[data-theme="dark"] .border-slate-100,body[data-theme="dark"] .border-slate-200{border-color:var(--border-soft)!important;}
+  body[data-theme="dark"] .border-slate-50{border-color:rgba(148,163,184,.08)!important;}
+  body[data-theme="dark"] .hover\:bg-slate-50:hover,body[data-theme="dark"] .hover\:bg-slate-100:hover{background:var(--hover-bg)!important;}
+  body[data-theme="dark"] aside.bg-white{background:var(--sidebar-bg)!important;}
+  body[data-theme="dark"] header.bg-white{background:var(--header-bg)!important;}
+  body[data-theme="dark"] table.af th{background:var(--bg-soft)!important;color:var(--text-soft);border-color:var(--border-soft);}
+  body[data-theme="dark"] table.af td{border-color:var(--border-soft);}
+  body[data-theme="dark"] table.af tr:hover td{background:var(--row-hover)!important;}
+  body[data-theme="dark"] .input,body[data-theme="dark"] input,body[data-theme="dark"] select,body[data-theme="dark"] textarea{background:var(--input-bg)!important;color:var(--text-strong)!important;border-color:var(--border-mid)!important;}
+  body[data-theme="dark"] .card{background:var(--bg-surface)!important;border-color:var(--border-soft)!important;}
+  body[data-theme="dark"] .dropdown{background:var(--bg-surface)!important;border-color:var(--border-soft)!important;}
+  body[data-theme="dark"] .dropdown-item{color:var(--text-mid)!important;}
+  body[data-theme="dark"] .dropdown-item:hover{background:var(--hover-bg)!important;color:var(--text-strong)!important;}
+  body[data-theme="dark"] .modal{background:var(--bg-surface)!important;color:var(--text-strong);}
+  body[data-theme="dark"] .sidebar-item{color:var(--sidebar-text);}
+  body[data-theme="dark"] .sidebar-item:hover{background:var(--hover-bg);color:var(--text-strong);}
+  body[data-theme="dark"] .sidebar-item.active{background:var(--sidebar-active-bg);color:var(--text-strong);}
+  body[data-theme="dark"] .btn-secondary{background:var(--bg-soft);color:var(--text-strong);border-color:var(--border-mid);}
+  body[data-theme="dark"] .btn-secondary:hover{background:var(--bg-soft-2);}
+  body[data-theme="dark"] .btn-ghost{color:var(--text-mid);}
+  body[data-theme="dark"] .btn-ghost:hover{background:var(--hover-bg);color:var(--text-strong);}
+  body[data-theme="dark"] .bg-blue-50,body[data-theme="dark"] .bg-emerald-50,body[data-theme="dark"] .bg-amber-50,body[data-theme="dark"] .bg-indigo-50,body[data-theme="dark"] .bg-rose-50,body[data-theme="dark"] .bg-purple-50,body[data-theme="dark"] .bg-slate-50{background:rgba(30,41,59,.6)!important;}
+  body[data-theme="dark"] .bg-indigo-50{background:rgba(67,56,202,.18)!important;}
+  body[data-theme="dark"] .bg-amber-50{background:rgba(146,64,14,.18)!important;}
+  body[data-theme="dark"] .bg-emerald-50{background:rgba(4,120,87,.18)!important;}
+  body[data-theme="dark"] input::placeholder,body[data-theme="dark"] textarea::placeholder{color:var(--text-muted);}
+  body[data-theme="density-compact"] .card{padding:0;}
+  body[data-density="compact"] table.af th,body[data-density="compact"] table.af td{padding:5px 8px;font-size:12px;}
+  body[data-density="compact"] .input{padding:5px 8px;font-size:12px;}
+  body[data-density="spacious"] table.af th,body[data-density="spacious"] table.af td{padding:14px 14px;font-size:14px;}
+  body[data-density="spacious"] .input{padding:10px 14px;font-size:14px;}
+  html,body{font-family:'Inter',system-ui,sans-serif;background:var(--bg-app);color:var(--text-strong);}
   .af-gradient{background:linear-gradient(135deg,var(--af-navy) 0%,var(--af-blue) 55%,var(--af-sky) 100%);}
   .panel-header{background:linear-gradient(135deg,var(--af-navy),var(--af-blue));color:#fff;}
   .sidebar-item{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:13px;color:#374151;border-left:3px solid transparent;cursor:pointer;}
@@ -60,6 +110,24 @@
   .tab.active{color:var(--af-navy);border-bottom-color:var(--af-blue);font-weight:600;}
   .badge-count{background:var(--af-red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;display:inline-flex;align-items:center;justify-content:center;}
   ::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:4px;}
+  /* Tour styles */
+  #tourOverlay{position:fixed;inset:0;z-index:300;pointer-events:none;}
+  #tourMask{position:absolute;inset:0;background:rgba(15,23,42,.65);transition:clip-path .25s ease;pointer-events:auto;}
+  #tourHighlight{position:absolute;border:3px solid var(--af-sky);border-radius:10px;box-shadow:0 0 0 3px rgba(74,144,201,.35),0 0 30px rgba(74,144,201,.55);transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none;animation:tourPulse 1.6s ease-in-out infinite;}
+  @keyframes tourPulse{0%,100%{box-shadow:0 0 0 3px rgba(74,144,201,.35),0 0 30px rgba(74,144,201,.55);}50%{box-shadow:0 0 0 6px rgba(74,144,201,.55),0 0 40px rgba(74,144,201,.75);}}
+  #tourCard{position:absolute;background:var(--bg-surface,#fff);border-radius:12px;box-shadow:0 25px 60px rgba(0,0,0,.35);max-width:380px;width:calc(100% - 32px);padding:0;pointer-events:auto;border:1px solid var(--border-soft);transition:all .3s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+  #tourCard .tour-head{background:linear-gradient(135deg,var(--af-navy),var(--af-blue));color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+  #tourCard .tour-body{padding:16px 18px;font-size:13px;color:var(--text-mid);line-height:1.55;}
+  #tourCard .tour-foot{padding:10px 14px;border-top:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg-soft);}
+  #tourCard .tour-step{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;opacity:.85;}
+  #tourCard .tour-title{font-size:15px;font-weight:600;}
+  #tourCard .tour-arrow{position:absolute;width:14px;height:14px;background:var(--bg-surface,#fff);transform:rotate(45deg);border:1px solid var(--border-soft);}
+  body[data-theme="dark"] #tourCard{background:#0F172A;color:#F1F5F9;}
+  body[data-theme="dark"] #tourCard .tour-foot{background:#1F2937;}
+  body[data-theme="dark"] #tourCard .tour-arrow{background:#0F172A;}
+  /* Custom socials styling */
+  .social-pair{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;}
+  @media(max-width:640px){.social-pair{grid-template-columns:1fr;gap:6px;}}
 </style>
 </head>
 <body>
@@ -177,6 +245,99 @@
 const STORAGE_KEY='vm_store_v2';
 const SCORING_CRITERIA=['Cost Effectiveness','Technical Fit','Integration Complexity','Vendor Stability','Support Quality','Security & Compliance','Scalability','Innovation','Implementation Timeline','Cultural Fit'];
 const AF_SECTIONS=['Claims','Underwriting','IT / Technology','Marketing','Human Resources','Finance / Accounting','Legal / Compliance','Customer Service','Risk Management','Sales','Operations','Actuarial','Loss Control','Executive Leadership'];
+/* Social platforms — keep keys stable; legacy: linkedin/twitter/facebook map to social_linkedin/social_twitter/social_facebook */
+const SOCIAL_PLATFORMS=[
+  {key:'linkedin',label:'LinkedIn',placeholder:'https://linkedin.com/company/...'},
+  {key:'twitter',label:'Twitter / X',placeholder:'https://x.com/...'},
+  {key:'facebook',label:'Facebook',placeholder:'https://facebook.com/...'},
+  {key:'instagram',label:'Instagram',placeholder:'https://instagram.com/...'},
+  {key:'tiktok',label:'TikTok',placeholder:'https://tiktok.com/@...'},
+  {key:'youtube',label:'YouTube',placeholder:'https://youtube.com/@...'},
+  {key:'pinterest',label:'Pinterest',placeholder:'https://pinterest.com/...'},
+  {key:'snapchat',label:'Snapchat',placeholder:'https://snapchat.com/add/...'},
+  {key:'reddit',label:'Reddit',placeholder:'https://reddit.com/r/... or /u/...'},
+  {key:'threads',label:'Threads',placeholder:'https://threads.net/@...'},
+  {key:'mastodon',label:'Mastodon',placeholder:'https://mastodon.social/@...'},
+  {key:'bluesky',label:'Bluesky',placeholder:'https://bsky.app/profile/...'},
+  {key:'tumblr',label:'Tumblr',placeholder:'https://....tumblr.com'},
+  {key:'twitch',label:'Twitch',placeholder:'https://twitch.tv/...'},
+  {key:'kick',label:'Kick',placeholder:'https://kick.com/...'},
+  {key:'rumble',label:'Rumble',placeholder:'https://rumble.com/c/...'},
+  {key:'vimeo',label:'Vimeo',placeholder:'https://vimeo.com/...'},
+  {key:'medium',label:'Medium',placeholder:'https://medium.com/@...'},
+  {key:'substack',label:'Substack',placeholder:'https://....substack.com'},
+  {key:'github',label:'GitHub',placeholder:'https://github.com/...'},
+  {key:'gitlab',label:'GitLab',placeholder:'https://gitlab.com/...'},
+  {key:'bitbucket',label:'Bitbucket',placeholder:'https://bitbucket.org/...'},
+  {key:'stackoverflow',label:'Stack Overflow',placeholder:'https://stackoverflow.com/users/...'},
+  {key:'devto',label:'Dev.to',placeholder:'https://dev.to/...'},
+  {key:'hashnode',label:'Hashnode',placeholder:'https://....hashnode.dev'},
+  {key:'producthunt',label:'Product Hunt',placeholder:'https://producthunt.com/@...'},
+  {key:'angellist',label:'AngelList / Wellfound',placeholder:'https://wellfound.com/company/...'},
+  {key:'crunchbase',label:'Crunchbase',placeholder:'https://crunchbase.com/organization/...'},
+  {key:'glassdoor',label:'Glassdoor',placeholder:'https://glassdoor.com/...'},
+  {key:'indeed',label:'Indeed',placeholder:'https://indeed.com/cmp/...'},
+  {key:'discord',label:'Discord',placeholder:'https://discord.gg/... or server URL'},
+  {key:'slack',label:'Slack Community',placeholder:'https://....slack.com'},
+  {key:'telegram',label:'Telegram',placeholder:'https://t.me/...'},
+  {key:'whatsapp',label:'WhatsApp',placeholder:'https://wa.me/... or business URL'},
+  {key:'wechat',label:'WeChat',placeholder:'WeChat ID or QR URL'},
+  {key:'line',label:'LINE',placeholder:'LINE ID or https://line.me/...'},
+  {key:'kakaotalk',label:'KakaoTalk',placeholder:'KakaoTalk channel URL'},
+  {key:'viber',label:'Viber',placeholder:'Viber channel URL'},
+  {key:'signal',label:'Signal',placeholder:'https://signal.me/...'},
+  {key:'weibo',label:'Weibo',placeholder:'https://weibo.com/...'},
+  {key:'douyin',label:'Douyin',placeholder:'https://douyin.com/...'},
+  {key:'xiaohongshu',label:'Xiaohongshu (RED)',placeholder:'Xiaohongshu profile URL'},
+  {key:'qq',label:'QQ',placeholder:'QQ number or group URL'},
+  {key:'vk',label:'VK',placeholder:'https://vk.com/...'},
+  {key:'ok',label:'Odnoklassniki',placeholder:'https://ok.ru/...'},
+  {key:'tenor',label:'Tenor',placeholder:'https://tenor.com/users/...'},
+  {key:'flickr',label:'Flickr',placeholder:'https://flickr.com/photos/...'},
+  {key:'behance',label:'Behance',placeholder:'https://behance.net/...'},
+  {key:'dribbble',label:'Dribbble',placeholder:'https://dribbble.com/...'},
+  {key:'deviantart',label:'DeviantArt',placeholder:'https://deviantart.com/...'},
+  {key:'artstation',label:'ArtStation',placeholder:'https://artstation.com/...'},
+  {key:'500px',label:'500px',placeholder:'https://500px.com/p/...'},
+  {key:'unsplash',label:'Unsplash',placeholder:'https://unsplash.com/@...'},
+  {key:'soundcloud',label:'SoundCloud',placeholder:'https://soundcloud.com/...'},
+  {key:'spotify',label:'Spotify',placeholder:'https://open.spotify.com/artist/...'},
+  {key:'applemusic',label:'Apple Music',placeholder:'https://music.apple.com/...'},
+  {key:'bandcamp',label:'Bandcamp',placeholder:'https://....bandcamp.com'},
+  {key:'mixcloud',label:'Mixcloud',placeholder:'https://mixcloud.com/...'},
+  {key:'audius',label:'Audius',placeholder:'https://audius.co/...'},
+  {key:'goodreads',label:'Goodreads',placeholder:'https://goodreads.com/author/...'},
+  {key:'letterboxd',label:'Letterboxd',placeholder:'https://letterboxd.com/...'},
+  {key:'imdb',label:'IMDb',placeholder:'https://imdb.com/name/...'},
+  {key:'patreon',label:'Patreon',placeholder:'https://patreon.com/...'},
+  {key:'kofi',label:'Ko-fi',placeholder:'https://ko-fi.com/...'},
+  {key:'buymeacoffee',label:'Buy Me a Coffee',placeholder:'https://buymeacoffee.com/...'},
+  {key:'onlyfans',label:'OnlyFans',placeholder:'https://onlyfans.com/...'},
+  {key:'fansly',label:'Fansly',placeholder:'https://fansly.com/...'},
+  {key:'mighty',label:'Mighty Networks',placeholder:'Mighty Networks URL'},
+  {key:'circle',label:'Circle',placeholder:'Circle community URL'},
+  {key:'meetup',label:'Meetup',placeholder:'https://meetup.com/...'},
+  {key:'eventbrite',label:'Eventbrite',placeholder:'https://eventbrite.com/o/...'},
+  {key:'mastermind',label:'Mastermind / Skool',placeholder:'https://skool.com/...'},
+  {key:'clubhouse',label:'Clubhouse',placeholder:'https://clubhouse.com/@...'},
+  {key:'spaces',label:'X / Twitter Spaces',placeholder:'Twitter Spaces URL'},
+  {key:'nostr',label:'Nostr',placeholder:'npub... or relay URL'},
+  {key:'farcaster',label:'Farcaster',placeholder:'https://warpcast.com/...'},
+  {key:'lens',label:'Lens Protocol',placeholder:'https://lenster.xyz/u/...'},
+  {key:'minds',label:'Minds',placeholder:'https://minds.com/...'},
+  {key:'gab',label:'Gab',placeholder:'https://gab.com/...'},
+  {key:'truthsocial',label:'Truth Social',placeholder:'https://truthsocial.com/@...'},
+  {key:'parler',label:'Parler',placeholder:'https://parler.com/...'},
+  {key:'gettr',label:'GETTR',placeholder:'https://gettr.com/user/...'},
+  {key:'mewe',label:'MeWe',placeholder:'https://mewe.com/...'},
+  {key:'quora',label:'Quora',placeholder:'https://quora.com/profile/...'},
+  {key:'kwai',label:'Kwai',placeholder:'Kwai profile URL'},
+  {key:'likee',label:'Likee',placeholder:'Likee profile URL'},
+  {key:'bigo',label:'BIGO LIVE',placeholder:'BIGO profile URL'},
+  {key:'podcasts',label:'Apple Podcasts',placeholder:'https://podcasts.apple.com/...'},
+  {key:'googlepodcasts',label:'Google Podcasts',placeholder:'Google Podcasts URL'},
+];
+const SOCIAL_KEY_SET=new Set(SOCIAL_PLATFORMS.map(p=>p.key));
 
 const defaultStore={vendors:[],campaigns:[],scores:{},personalScores:{},userDecisions:{},tickets:[],engagements:[],feedback:[],documents:{},notifications:[],apiKeys:[],users:[],emailTemplates:[],settings:{companyName:'Test Company',theme:'light',scoringMode:'dual',emailNotifs:true,defaultPersonality:'balanced'},_seq:100};
 
@@ -184,10 +345,20 @@ let store=loadStore();
 
 function loadStore(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultStore);return {...structuredClone(defaultStore),...JSON.parse(raw)};}catch(e){return structuredClone(defaultStore);}}
 function saveStore(){localStorage.setItem(STORAGE_KEY,JSON.stringify(store));}
+
+function applyTheme(){
+  const t=(store.settings&&store.settings.theme)||'light';
+  let resolved=t;
+  if(t==='auto'){resolved=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  document.body.setAttribute('data-theme',resolved);
+  const d=(store.settings&&store.settings.density)||'comfortable';
+  document.body.setAttribute('data-density',d.toLowerCase());
+}
+if(window.matchMedia){try{window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if((store.settings&&store.settings.theme)==='auto')applyTheme();});}catch(e){}}
 function nextId(){store._seq=(store._seq||100)+1;return store._seq;}
 function resetStore(){if(!confirm('Reset all data to seed defaults?'))return;localStorage.removeItem(STORAGE_KEY);store=structuredClone(defaultStore);seedData();saveStore();toast('Store reset to seed data','success');render();}
 
-function calculateAIScore(vendor,scoreArr){let total=0;const fields=['name','website','contact_name','contact_email','mission_statement','project'];const filled=fields.filter(f=>vendor[f]&&String(vendor[f]).trim().length>0).length;total+=(filled/fields.length)*20;if(scoreArr.length>0){const avg=scoreArr.reduce((s,sc)=>s+sc.score,0)/scoreArr.length;total+=(avg/5)*50;}let sections=[];try{sections=JSON.parse(vendor.sections||'[]');}catch{sections=[];}total+=Math.min(sections.length/5,1)*15;let web=0;if(vendor.website)web+=5;if(vendor.social_linkedin)web+=4;if(vendor.social_twitter)web+=3;if(vendor.social_facebook)web+=3;total+=Math.min(web,15);return Math.round(total);}
+function calculateAIScore(vendor,scoreArr){let total=0;const fields=['name','website','contact_name','contact_email','mission_statement','project'];const filled=fields.filter(f=>vendor[f]&&String(vendor[f]).trim().length>0).length;total+=(filled/fields.length)*20;if(scoreArr.length>0){const avg=scoreArr.reduce((s,sc)=>s+sc.score,0)/scoreArr.length;total+=(avg/5)*50;}let sections=[];try{sections=JSON.parse(vendor.sections||'[]');}catch{sections=[];}total+=Math.min(sections.length/5,1)*15;let web=0;if(vendor.website)web+=5;const socObj=vendor.socials||{};let socCount=Object.values(socObj).filter(v=>v&&String(v).trim()).length;if(!socCount){if(vendor.social_linkedin)socCount++;if(vendor.social_twitter)socCount++;if(vendor.social_facebook)socCount++;}socCount+=Array.isArray(vendor.customSocials)?vendor.customSocials.filter(c=>c&&(c.url||c.label)).length:0;web+=Math.min(socCount*2,10);total+=Math.min(web,15);return Math.round(total);}
 function calculateDecision(scoreArr){const m={};scoreArr.forEach(s=>{m[s.criterion]=s.score;});const inv=v=>6-(v||3);const buyScore=(m['Technical Fit']||0)*3+(m['Cost Effectiveness']||0)*2+(m['Vendor Stability']||0)*3+(m['Support Quality']||0)*2+inv(m['Integration Complexity'])*2;const buildScore=(m['Scalability']||0)*3+(m['Security & Compliance']||0)*3+(m['Innovation']||0)*2+inv(m['Implementation Timeline'])*2+inv(m['Vendor Stability'])*2;const partnerScore=(m['Cultural Fit']||0)*3+(m['Innovation']||0)*3+(m['Technical Fit']||0)*2+(m['Scalability']||0)*2+(m['Support Quality']||0)*2;const best=Math.max(buyScore,buildScore,partnerScore);let rec='BUY';if(best===buildScore&&buildScore>buyScore)rec='BUILD';if(best===partnerScore&&partnerScore>buyScore&&partnerScore>buildScore)rec='PARTNER';return{recommendation:rec,confidence:Math.round((best/60)*100),scores:{buy:Math.round((buyScore/60)*100),build:Math.round((buildScore/60)*100),partner:Math.round((partnerScore/60)*100)}};}
 function getScores(id){return store.scores[id]||[];}
 function getPersonalScores(id){return store.personalScores[id]||[];}
@@ -210,7 +381,156 @@ function downloadCSV(rows,filename){if(!rows.length){toast('Nothing to export','
 function copyLink(){const u=location.origin+location.pathname+'#'+current.route;navigator.clipboard.writeText(u).then(()=>toast('Link copied to clipboard','success')).catch(()=>toast('Copy failed','error'));}
 function saveLayout(){localStorage.setItem('vm_layout_'+current.route,JSON.stringify(current.params||{}));toast('Layout saved for this view','success');}
 function logout(){closeDropdowns();confirmModal('Sign Out','Are you sure you want to sign out?',()=>toast('Signed out (demo)','info'));}
-function startTour(){openModal(`<div class="panel-header px-5 py-3 rounded-t-xl flex items-center justify-between"><h3 class="font-semibold">Welcome to the Vendor VIP Zone</h3><button onclick="closeModal()" class="text-white/80 hover:text-white">&times;</button></div><div class="p-5 text-sm text-slate-700 space-y-3"><p><strong>1. Vendors</strong> &mdash; Manage your vendor roster, scoring, and documents.</p><p><strong>2. Scoring</strong> &mdash; Rate vendors on 10 criteria with both AI and Personal scores.</p><p><strong>3. Decisions</strong> &mdash; Auto-generated Buy/Build/Partner recommendations with confidence.</p><p><strong>4. Engagement</strong> &mdash; Build quarterly engagement matrices tied to objectives.</p><p><strong>5. Support</strong> &mdash; File tickets, share feedback, and get help.</p></div><div class="px-5 py-3 border-t border-slate-100 flex justify-end"><button class="btn-primary" onclick="closeModal()">Got it</button></div>`);}
+/* ============================================================
+   INTERACTIVE TOUR
+   ============================================================ */
+const TOUR_STEPS=[
+  {target:null,route:'dashboard',title:'Welcome to the Vendor VIP Zone',body:'This quick walkthrough shows you every part of your VIP workspace — about 90 seconds. Use Next/Back or Esc to exit anytime.'},
+  {target:'#sidebarNav',route:'dashboard',title:'Sidebar Navigation',body:'Your home base. Jump between Dashboard, Vendors, Scoring, Decisions, Campaigns, Engagement, Support, and Settings. The active section is highlighted in blue.',placement:'right'},
+  {target:'#globalSearch',route:'dashboard',title:'Global Search',body:'Search vendors, campaigns, and tickets from anywhere. Click a result to jump straight to its detail page.',placement:'bottom'},
+  {target:'[onclick="startTour()"]',route:'dashboard',title:'Take a Tour',body:'You\'re using it right now! Click this any time you want a refresher or have new teammates onboarding.',placement:'bottom'},
+  {target:'#appsDD',altTarget:'header [onclick*="appsDD"]',route:'dashboard',title:'App Switcher',body:'Quick access to every major area: Vendors, Scoring, Decisions, Engagement, Support, and Campaigns.',placement:'bottom',openMenu:'appsDD'},
+  {target:'#mgmtDD',altTarget:'header [onclick*="mgmtDD"]',route:'dashboard',title:'Management',body:'Workspace controls live here: Account Settings, Users, API Keys, Email Templates, Form Settings, Engagement Settings, and Audit Log.',placement:'bottom',openMenu:'mgmtDD'},
+  {target:'#bellDD',altTarget:'header [onclick*="bellDD"]',route:'dashboard',title:'Notifications',body:'New vendors, score changes, and campaign updates show up here. The red badge shows unread count.',placement:'bottom',openMenu:'bellDD'},
+  {target:'#profileDD',altTarget:'header [onclick*="profileDD"]',route:'dashboard',title:'Your Profile',body:'Profile, Company, Password, Theme & Display, and Notification Preferences. Sign out is at the bottom.',placement:'bottom',openMenu:'profileDD'},
+  {target:'#viewRoot .grid.grid-cols-1.md\\:grid-cols-4',route:'dashboard',title:'Dashboard KPIs',body:'Total vendors, active campaigns, average AI score, and average Personal score — your portfolio at a glance.',placement:'bottom'},
+  {target:'#viewRoot .grid.grid-cols-1.md\\:grid-cols-3',route:'dashboard',title:'Buy / Build / Partner Counts',body:'Click any card to see all vendors with that recommendation. Counts update live as you score.',placement:'top'},
+  {target:'#viewRoot',route:'vendors',title:'Vendors List',body:'Your vendor roster. Search, filter by department or recommendation, click any row for the detail page, or +Add Vendor to onboard a new one.',placement:'top'},
+  {target:'#viewRoot form',route:'vendor-new',title:'Add / Edit Vendor',body:'Capture vendor name, project, website, mission, multiple contacts, full social media presence (with custom platforms via +Other), department coverage, documents, and notes.',placement:'top'},
+  {target:'#viewRoot',route:'scoring',title:'Scoring Matrix',body:'Score each vendor 1-5 across 10 criteria — Cost, Tech Fit, Stability, Support, Security, Scalability, Innovation, Timeline, Cultural Fit, and Integration Complexity. Toggle AI vs Personal scoring.',placement:'top'},
+  {target:'#viewRoot',route:'decisions',title:'Decisions Engine',body:'Auto-generated Buy/Build/Partner recommendations based on your scores, with a confidence percentage and the option to override with your own decision.',placement:'top'},
+  {target:'#viewRoot',route:'campaigns',title:'Campaigns',body:'Bundle vendors into evaluation initiatives — e.g. "Claims Modernization Q3" — to compare them side-by-side with shared objectives.',placement:'top'},
+  {target:'#viewRoot',route:'engagement-create',title:'Create Engagement',body:'Set up a quarterly engagement plan with success criteria, milestones, and stakeholders. Tied to objectives so you can track outcomes.',placement:'top'},
+  {target:'#viewRoot',route:'tickets',title:'Support Tickets',body:'Internal ticket tracker for issues with vendors or the platform. Categories, priority, and status. Filter by open/closed.',placement:'top'},
+  {target:'#viewRoot',route:'feedback',title:'Feedback',body:'Capture thoughts and suggestions about vendors or the platform. 5-star rating + free text — perfect for retros.',placement:'top'},
+  {target:'#viewRoot',route:'mgmt-account',title:'Workspace Settings',body:'Company name, default scoring mode (Dual / AI-only / Personal-only), default personality (balanced/innovator/conservative), and email notification toggle.',placement:'top'},
+  {target:'#viewRoot',route:'mgmt-users',title:'User Management',body:'Invite teammates, assign roles (Admin, Editor, Viewer), and remove members. Roles control what each person can edit.',placement:'top'},
+  {target:'#viewRoot',route:'mgmt-apikeys',title:'API Keys',body:'Generate keys for programmatic access. Copy or revoke any key. Use these for integrations or scripting bulk vendor imports.',placement:'top'},
+  {target:'#viewRoot',route:'mgmt-email',title:'Email Templates',body:'Customize the messages sent for vendor welcomes, scoring completion, and other events. Variables: {{vendor_name}}, {{company_name}}, {{user_name}}.',placement:'top'},
+  {target:'#viewRoot',route:'mgmt-audit',title:'Audit Log',body:'Every workspace action is logged here — who did what, when, on which target. Compliance-friendly trail.',placement:'top'},
+  {target:'#viewRoot',route:'profile-theme',title:'Theme & Display',body:'Light, Dark, or System (auto-match OS). Pick a density (Comfortable / Compact / Spacious). Changes apply instantly across the whole VIP.',placement:'top'},
+  {target:null,route:'dashboard',title:"You're all set!",body:"That's the full tour. Replay it anytime via the Take a Tour button at the top. Now go score some vendors."},
+];
+let __tourState={idx:0,active:false};
+function startTour(){closeDropdowns();closeModal();__tourState={idx:0,active:true};ensureTourOverlay();showTourStep();}
+function ensureTourOverlay(){
+  let ov=document.getElementById('tourOverlay');
+  if(ov)return ov;
+  ov=document.createElement('div');
+  ov.id='tourOverlay';
+  ov.innerHTML=`
+    <div id="tourMask"></div>
+    <div id="tourHighlight" style="display:none;"></div>
+    <div id="tourCard" role="dialog" aria-live="polite">
+      <div class="tour-arrow" id="tourArrow" style="display:none;"></div>
+      <div class="tour-head"><div><div class="tour-step" id="tourStepLabel"></div><div class="tour-title" id="tourTitle"></div></div><button onclick="endTour()" class="text-white/80 hover:text-white text-2xl leading-none px-2" title="End tour">&times;</button></div>
+      <div class="tour-body" id="tourBody"></div>
+      <div class="tour-foot">
+        <button onclick="endTour()" class="btn-ghost text-xs">Skip Tour</button>
+        <div class="flex items-center gap-2">
+          <button id="tourPrev" onclick="prevTour()" class="btn-secondary text-xs">&larr; Back</button>
+          <button id="tourNext" onclick="nextTour()" class="btn-primary text-xs">Next &rarr;</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  document.addEventListener('keydown',tourKeyHandler);
+  window.addEventListener('resize',()=>{if(__tourState.active)positionTourCard();});
+  return ov;
+}
+function tourKeyHandler(e){
+  if(!__tourState.active)return;
+  if(e.key==='Escape')endTour();
+  else if(e.key==='ArrowRight'||e.key==='Enter')nextTour();
+  else if(e.key==='ArrowLeft')prevTour();
+}
+function endTour(){
+  __tourState.active=false;
+  closeDropdowns();
+  const ov=document.getElementById('tourOverlay');
+  if(ov)ov.remove();
+  document.removeEventListener('keydown',tourKeyHandler);
+}
+function nextTour(){if(__tourState.idx>=TOUR_STEPS.length-1){endTour();toast('Tour complete!','success');return;}__tourState.idx++;showTourStep();}
+function prevTour(){if(__tourState.idx<=0)return;__tourState.idx--;showTourStep();}
+function showTourStep(){
+  const step=TOUR_STEPS[__tourState.idx];
+  if(!step){endTour();return;}
+  const total=TOUR_STEPS.length;
+  document.getElementById('tourStepLabel').textContent=`Step ${__tourState.idx+1} of ${total}`;
+  document.getElementById('tourTitle').textContent=step.title||'';
+  document.getElementById('tourBody').innerHTML=step.body||'';
+  document.getElementById('tourPrev').style.visibility=__tourState.idx===0?'hidden':'visible';
+  document.getElementById('tourNext').textContent=__tourState.idx===total-1?'Finish':'Next →';
+  closeDropdowns();
+  const needNav=step.route&&current.route!==step.route;
+  if(needNav){navigate(step.route,{});}
+  setTimeout(()=>{
+    if(step.openMenu){const dd=document.getElementById(step.openMenu);if(dd)dd.classList.remove('hidden');}
+    placeTourTarget(step);
+  },needNav?180:30);
+}
+function placeTourTarget(step){
+  const hl=document.getElementById('tourHighlight');
+  let el=null;
+  if(step.target){try{el=document.querySelector(step.target);}catch(e){}}
+  if(!el&&step.altTarget){try{el=document.querySelector(step.altTarget);}catch(e){}}
+  if(el){
+    const r=el.getBoundingClientRect();
+    const pad=6;
+    hl.style.display='block';
+    hl.style.left=(r.left-pad)+'px';
+    hl.style.top=(r.top-pad)+'px';
+    hl.style.width=(r.width+pad*2)+'px';
+    hl.style.height=(r.height+pad*2)+'px';
+    const mask=document.getElementById('tourMask');
+    const x=r.left-pad,y=r.top-pad,w=r.width+pad*2,h=r.height+pad*2;
+    mask.style.clipPath=`polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 ${y}px, ${x}px ${y}px, ${x}px ${y+h}px, ${x+w}px ${y+h}px, ${x+w}px ${y}px, 0 ${y}px)`;
+    try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+  }else{
+    hl.style.display='none';
+    document.getElementById('tourMask').style.clipPath='';
+  }
+  positionTourCard(step,el);
+}
+function positionTourCard(step,el){
+  step=step||TOUR_STEPS[__tourState.idx];
+  if(!step)return;
+  if(!el&&step.target){try{el=document.querySelector(step.target);}catch(e){}}
+  if(!el&&step&&step.altTarget){try{el=document.querySelector(step.altTarget);}catch(e){}}
+  const card=document.getElementById('tourCard');
+  if(!card)return;
+  const arrow=document.getElementById('tourArrow');
+  if(arrow)arrow.style.display='none';
+  if(!el){
+    card.style.left='50%';card.style.top='50%';
+    card.style.transform='translate(-50%,-50%)';
+    return;
+  }
+  const r=el.getBoundingClientRect();
+  const cw=card.offsetWidth||380;
+  const ch=card.offsetHeight||220;
+  const vw=window.innerWidth,vh=window.innerHeight;
+  const margin=18;
+  card.style.transform='none';
+  let placement=step.placement||'auto';
+  if(placement==='auto'){
+    if(r.bottom+ch+margin<vh)placement='bottom';
+    else if(r.top-ch-margin>0)placement='top';
+    else if(r.right+cw+margin<vw)placement='right';
+    else placement='left';
+  }
+  let left,top;
+  if(placement==='bottom'){left=r.left+r.width/2-cw/2;top=r.bottom+margin;}
+  else if(placement==='top'){left=r.left+r.width/2-cw/2;top=r.top-ch-margin;}
+  else if(placement==='right'){left=r.right+margin;top=r.top+r.height/2-ch/2;}
+  else if(placement==='left'){left=r.left-cw-margin;top=r.top+r.height/2-ch/2;}
+  else{left=r.left+r.width/2-cw/2;top=r.bottom+margin;}
+  left=Math.max(12,Math.min(vw-cw-12,left));
+  top=Math.max(12,Math.min(vh-ch-12,top));
+  card.style.left=left+'px';
+  card.style.top=top+'px';
+}
 
 function markAllRead(){store.notifications.forEach(n=>n.read=true);saveStore();renderNotifications();toast('All notifications marked read');}
 function renderNotifications(){const list=document.getElementById('bellList');const badge=document.getElementById('bellBadge');const unread=store.notifications.filter(n=>!n.read).length;badge.textContent=unread;badge.classList.toggle('hidden',unread===0);if(!store.notifications.length){list.innerHTML='<div class="p-6 text-center text-xs text-slate-400">No notifications</div>';return;}list.innerHTML=store.notifications.slice(-10).reverse().map(n=>`<div class="px-4 py-3 border-b border-slate-50 ${n.read?'':'bg-blue-50/40'}"><div class="flex items-start gap-2"><div class="w-1.5 h-1.5 rounded-full mt-1.5 ${n.read?'bg-slate-300':'bg-blue-500'}"></div><div class="flex-1"><div class="text-xs font-medium text-slate-800">${escHtml(n.title)}</div><div class="text-[11px] text-slate-500 mt-0.5">${escHtml(n.body||'')}</div><div class="text-[10px] text-slate-400 mt-1">${n.time||''}</div></div></div></div>`).join('');}
@@ -305,28 +625,30 @@ function seedData(){
   if(store.vendors.length>0)return;
   const now=new Date().toISOString();
   const seeds=[
-    {name:'Test Vendor 1',project:'Claims Automation Pilot',sections:['Claims','IT / Technology'],website:'https://test-vendor-1.example.com'},
-    {name:'Test Vendor 2',project:'Underwriting AI Assistant',sections:['Underwriting','Actuarial']},
-    {name:'Test Vendor 3',project:'Customer Service Chatbot',sections:['Customer Service','Marketing'],website:'https://test-vendor-3.example.com'},
-    {name:'Test Vendor 4',project:'Risk Analytics Platform',sections:['Risk Management','IT / Technology']},
-    {name:'Test Vendor 5',project:'Document Intelligence Suite',sections:['Claims','Legal / Compliance','Operations']},
-    {name:'Test Vendor 6',project:'Telematics Data Provider',sections:['Loss Control','Underwriting']},
-    {name:'Test Vendor 7',project:'HR Talent Platform',sections:['Human Resources']},
-    {name:'Test Vendor 8',project:'Finance Close Automation',sections:['Finance / Accounting','Executive Leadership']},
+    {name:'ClaimSwift Technologies',domain:'claimswift.example.com',project:'Claims Automation Pilot',sections:['Claims','IT / Technology'],contacts:[{name:'Marcus Chen',role:'Sales Director'},{name:'Priya Patel',role:'Technical Lead'}],mission:'Streamlining first-notice-of-loss intake and claims triage with AI-assisted decisioning for mid-market carriers.'},
+    {name:'Underwrite.ai',domain:'underwrite-ai.example.com',project:'Underwriting AI Assistant',sections:['Underwriting','Actuarial'],contacts:[{name:'Sarah Lindqvist',role:'Account Executive'},{name:'Diego Hernandez',role:'Solutions Architect'}],mission:'AI underwriter copilot that surfaces submission risks and pricing recommendations in real time.'},
+    {name:'Helio Conversational',domain:'helio-cs.example.com',project:'Customer Service Chatbot',sections:['Customer Service','Marketing'],contacts:[{name:'Robert Kowalski',role:'Sales Director'},{name:'Aisha Khan',role:'Implementation Lead'}],mission:'Empathetic conversational AI tuned for policyholder support across web, mobile, and voice channels.'},
+    {name:'RiskNova Analytics',domain:'risknova.example.com',project:'Risk Analytics Platform',sections:['Risk Management','IT / Technology'],contacts:[{name:'Jamie Robinson',role:'Account Executive'}],mission:'Portfolio-level risk concentration analytics with geospatial overlays and stress testing scenarios.'},
+    {name:'Lexico Document AI',domain:'lexico-ai.example.com',project:'Document Intelligence Suite',sections:['Claims','Legal / Compliance','Operations'],contacts:[{name:'Felix Brennan',role:'Sales Director'}],mission:'Extract structured data from unstructured documents — policies, endorsements, ACORD forms, court filings.'},
+    {name:'Driveline Telematics',domain:'driveline.example.com',project:'Telematics Data Provider',sections:['Loss Control','Underwriting'],contacts:[{name:'Yuki Tanaka',role:'Account Executive'}],mission:'OEM-native telematics data feeds for usage-based insurance pricing and crash reconstruction.'},
+    {name:'Talenthive',domain:'talenthive.example.com',project:'HR Talent Platform',sections:['Human Resources'],contacts:[{name:'Nora Sullivan',role:'Sales Director'}],mission:'End-to-end ATS and onboarding tailored for regulated industries with built-in license verification.'},
+    {name:'Closeloop Finance',domain:'closeloop.example.com',project:'Finance Close Automation',sections:['Finance / Accounting','Executive Leadership'],contacts:[{name:'Andre Volkov',role:'Account Executive'}],mission:'Automate the financial close with continuous reconciliation, variance flagging, and audit-ready reporting.'},
   ];
   seeds.forEach((v,i)=>{
     const id=i+1;
-    const primary={name:`Test Contact ${id}`,email:`contact${id}@test-vendor-${id}.example.com`,phone:`555-01${String(id).padStart(2,'0')}`,role:id%2===0?'Account Executive':'Sales Director'};
-    const contacts=id<=3?[primary,{name:`Test Secondary ${id}`,email:`secondary${id}@test-vendor-${id}.example.com`,phone:`555-02${String(id).padStart(2,'0')}`,role:'Technical Lead'}]:[primary];
-    store.vendors.push({id,name:v.name,website:v.website||'',social_linkedin:'',social_twitter:'',social_facebook:'',contact_name:primary.name,contact_email:primary.email,contact_phone:primary.phone,contacts,mission_statement:`Test mission statement for Test Vendor ${id}. This vendor supports ${v.project.toLowerCase()}.`,project:v.project,sections:JSON.stringify(v.sections),notes:'',created_at:now,updated_at:now});
+    const slug=v.domain.split('.')[0];
+    const handles=v.contacts.map(c=>c.name.toLowerCase().replace(/[^a-z]+/g,'.'));
+    const contacts=v.contacts.map((c,ci)=>({name:c.name,email:`${handles[ci]}@${v.domain}`,phone:`555-01${String(id).padStart(2,'0')}`.slice(0,4)+String(ci+1).padStart(2,'0'),role:c.role}));
+    const primary=contacts[0];
+    store.vendors.push({id,name:v.name,website:`https://${v.domain}`,social_linkedin:'',social_twitter:'',social_facebook:'',socials:{},customSocials:[],contact_name:primary.name,contact_email:primary.email,contact_phone:primary.phone,contacts,mission_statement:v.mission,project:v.project,sections:JSON.stringify(v.sections),notes:'',created_at:now,updated_at:now});
     store.scores[id]=SCORING_CRITERIA.map(c=>({criterion:c,score:2+Math.floor(Math.random()*4)}));
     if(id<=5)store.personalScores[id]=SCORING_CRITERIA.map(c=>({criterion:c,score:2+Math.floor(Math.random()*4)}));
     store._seq=Math.max(store._seq||100,id);
   });
-  store.campaigns.push({id:1,name:'Test Campaign - Claims Modernization',description:'Evaluating vendors for claims automation rollout.',objective:'Reduce claims cycle time by 30% via AI-assisted triage.',status:'active',vendorIds:[1,5],created_at:now});
-  store.campaigns.push({id:2,name:'Test Campaign - Underwriting AI',description:'Shortlist underwriting AI assistants.',objective:'Pilot an AI underwriting assistant by end of Q3.',status:'active',vendorIds:[2,4],created_at:now});
+  store.campaigns.push({id:1,name:'Claims Modernization Initiative',description:'Evaluating vendors for claims automation rollout across the eastern region.',objective:'Reduce claims cycle time by 30% via AI-assisted triage.',status:'active',vendorIds:[1,5],created_at:now});
+  store.campaigns.push({id:2,name:'Underwriting AI Shortlist',description:'Shortlist underwriting AI assistants for pilot evaluation.',objective:'Pilot an AI underwriting assistant by end of Q3.',status:'active',vendorIds:[2,4],created_at:now});
   store._seq=Math.max(store._seq||100,20);
-  store.notifications.push({id:nextId(),title:'Welcome to the Vendor VIP Zone',body:'Seed data loaded. Start by reviewing Test Vendor 1.',time:new Date().toLocaleString(),read:false});
+  store.notifications.push({id:nextId(),title:'Welcome to the Vendor VIP Zone',body:'Seed data loaded. Start by reviewing ClaimSwift Technologies.',time:new Date().toLocaleString(),read:false});
   store.notifications.push({id:nextId(),title:'Quarterly review due',body:'Q2 engagement review is due in 14 days.',time:new Date().toLocaleString(),read:false});
   store.tickets.push({id:nextId(),title:'Sample: export to CSV not working',category:'Bug',priority:'Medium',status:'Open',description:'When exporting vendor list the CSV is empty.',created_at:now});
   store.feedback.push({id:nextId(),rating:5,category:'UI',message:'Love the new dashboard look.',created_at:now});
@@ -368,8 +690,9 @@ function renderProfileTheme(){document.getElementById('viewRoot').innerHTML='<di
 function renderProfileNotifications(){document.getElementById('viewRoot').innerHTML='<div class="card p-8">Notifications loading...</div>';}
 
 seedData();
+applyTheme();
 render();
-window.store=store;window.navigate=navigate;window.toggleUserDecision=toggleUserDecision;window.setUserDecision=setUserDecision;window.clearUserDecision=clearUserDecision;window.getUserDecision=getUserDecision;
+window.store=store;window.navigate=navigate;window.toggleUserDecision=toggleUserDecision;window.setUserDecision=setUserDecision;window.clearUserDecision=clearUserDecision;window.getUserDecision=getUserDecision;window.applyTheme=applyTheme;
 </script>
 <script>
 /* ============================================================
@@ -428,12 +751,60 @@ function renderVendors(){
 function deleteVendor(id){const v=store.vendors.find(x=>x.id===id);if(!v)return;confirmModal('Delete vendor?',`Delete <strong>${escHtml(v.name)}</strong>? This removes all scores and campaign memberships.`,()=>{store.vendors=store.vendors.filter(x=>x.id!==id);delete store.scores[id];delete store.personalScores[id];store.campaigns.forEach(c=>{c.vendorIds=(c.vendorIds||[]).filter(vid=>vid!==id);});saveStore();toast('Vendor deleted','success');render();});}
 function exportVendors(){downloadCSV(store.vendors.map(v=>{const s=vendorSummary(v);return{id:v.id,name:v.name,project:v.project,website:v.website,contact_email:v.contact_email,ai_score:s.aiScore,personal_score:s.personalScore,ai_rec:s.aiDecision?.recommendation||'',personal_rec:s.personalDecision?.recommendation||''};}),'vendors.csv');}
 
+function getVendorSocial(v,key){
+  if(!v)return '';
+  if(v.socials&&typeof v.socials==='object'&&v.socials[key])return v.socials[key];
+  if(key==='linkedin')return v.social_linkedin||'';
+  if(key==='twitter')return v.social_twitter||'';
+  if(key==='facebook')return v.social_facebook||'';
+  return '';
+}
+function getVendorCustomSocials(v){
+  if(!v)return [];
+  if(Array.isArray(v.customSocials))return v.customSocials.filter(x=>x&&(x.label||x.url));
+  return [];
+}
+function addCustomSocial(){
+  readCustomSocials();
+  window.__formCustomSocials=window.__formCustomSocials||[];
+  window.__formCustomSocials.push({label:'',url:''});
+  renderCustomSocials();
+}
+function removeCustomSocial(i){
+  readCustomSocials();
+  window.__formCustomSocials.splice(i,1);
+  renderCustomSocials();
+}
+function readCustomSocials(){
+  const rows=document.querySelectorAll('.custom-social-row');
+  const arr=[];
+  rows.forEach(r=>{
+    const lbl=r.querySelector('.custom-social-label');
+    const url=r.querySelector('.custom-social-url');
+    if(lbl&&url){arr.push({label:lbl.value,url:url.value});}
+  });
+  if(arr.length)window.__formCustomSocials=arr;
+}
+function renderCustomSocials(){
+  const list=document.getElementById('customSocialsList');
+  if(!list)return;
+  const arr=window.__formCustomSocials||[];
+  if(!arr.length){list.innerHTML='<div class="text-xs text-slate-400 py-2">No custom platforms yet. Click <strong>+ Add Custom</strong> above to add one.</div>';return;}
+  list.innerHTML=arr.map((c,i)=>`
+    <div class="custom-social-row social-pair">
+      <div><label class="label">Platform Name</label><input class="input custom-social-label" placeholder="e.g. MySpace" value="${escHtml(c.label||'')}"/></div>
+      <div><label class="label">URL or Handle</label><input class="input custom-social-url" placeholder="https://..." value="${escHtml(c.url||'')}"/></div>
+      <button type="button" class="btn-ghost text-rose-600 hover:bg-rose-50" onclick="removeCustomSocial(${i})" style="height:34px;align-self:end;">Remove</button>
+    </div>`).join('');
+}
+
 function renderVendorForm(id){
   const v=id?store.vendors.find(x=>x.id===Number(id))||null:null;
   const isNew=!v;
   const initialSections=v?JSON.parse(v.sections||'[]'):[];
   window.__formDocs=v?[...(store.documents[v.id]||[])]:[];
   window.__formContacts=initFormContacts(v);
+  window.__formCustomSocials=getVendorCustomSocials(v);
   const actions=`${toolbarButton('Cancel','','navigate(\'vendors\')')}`;
   document.getElementById('viewRoot').innerHTML=pageHeader(isNew?'New Vendor':'Edit Vendor',isNew?'Add a new vendor to the matrix':`Editing ${escHtml(v.name)}`,actions)+`
     <form class="card" onsubmit="event.preventDefault();saveVendor(${isNew?'null':v.id})">
@@ -448,11 +819,19 @@ function renderVendorForm(id){
       <div class="p-5">
         <div id="formContactsList"></div>
       </div>
-      ${panelHeader('Social')}
-      <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label class="label">LinkedIn</label><input id="f_social_linkedin" class="input" value="${escHtml(v?.social_linkedin||'')}"/></div>
-        <div><label class="label">Twitter / X</label><input id="f_social_twitter" class="input" value="${escHtml(v?.social_twitter||'')}"/></div>
-        <div><label class="label">Facebook</label><input id="f_social_facebook" class="input" value="${escHtml(v?.social_facebook||'')}"/></div>
+      ${panelHeader('Social Media','<button type="button" class="btn-ghost text-white/90 text-xs cursor-pointer hover:bg-white/10 px-2 py-1 rounded" onclick="addCustomSocial()">+ Other</button>')}
+      <div class="p-5">
+        <div class="text-[11px] text-slate-500 mb-3">Fill in URLs for any platforms the vendor uses. Leave blank to skip. Use the <strong>+ Other</strong> button for custom platforms.</div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" id="socialGrid">
+          ${SOCIAL_PLATFORMS.map(p=>{const val=getVendorSocial(v,p.key);return `<div><label class="label">${escHtml(p.label)}</label><input class="input social-field" data-key="${escHtml(p.key)}" type="url" placeholder="${escHtml(p.placeholder||'')}" value="${escHtml(val||'')}"/></div>`;}).join('')}
+        </div>
+        <div class="mt-5 pt-4 border-t border-slate-100">
+          <div class="flex items-center justify-between mb-2">
+            <div class="label" style="margin:0">Other / Custom Platforms</div>
+            <button type="button" class="btn-ghost text-xs" onclick="addCustomSocial()">+ Add Custom</button>
+          </div>
+          <div id="customSocialsList"></div>
+        </div>
       </div>
       ${panelHeader('Department Coverage')}
       <div class="p-5">
@@ -479,6 +858,7 @@ function renderVendorForm(id){
     </form>`;
   renderFormDocs();
   renderFormContacts();
+  renderCustomSocials();
 }
 function initFormContacts(v){
   if(!v)return [{name:'',email:'',phone:'',role:''}];
@@ -552,9 +932,13 @@ function formatSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFi
 function saveVendor(id){
   const sections=[...document.querySelectorAll('.form-section-cb:checked')].map(cb=>cb.value);
   readFormContacts();
+  readCustomSocials();
   const contacts=(window.__formContacts||[]).filter(c=>c.name||c.email||c.phone).map(c=>({name:(c.name||'').trim(),email:(c.email||'').trim(),phone:(c.phone||'').trim(),role:(c.role||'').trim()}));
   const primary=contacts[0]||{name:'',email:'',phone:''};
-  const data={name:document.getElementById('f_name').value.trim(),website:document.getElementById('f_website').value.trim(),social_linkedin:document.getElementById('f_social_linkedin').value.trim(),social_twitter:document.getElementById('f_social_twitter').value.trim(),social_facebook:document.getElementById('f_social_facebook').value.trim(),contact_name:primary.name,contact_email:primary.email,contact_phone:primary.phone,contacts,mission_statement:document.getElementById('f_mission').value.trim(),project:document.getElementById('f_project').value.trim(),sections:JSON.stringify(sections),notes:document.getElementById('f_notes').value.trim(),updated_at:new Date().toISOString()};
+  const socials={};
+  document.querySelectorAll('.social-field').forEach(inp=>{const k=inp.dataset.key;const val=(inp.value||'').trim();if(val)socials[k]=val;});
+  const customSocials=(window.__formCustomSocials||[]).map(c=>({label:(c.label||'').trim(),url:(c.url||'').trim()})).filter(c=>c.label||c.url);
+  const data={name:document.getElementById('f_name').value.trim(),website:document.getElementById('f_website').value.trim(),socials,customSocials,social_linkedin:socials.linkedin||'',social_twitter:socials.twitter||'',social_facebook:socials.facebook||'',contact_name:primary.name,contact_email:primary.email,contact_phone:primary.phone,contacts,mission_statement:document.getElementById('f_mission').value.trim(),project:document.getElementById('f_project').value.trim(),sections:JSON.stringify(sections),notes:document.getElementById('f_notes').value.trim(),updated_at:new Date().toISOString()};
   if(!data.name){toast('Name is required','error');return;}
   const docs=window.__formDocs||[];
   if(id){
@@ -638,10 +1022,8 @@ function renderVendorDetail(id){
         <div class="card">
           ${panelHeader('Vendor Info')}
           <div class="p-5 space-y-3 text-sm">
-            ${infoRow('Website',v.website?`<a href="${escHtml(v.website)}" target="_blank" class="text-blue-600 hover:underline">${escHtml(v.website)}</a>`:'<span class="text-slate-400">Not set</span>')}
-            ${infoRow('LinkedIn',v.social_linkedin||'<span class="text-slate-400">Not set</span>')}
-            ${infoRow('Twitter',v.social_twitter||'<span class="text-slate-400">Not set</span>')}
-            ${infoRow('Facebook',v.social_facebook||'<span class="text-slate-400">Not set</span>')}
+            ${infoRow('Website',v.website?`<a href="${escHtml(v.website)}" target="_blank" rel="noopener" class="text-blue-600 hover:underline">${escHtml(v.website)}</a>`:'<span class="text-slate-400">Not set</span>')}
+            ${renderSocialsBlock(v)}
           </div>
         </div>
 
@@ -676,6 +1058,14 @@ function renderVendorDetail(id){
     </div>`;
 }
 function infoRow(label,value){return `<div><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${label}</div><div class="mt-0.5">${value}</div></div>`;}
+function renderSocialsBlock(v){
+  const items=[];
+  SOCIAL_PLATFORMS.forEach(p=>{const val=getVendorSocial(v,p.key);if(val)items.push({label:p.label,url:val});});
+  (v.customSocials||[]).forEach(c=>{if(c&&(c.label||c.url))items.push({label:c.label||'Custom',url:c.url||'',custom:true});});
+  if(!items.length)return `<div><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Social Media</div><div class="mt-0.5"><span class="text-slate-400">No social profiles</span></div></div>`;
+  const links=items.map(i=>{const safe=String(i.url||'');const isUrl=/^https?:\/\//i.test(safe);return `<a ${isUrl?`href="${escHtml(safe)}" target="_blank" rel="noopener"`:''} class="chip bg-blue-50 text-blue-700 ${isUrl?'hover:bg-blue-100':''}" title="${escHtml(i.label)}${i.custom?' (custom)':''}">${escHtml(i.label)}${i.custom?' ★':''}</a>`;}).join(' ');
+  return `<div><div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Social Media (${items.length})</div><div class="mt-1 flex flex-wrap gap-1.5">${links}</div></div>`;
+}
 function getVendorContacts(v){
   if(Array.isArray(v.contacts)&&v.contacts.length)return v.contacts;
   if(v.contact_name||v.contact_email||v.contact_phone)return [{name:v.contact_name||'',email:v.contact_email||'',phone:v.contact_phone||'',role:''}];
@@ -1143,7 +1533,7 @@ function renderMgmtEngagementSettings(){document.getElementById('viewRoot').inne
       <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked/> Require executive approval for Critical engagements</label>
     </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Save</button></div></form>`;}
 
-function renderMgmtAudit(){const evs=[{time:new Date(Date.now()-3600000).toLocaleString(),user:'Test User',action:'Updated vendor',target:'Test Vendor 1'},{time:new Date(Date.now()-7200000).toLocaleString(),user:'Test User',action:'Created campaign',target:'Test Campaign - Claims Modernization'},{time:new Date(Date.now()-86400000).toLocaleString(),user:'Test Viewer',action:'Viewed scoring matrix',target:''},{time:new Date(Date.now()-172800000).toLocaleString(),user:'Test User',action:'Exported CSV',target:'vendors.csv'}];document.getElementById('viewRoot').innerHTML=pageHeader('Audit Log','Track user activity',null)+mgmtNav('mgmt-audit')+`
+function renderMgmtAudit(){const evs=[{time:new Date(Date.now()-3600000).toLocaleString(),user:'Test User',action:'Updated vendor',target:'ClaimSwift Technologies'},{time:new Date(Date.now()-7200000).toLocaleString(),user:'Test User',action:'Created campaign',target:'Claims Modernization Initiative'},{time:new Date(Date.now()-86400000).toLocaleString(),user:'Test Viewer',action:'Viewed scoring matrix',target:''},{time:new Date(Date.now()-172800000).toLocaleString(),user:'Test User',action:'Exported CSV',target:'vendors.csv'}];document.getElementById('viewRoot').innerHTML=pageHeader('Audit Log','Track user activity',null)+mgmtNav('mgmt-audit')+`
     <div class="card overflow-x-auto"><table class="af w-full"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Target</th></tr></thead><tbody>${evs.map(e=>`<tr><td class="text-slate-500 text-xs">${e.time}</td><td class="font-medium">${escHtml(e.user)}</td><td>${escHtml(e.action)}</td><td class="text-slate-600">${escHtml(e.target)}</td></tr>`).join('')}</tbody></table></div>`;}
 
 /* ============================================================
@@ -1173,11 +1563,23 @@ function renderProfilePassword(){document.getElementById('viewRoot').innerHTML=p
       <div><label class="label">Confirm New Password</label><input class="input" type="password"/></div>
       <div class="text-[11px] text-slate-500">Password must be at least 8 characters.</div>
     </div><div class="px-5 py-4 border-t flex justify-end"><button class="btn-primary">Update Password</button></div></form>`;}
-function renderProfileTheme(){document.getElementById('viewRoot').innerHTML=pageHeader('Theme & Display','Customize appearance',null)+profileNav('profile-theme')+`
+function renderProfileTheme(){
+  const curTheme=store.settings.theme||'light';
+  const curDensity=store.settings.density||'comfortable';
+  document.getElementById('viewRoot').innerHTML=pageHeader('Theme & Display','Customize appearance',null)+profileNav('profile-theme')+`
     <div class="card">${panelHeader('Theme')}<div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-      ${[['light','Light','bg-white'],['dark','Dark','bg-slate-900'],['auto','System','bg-gradient-to-br from-white to-slate-900']].map(([k,lbl,bg])=>`<button class="p-4 rounded-lg border-2 ${store.settings.theme===k?'border-blue-500':'border-slate-200'} hover:border-blue-300" onclick="store.settings.theme='${k}';saveStore();toast('Theme set: ${lbl}');renderProfileTheme()"><div class="w-full h-20 rounded ${bg} mb-2 border border-slate-200"></div><div class="text-sm font-medium text-slate-800">${lbl}</div></button>`).join('')}
+      ${[['light','Light','linear-gradient(135deg,#F8FAFC,#E2E8F0)','#1F2937','Bright, clean interface'],['dark','Dark','linear-gradient(135deg,#0F172A,#1E293B)','#F1F5F9','Easy on the eyes'],['auto','System','linear-gradient(135deg,#F8FAFC 50%,#0F172A 50%)','#475569','Match OS preference']].map(([k,lbl,bg,fg,sub])=>`<button class="p-4 rounded-lg border-2 ${curTheme===k?'border-blue-500 ring-2 ring-blue-200':'border-slate-200'} hover:border-blue-300 transition-all text-left" onclick="setTheme('${k}')"><div class="w-full h-20 rounded mb-2 border border-slate-200 flex items-center justify-center" style="background:${bg} !important;color:${fg} !important;font-weight:600;">${lbl}</div><div class="text-sm font-medium text-slate-800">${lbl}${curTheme===k?' &middot; Active':''}</div><div class="text-[11px] text-slate-500 mt-0.5">${sub}</div></button>`).join('')}
     </div></div>
-    <div class="card mt-4">${panelHeader('Density')}<div class="p-5 flex gap-3">${['Comfortable','Compact','Spacious'].map(d=>`<button class="btn-secondary">${d}</button>`).join('')}</div></div>`;}
+    <div class="card mt-4">${panelHeader('Density')}<div class="p-5 flex gap-3 flex-wrap">${['Comfortable','Compact','Spacious'].map(d=>{const k=d.toLowerCase();const active=curDensity===k;return `<button class="${active?'btn-primary':'btn-secondary'}" onclick="setDensity('${k}')">${d}${active?' ✓':''}</button>`;}).join('')}</div></div>
+    <div class="card mt-4">${panelHeader('Preview')}<div class="p-5 space-y-3">
+      <div class="flex items-center gap-3"><span class="chip rec-BUY">BUY</span><span class="chip rec-BUILD">BUILD</span><span class="chip rec-PARTNER">PARTNER</span></div>
+      <input class="input" placeholder="Sample input field"/>
+      <div class="flex gap-2"><button class="btn-primary">Primary Button</button><button class="btn-secondary">Secondary</button><button class="btn-ghost">Ghost</button></div>
+      <div class="text-sm text-slate-700">Sample body text — the quick brown fox jumps over the lazy dog.</div>
+      <div class="text-[11px] text-slate-400">This is muted secondary text used for hints and metadata.</div>
+    </div></div>`;}
+function setTheme(k){store.settings.theme=k;saveStore();applyTheme();toast('Theme set: '+k.charAt(0).toUpperCase()+k.slice(1),'success');renderProfileTheme();}
+function setDensity(k){store.settings.density=k;saveStore();applyTheme();toast('Density: '+k.charAt(0).toUpperCase()+k.slice(1),'success');renderProfileTheme();}
 function renderProfileNotifications(){document.getElementById('viewRoot').innerHTML=pageHeader('Notification Preferences','Choose what you hear about',null)+profileNav('profile-notifications')+`
     <form class="card" onsubmit="event.preventDefault();toast('Preferences saved','success')">${panelHeader('Email Notifications')}<div class="p-5 space-y-3">
       ${[['New vendor added',true],['Vendor scores updated',true],['Campaign changes',true],['Engagement milestones',true],['Ticket updates',true],['Weekly digest',false],['Monthly report',false]].map(([l,v])=>`<label class="flex items-center justify-between py-2 border-b border-slate-50"><span class="text-sm text-slate-700">${l}</span><input type="checkbox" ${v?'checked':''}/></label>`).join('')}
